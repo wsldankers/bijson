@@ -18,20 +18,31 @@ appropriate, the size of the offset(s) used for indexing.
 - 0x06: empty string
 - 0x07: [empty bytes]
 - 0x08: [undefined]
-- 0x09: [NaN]
+- 0x09: [float NaN]
+- 0x0A: [decimal NaN]
 
-- 0x10..0x11: zero
-- 0x12..0x13: [Inf]
+- 0x11: float16
+- 0x12: float32
+- 0x13: float64
+- 0x14: float128
+- 0x15: float256
 
-- 0x20..0x23: string
-- 0x24..0x27: [bytes]
+- 0x20..0x21: integer zero
+- 0x22..0x23: float zero
+- 0x24..0x25: [float Inf]
+- 0x26..0x27: decimal zero
+- 0x28..0x29: [decimal Inf]
+
+- 0x30..0x33: string
+- 0x34..0x37: [bytes]
 
 - 0x40..0x47: integer
 
 - 0x60..0x6F: array
 
 - 0x80..0xBF: object
-- 0xC0..0xFF: float
+
+- 0xC0..0xFF: decimal
 
 Whenever a type needs to store offsets, it does so in an integer size
 that is signaled using two bits that form an integer:
@@ -92,28 +103,33 @@ A shorthand to denote an empty binary string. Non-standard.
 
 Corresponds to Javascript undefined. Non-standard.
 
-#### 0x06: [NaN]
+#### 0x06: [float NaN]
 
 Corresponds to floating-point NaN (not-a-number). Non-standard.
 
-#### 0x10..0x11: zero
+#### 0x20..0x21: integer zero
 
-A shorthand to denote the numeric +0 and -0 respectively.
+A shorthand to denote the integers +0 and -0 respectively.
 The lower bit encodess the sign.
 
-#### 0x12..0x13: [Inf]
+#### 0x22..0x23: float zero
 
-A shorthand to denote numeric +infinity and -infinity respectively.
+A shorthand to denote the float +0.0 and -0.0 respectively.
+The lower bit encodess the sign.
+
+#### 0x24..0x25: [float Inf]
+
+A shorthand to denote float +infinity and -infinity respectively.
 The lower bit encodess the sign. Non-standard.
 
-#### 0x20..0x23: string
+#### 0x30..0x33: string
 
 Corresponds to a JSON text string. The lower two bits correspond to the
 size of the following length integer. The length indicator specifies
 the number of following bytes (not characters!). The following bytes
 MUST form a valid UTF-8 sequence.
 
-#### 0x24..0x27: [bytes]
+#### 0x34..0x37: [bytes]
 
 Corresponds to a byte string. The lower two bits correspond to the
 size of the following length integer. The length indicator specifies
@@ -155,6 +171,27 @@ Hashes are twice the size of the item number integer.
 Keys MUST be encoded in UTF-8. Entries are sorted by their hash value.
 Hashes can be looked up quickly using weighted bisection.
 
-#### 0xC0..0xFF: float
+#### 0xC0..0xFF: decimal
 
 Mantissa, exponent, sign, sign.
+
+Mantissa: bits 0 and 1 denote the length of the mantissa in bytes. A
+mantissa is any number of 64-bit unsigned integers, followed by one
+32-bit unsigned integer, one 16-bit unsigned integer and one 8-bit
+integer (all optional) so that the stated length is achieved.
+
+64-bit integers denote values between 0 and 1000000000 (exclusive);
+32-bit integers denote values between 0 and 1000000 (exclusive);
+16-bit integers denote values between 0 and 10000 (exclusive);
+8-bit integers denote values between 0 and 100 (exclusive);
+
+The value of the mantissa is equal to the zero-padded decimal
+representations of each integer concatenated (little-endian,
+so first value is the least significant).
+
+[111111111, 222222222, 33] becomes: 33222222222111111111.
+
+Bit 4 is the sign of the mantissa.
+
+Bits 2 and 3 denote the size of the exponent, which is an unsigned
+integer. Bit 5 is the sign of the exponent.
