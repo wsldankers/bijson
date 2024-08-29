@@ -188,7 +188,7 @@ Corresponds to a Javascript object.
 
 Count size, key offset size, value offset size, seed presence.
 
-Iff bit 6 is 1, the first item is a 64-bit integer that is the XXH3 hash seed
+If bit 6 is 1, the first item is a 64-bit integer that is the XXH3 hash seed
 value. If it is 0, no seed value is present and the type byte is immediately
 followed by the length integer described below.
 
@@ -204,7 +204,8 @@ The value offsets are counted from the end of the last key. Bits 4 and 5
 together denote the size of each value offset.
 
 Keys must be encoded in UTF-8. Entries are sorted by the hash value of their
-respective keys. This way entries can be looked up quickly using weighted
-bisection.
+respective keys, then the length of their keys, then the keys themselves. This
+way entries can be looked up quickly using weighted bisection. If weighted
+bisection takes too many steps, fall back to normal bisection.
 
 Use XXH3_64 if bit 1 is 0, else use XXH3_128.
