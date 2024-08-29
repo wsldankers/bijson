@@ -18,20 +18,17 @@ appropriate, the size of the offset(s) used for indexing.
 - 0x06: empty string
 - 0x07: [empty bytes]
 - 0x08: [undefined]
-- 0x09: [float NaN]
-- 0x0A: [decimal NaN]
+- 0x09: [NaN]
 
+- 0x10: float8
 - 0x11: float16
 - 0x12: float32
 - 0x13: float64
 - 0x14: float128
 - 0x15: float256
 
-- 0x20..0x21: integer zero
-- 0x22..0x23: float zero
-- 0x24..0x25: [float Inf]
-- 0x26..0x27: decimal zero
-- 0x28..0x29: [decimal Inf]
+- 0x20..0x21: zero
+- 0x22..0x23: [Inf]
 
 - 0x30..0x33: string
 - 0x34..0x37: [bytes]
@@ -43,6 +40,8 @@ appropriate, the size of the offset(s) used for indexing.
 - 0x80..0xBF: object
 
 - 0xC0..0xFF: decimal
+
+All basic integers are encoded as little-endian.
 
 Whenever a type needs to store offsets, it does so in an integer size
 that is signaled using two bits that form an integer:
@@ -66,10 +65,9 @@ easily.
 
 ### For each type:
 
-
 #### 0x00 [reserved]
 
-MUST NOT be used.
+Must not be used.
 
 #### 0x01: null
 
@@ -103,23 +101,23 @@ A shorthand to denote an empty binary string. Non-standard.
 
 Corresponds to Javascript undefined. Non-standard.
 
-#### 0x06: [float NaN]
+#### 0x09: [NaN]
 
 Corresponds to floating-point NaN (not-a-number). Non-standard.
 
-#### 0x20..0x21: integer zero
+#### 0x10..0x15: float
 
-A shorthand to denote the integers +0 and -0 respectively.
+IEEE float types. The lower 4 bits, when used as an exponent to 2,
+form the length in bytes.
+
+#### 0x20..0x21: zero
+
+A shorthand to denote the numbers +0 and -0 respectively.
 The lower bit encodess the sign.
 
-#### 0x22..0x23: float zero
+#### 0x22..0x23: [Inf]
 
-A shorthand to denote the float +0.0 and -0.0 respectively.
-The lower bit encodess the sign.
-
-#### 0x24..0x25: [float Inf]
-
-A shorthand to denote float +infinity and -infinity respectively.
+A shorthand to denote +infinity and -infinity respectively.
 The lower bit encodess the sign. Non-standard.
 
 #### 0x30..0x33: string
@@ -155,43 +153,45 @@ each offset.
 
 Corresponds to a Javascript object. The lower two bits (bits 0 and 1)
 denote the size of the following integer that describes the number of
-items in the array. This integer is followed by precisely that number of
-integers denoting hash values of the keys. That list of hashes is in turn
-followed by offsets of object keys. And that list in turn is followed
+key/value pairs in the object. This integer is followed by precisely
+that number of offsets of object keys. And that list in turn is followed
 by offsets of object values.
 
-The key offsets are counted from the end of the value offsets list. Bits
-2 and 3 together denote the size of each key offset.
+The key offsets are counted from the end of the key offsets list. Bits 2
+and 3 together denote the size of each key offset.
 
 The value offsets are counted from the end of the last key. Bits 4 and 5
 together denote the size of each value offset.
 
-Hashes are twice the size of the item number integer.
-
-Keys MUST be encoded in UTF-8. Entries are sorted by their hash value.
-Hashes can be looked up quickly using weighted bisection.
+Keys must be encoded in UTF-8. Entries are sorted by the XXH128 hash
+value of their respective keys. This way entries can be looked up
+quickly using weighted bisection.
 
 #### 0xC0..0xFF: decimal
 
 Mantissa, exponent, sign, sign.
 
-Mantissa: bits 0 and 1 denote the length of the mantissa in bytes. A
-mantissa is any number of 64-bit unsigned integers, followed by one
-32-bit unsigned integer, one 16-bit unsigned integer and one 8-bit
-integer (all optional) so that the stated length is achieved.
+Mantissa: bits 0 and 1 denote the size of the first integer, which
+describes the length of the mantissa in bytes.
 
-64-bit integers denote values between 0 and 1000000000 (exclusive);
-32-bit integers denote values between 0 and 1000000 (exclusive);
-16-bit integers denote values between 0 and 10000 (exclusive);
-8-bit integers denote values between 0 and 100 (exclusive);
+Exponent: bits 2 and 3 denote the size of the following integer, which
+describes the length of the exponent in bytes.
 
-The value of the mantissa is equal to the zero-padded decimal
-representations of each integer concatenated (little-endian,
-so first value is the least significant).
+Bit 4 is the sign of the mantissa. Bit 5 is the sign of the exponent.
 
-[111111111, 222222222, 33] becomes: 33222222222111111111.
+After the length integers follow the mantissa and exponent,
+respectively.
 
-Bit 4 is the sign of the mantissa.
+The mantissa and exponent consist of any number of 64-bit unsigned
+integers, the first of which is truncated if and only if the full 64-bit
+integer is not necessary to encode that part.
 
-Bits 2 and 3 denote the size of the exponent, which is an unsigned
-integer. Bit 5 is the sign of the exponent.
+64-bit integers denote values between 0 and 10000000000000000000
+(exclusive).
+
+The value of the mantissa and exponent equal to the zero-padded decimal
+representations of each integer concatenated (big-endian, so first value
+is the most significant).
+
+So this 17 byte sequence: [1, 2, 3] would mean:
+100000000000000000020000000000000000003
