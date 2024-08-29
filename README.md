@@ -19,27 +19,25 @@ appropriate, the size of the offset(s) used for indexing.
 - 0x07: [empty bytes]
 - 0x08: [undefined]
 - 0x09: [NaN]
+- 0x10..0x11: zero
+- 0x12..0x13: [Inf]
 
-- 0x10: float8
-- 0x11: float16
-- 0x12: float32
-- 0x13: float64
-- 0x14: float128
-- 0x15: float256
+- 0x18: float8
+- 0x19: float16
+- 0x1A: float32
+- 0x1B: float64
+- 0x1C: float128
+- 0x1D: float256
 
-- 0x20..0x21: zero
-- 0x22..0x23: [Inf]
+- 0x20..0x23: string
+- 0x24..0x27: [bytes]
+- 0x28..0x2F: integer
 
-- 0x30..0x33: string
-- 0x34..0x37: [bytes]
+- 0x30..0x3F: array
 
-- 0x40..0x47: integer
+- 0x40..0x7F: decimal
 
-- 0x60..0x6F: array
-
-- 0x80..0xBF: object
-
-- 0xC0..0xFF: decimal
+- 0x80..0xFF: object
 
 All basic integers are encoded as little-endian.
 
@@ -105,42 +103,42 @@ Corresponds to Javascript undefined. Non-standard.
 
 Corresponds to floating-point NaN (not-a-number). Non-standard.
 
-#### 0x10..0x15: float
-
-IEEE float types. The lower 4 bits, when used as an exponent to 2,
-form the length in bytes.
-
-#### 0x20..0x21: zero
+#### 0x10..0x11: zero
 
 A shorthand to denote the numbers +0 and -0 respectively.
 The lower bit encodess the sign.
 
-#### 0x22..0x23: [Inf]
+#### 0x12..0x13: [Inf]
 
 A shorthand to denote +infinity and -infinity respectively.
 The lower bit encodess the sign. Non-standard.
 
-#### 0x30..0x33: string
+#### 0x18..0x1D: float
+
+IEEE float types. The lower 3 bits, when used as an exponent to 2,
+form the length in bytes.
+
+#### 0x20..0x23: string
 
 Corresponds to a JSON text string. The lower two bits correspond to the
 size of the following length integer. The length indicator specifies
 the number of following bytes (not characters!). The following bytes
 MUST form a valid UTF-8 sequence.
 
-#### 0x34..0x37: [bytes]
+#### 0x24..0x27: [bytes]
 
 Corresponds to a byte string. The lower two bits correspond to the
 size of the following length integer. The length indicator specifies
 the number of following bytes. Non-standard.
 
-#### 0x40..0x47: integer
+#### 0x28..0x2F: integer
 
 Corresponds to an integer number. The lower two bits (bits 0 and 1)
 correspond to the size of the following length integer. Bit 2 indicates
 the sign. The length indicator specifies the number of following bytes,
 which in turn represent the number in unsigned little-endian format.
 
-#### 0x60..0x6F: array
+#### 0x30..0x3F: array
 
 Corresponds to a Javascript array. The lower two bits (bits 0 and 1)
 denote the size of the following integer that describes the number of
@@ -149,25 +147,7 @@ integers denoting offsets of array entries. The offsets are counted from
 the end of the offsets list. Bits 2 and 3 together denote the size of
 each offset.
 
-#### 0x80..0xBF: object
-
-Corresponds to a Javascript object. The lower two bits (bits 0 and 1)
-denote the size of the following integer that describes the number of
-key/value pairs in the object. This integer is followed by precisely
-that number of offsets of object keys. And that list in turn is followed
-by offsets of object values.
-
-The key offsets are counted from the end of the key offsets list. Bits 2
-and 3 together denote the size of each key offset.
-
-The value offsets are counted from the end of the last key. Bits 4 and 5
-together denote the size of each value offset.
-
-Keys must be encoded in UTF-8. Entries are sorted by the XXH128 hash
-value of their respective keys. This way entries can be looked up
-quickly using weighted bisection.
-
-#### 0xC0..0xFF: decimal
+#### 0x40..0x7F: decimal
 
 Mantissa, exponent, sign, sign.
 
@@ -195,3 +175,26 @@ is the most significant).
 
 So this 17 byte sequence: [1, 2, 3] would mean:
 100000000000000000020000000000000000003
+
+#### 0x80..0xFF: object
+
+Corresponds to a Javascript object.
+
+Iff bit 6 is 1, the first item is a 64-bit integer that is the XXH128 seed
+value. If it is 0, no seed value is present and the type byte is immediately
+followed by the integers described below.
+
+The lower two bits (bits 0 and 1) denote the size of the following integer
+that describes the number of key/value pairs in the object. This integer is
+followed by precisely that number of offsets of object keys. And that list in
+turn is followed by offsets of object values.
+
+The key offsets are counted from the end of the key offsets list. Bits 2
+and 3 together denote the size of each key offset.
+
+The value offsets are counted from the end of the last key. Bits 4 and 5
+together denote the size of each value offset.
+
+Keys must be encoded in UTF-8. Entries are sorted by the XXH128 hash
+value of their respective keys. This way entries can be looked up
+quickly using weighted bisection.
