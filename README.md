@@ -5,8 +5,7 @@ structure efficiently without first loading it in memory.
 
 ## Elements:
 
-Every element starts with a byte that indicates its type and, where
-appropriate, the size of the offset(s) used for indexing.
+Every element starts with a byte that indicates its type:
 
 - 0x00: [reserved]
 
@@ -41,8 +40,8 @@ appropriate, the size of the offset(s) used for indexing.
 
 All basic integers are encoded as little-endian.
 
-Whenever a type needs to store offsets, it does so in an integer size
-that is signaled using two bits that form an integer:
+Whenever a type needs to store offsets, it does so in an integer size that is
+signaled using two bits (bit 0 is the least significant) that form an integer:
 
 0x0: 8-bit integer
 0x1: 16-bit integer
@@ -60,6 +59,11 @@ of each entry. The offset of the first entry can always be computed
 through other means, and this ensures that both the sizes of each entry
 as well as the the end of the container element itself can be determined
 easily.
+
+Whenever a length or count is stored and the length cannot reasonably 0 (given
+the existence of dedicated empty string/array/object/integer types) then the
+stored value is one less than the actual length. This is denoted as length-1.
+
 
 ### For each type:
 
@@ -120,42 +124,44 @@ form the length in bytes.
 
 #### 0x20..0x23: string
 
-Corresponds to a JSON text string. The lower two bits correspond to the
-size of the following length integer. The length indicator specifies
-the number of following bytes (not characters!). The following bytes
-MUST form a valid UTF-8 sequence.
+Corresponds to a JSON text string. The lower two bits correspond to the size
+of the following length-1 integer. The length integer-1 specifies the number
+of following bytes (not characters!). The following bytes MUST form a valid
+UTF-8 sequence.
 
 #### 0x24..0x27: [bytes]
 
-Corresponds to a byte string. The lower two bits correspond to the
-size of the following length integer. The length indicator specifies
-the number of following bytes. Non-standard.
+Corresponds to a byte string. The lower two bits correspond to the size of the
+following length-1 integer. The length-1 integer specifies the number of
+following bytes. Non-standard.
 
 #### 0x28..0x2F: integer
 
-Corresponds to an integer number. The lower two bits (bits 0 and 1)
-correspond to the size of the following length integer. Bit 2 indicates
-the sign. The length indicator specifies the number of following bytes,
-which in turn represent the number in unsigned little-endian format.
+Corresponds to an integer number. The lower two bits (bits 0 and 1) correspond
+to the size of the following length-1 integer. Bit 2 indicates the sign. The
+length-1 integer specifies the number of following bytes, which in turn
+represent the number in unsigned little-endian format.
 
 #### 0x30..0x3F: array
 
-Corresponds to a Javascript array. The lower two bits (bits 0 and 1)
-denote the size of the following integer that describes the number of
-items in the array. This integer is followed by precisely that number of
-integers denoting offsets of array entries. The offsets are counted from
-the end of the offsets list. Bits 2 and 3 together denote the size of
-each offset.
+Corresponds to a Javascript array. The lower two bits (bits 0 and 1) denote
+the size of the following length-1 integer that describes the number of items
+in the array. This integer is followed by that number of integers denoting
+offsets of array entries. The offsets are counted from the end of the offsets
+list. Bits 2 and 3 together denote the size of each offset.
 
 #### 0x40..0x7F: decimal
 
-Mantissa, exponent, sign, sign.
+A decimal number.
+
+Mantissa length size, exponent length size, sign, sign.
 
 Mantissa: bits 0 and 1 denote the size of the first integer, which
-describes the length of the mantissa in bytes.
+describes the length-1 of the mantissa in bytes.
 
 Exponent: bits 2 and 3 denote the size of the following integer, which
-describes the length of the exponent in bytes.
+describes the length of the exponent in bytes. If this integer is 0 then the
+exponent is 0, making the decimal value effectively an integer.
 
 Bit 4 is the sign of the mantissa. Bit 5 is the sign of the exponent.
 
@@ -180,13 +186,15 @@ So this 17 byte sequence: [1, 2, 3] would mean:
 
 Corresponds to a Javascript object.
 
-Iff bit 6 is 1, the first item is a 64-bit integer that is the XXH128 seed
-value. If it is 0, no seed value is present and the type byte is immediately
-followed by the integers described below.
+Count size, key offset size, value offset size, seed presence.
 
-The lower two bits (bits 0 and 1) denote the size of the following integer
-that describes the number of key/value pairs in the object. This integer is
-followed by precisely that number of offsets of object keys. And that list in
+Iff bit 6 is 1, the first item is a 64-bit integer that is the XXH3 hash seed
+value. If it is 0, no seed value is present and the type byte is immediately
+followed by the length integer described below.
+
+The lower two bits (bits 0 and 1) denote the size of the following length-1
+integer that describes the number of key/value pairs in the object. This
+integer is followed by that number of offsets of object keys. That list in
 turn is followed by offsets of object values.
 
 The key offsets are counted from the end of the key offsets list. Bits 2
@@ -195,6 +203,8 @@ and 3 together denote the size of each key offset.
 The value offsets are counted from the end of the last key. Bits 4 and 5
 together denote the size of each value offset.
 
-Keys must be encoded in UTF-8. Entries are sorted by the XXH128 hash
-value of their respective keys. This way entries can be looked up
-quickly using weighted bisection.
+Keys must be encoded in UTF-8. Entries are sorted by the hash value of their
+respective keys. This way entries can be looked up quickly using weighted
+bisection.
+
+Use XXH3_64 if bit 1 is 0, else use XXH3_128.
