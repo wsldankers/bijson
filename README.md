@@ -18,8 +18,10 @@ Every element starts with a byte that indicates its type:
 - 0x07: [empty bytes]
 - 0x08: [undefined]
 - 0x09: [NaN]
-- 0x10..0x11: zero
-- 0x12..0x13: [Inf]
+- 0x10..0x11: float zero
+- 0x12..0x13: integer zero
+- 0x14..0x15: decimal zero
+- 0x16..0x17: [Inf]
 
 - 0x18: float8
 - 0x19: float16
@@ -107,15 +109,28 @@ Corresponds to Javascript undefined. Non-standard.
 
 Corresponds to floating-point NaN (not-a-number). Non-standard.
 
-#### 0x10..0x11: zero
+#### 0x10..0x11: float zero
+
+A shorthand to denote the numbers +0.0 and -0.0 respectively.
+The lower bit encodes the sign. Represent using the shortest
+conveniently available float.
+
+#### 0x12..0x13: integer zero
 
 A shorthand to denote the numbers +0 and -0 respectively.
-The lower bit encodess the sign.
+The lower bit encodes the sign. Represent using the shortest
+conveniently available integer.
 
-#### 0x12..0x13: [Inf]
+#### 0x14..0x15: decimal zero
+
+A shorthand to denote the numbers +0 and -0 respectively.
+The lower bit encodes the sign. Represent using the decimal
+number representation.
+
+#### 0x16..0x17: [Inf]
 
 A shorthand to denote +infinity and -infinity respectively.
-The lower bit encodess the sign. Non-standard.
+The lower bit encodes the sign. Non-standard.
 
 #### 0x18..0x1D: float
 
