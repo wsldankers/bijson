@@ -197,15 +197,11 @@ is the most significant).
 So this 17 byte sequence: [1, 2, 3] would mean:
 100000000000000000020000000000000000003
 
-#### 0x80..0xFF: object
+#### 0x80..0xBF: object
 
 Corresponds to a Javascript object.
 
-Count size, key offset size, value offset size, seed presence.
-
-If bit 6 is 1, the first item is a 64-bit integer that is the XXH3 hash seed
-value. If it is 0, no seed value is present and the type byte is immediately
-followed by the length integer described below.
+Count size, key offset size, value offset size.
 
 The lower two bits (bits 0 and 1) denote the size of the following length-1
 integer that describes the number of key/value pairs in the object. This
