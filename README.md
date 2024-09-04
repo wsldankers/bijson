@@ -216,7 +216,11 @@ together denote the size of each value offset.
 
 Keys must be encoded in UTF-8. Entries are sorted by the hash value of their
 respective keys, then the length of their keys, then the keys themselves. This
-way entries can be looked up quickly using weighted bisection. If weighted
-bisection takes too many steps, fall back to normal bisection.
+way entries can be looked up using weighted bisection, with performance very
+similar to hash tables.
+
+If weighted bisection takes too many steps (>⌈log₂​(n)⌉, with n being the
+number of key/value pairs in the object), fall back to normal bisection. This
+ensures that lookups finish in O(log n) time.
 
 Use XXH3_64 if bit 1 is 0, else use XXH3_128.
