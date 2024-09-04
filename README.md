@@ -23,7 +23,6 @@ Every element starts with a byte that indicates its type:
 - 0x14..0x15: decimal zero
 - 0x16..0x17: [Inf]
 
-- 0x18: float8
 - 0x19: float16
 - 0x1A: float32
 - 0x1B: float64
@@ -132,10 +131,11 @@ number representation.
 A shorthand to denote +infinity and -infinity respectively.
 The lower bit encodes the sign. Non-standard.
 
-#### 0x18..0x1D: float
+#### 0x19..0x1D: float
 
-IEEE float types. The lower 3 bits, when used as an exponent to 2,
-form the length in bytes.
+Floating point types. The lower 3 bits, when used as an exponent to 2, form
+the length in bytes. The floats are represented in little-endian IEEE 754
+format.
 
 #### 0x20..0x23: string
 
