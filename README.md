@@ -184,11 +184,13 @@ is followed by that number of offsets of object keys. These offsets point to the
 end of each object key. That list in turn is followed by length-1 offsets of
 object values.
 
-The key offsets are counted from the end of the key offsets list. Bits 2 and 3
-together denote the size of each key offset.
+The key offsets are counted from the end of the values offsets list. Bits 2
+and 3 together denote the size of each key offset.
 
 The value offsets are counted from the end of the last key. Bits 4 and 5
-together denote the size of each value offset.
+together denote the size of each value offset. The type identification bytes
+are not included in the value offsets. When fetching the n'th item, add n to
+the offset.
 
 Keys must be encoded in UTF-8. Entries are sorted by the hash value of their
 respective keys, then the length of their keys, then the keys themselves. This
