@@ -1,18 +1,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <sysexits.h>
 #include <err.h>
-
-/*
-	bijson_writer_begin_array(writer);
-	bijson_writer_begin_object(writer);
-	bijson_writer_add_key(writer, "foo", 3);
-	bijson_writer_add_string(writer, "bar", 3);
-	bijson_writer_end_object(writer);
-	bijson_writer_end_array(writer);
-*/
 
 typedef uint8_t _bijson_spool_type_t;
 const _bijson_spool_type_t _bijson_spool_type_object = UINT8_C(1);
@@ -52,7 +44,8 @@ typedef struct bijson_writer {
 	// is type dependent.
 	_bijson_buffer_t spool;
 	// Stack contains offsets into the spool for both previous and current
-	// containers.
+	// containers. Also serves as memory space for self-contained
+	// computations.
 	_bijson_buffer_t stack;
 	size_t current_container;
 	bool failed;
@@ -80,9 +73,9 @@ static void *xalloc(size_t len) {
 #define _BIJSON_CHECK(ok) do { if(!(ok)) { writer->failed = true; return false; }} while(false)
 
 static bool _bijson_buffer_alloc(_bijson_buffer_t *buffer) {
+	*buffer = _bijson_buffer_0;
 	buffer->_size = 65536;
 	buffer->_buffer = xalloc(buffer->_size);
-	buffer->used = 0;
 	return true;
 }
 
@@ -102,11 +95,12 @@ static bool _bijson_buffer_write(_bijson_buffer_t *buffer, size_t offset, const 
 	return true;
 }
 
-static bool _bijson_buffer_push(_bijson_buffer_t *buffer, const void *data, size_t len) {
-	if(data && !_bijson_buffer_write(buffer, buffer->used, data, len))
-		return false;
-	buffer->used += len;
-	return true;
+static void *_bijson_buffer_push(_bijson_buffer_t *buffer, const void *data, size_t len) {
+	size_t used = buffer->used;
+	if(data && !_bijson_buffer_write(buffer, used, data, len))
+		return NULL;
+	buffer->used = used + len;
+	return buffer->_buffer + used;
 }
 
 static bool _bijson_buffer_pop(_bijson_buffer_t *buffer, void *data, size_t len) {
@@ -119,7 +113,7 @@ static bool _bijson_buffer_pop(_bijson_buffer_t *buffer, void *data, size_t len)
 bool _bijson_container_push(bijson_writer_t *writer, bool is_array) {
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->stack, &writer->current_container, sizeof writer->current_container));
 	writer->current_container = writer->spool.used;
-	_bijson_container_t container = { 0, 0, is_array ? UINT64_MAX : 0, 0 };
+	_bijson_container_t container = { 0, 0, is_array ? SIZE_MAX : 0, 0 };
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &container, sizeof container));
 	return true;
 }
@@ -225,8 +219,74 @@ bijson_writer_t *bijson_writer_alloc(void) {
 		return bijson_writer_free(writer), NULL;
 	if(!_bijson_buffer_alloc(&writer->stack))
 		return bijson_writer_free(writer), NULL;
-	_bijson_container_t container = { 0, 0, UINT64_MAX, 0 };
+	_bijson_container_t container = { 0, 0, SIZE_MAX, 0 };
 	if(!_bijson_buffer_push(&writer->spool, &container, sizeof container))
 		return bijson_writer_free(writer), NULL;
 	return writer;
+}
+
+typedef bool (*_bijson_writer_write_func_t)(void *userdata, const void *data, size_t len);
+
+static bool _bijson_write_to_fd(void *userdata, const void *data, size_t len) {
+	int fd = *(int *)userdata;
+	while(len > 0) {
+		ssize_t written = write(fd, data, len);
+		if(written < 0)
+			return false;
+		len -= written;
+		data = (const char *)data + written;
+	}
+	return true;
+}
+
+typedef bool (*_bijson_writer_write_type_func_t)(_bijson_writer_write_func_t write, void *write_data, const char *spool, size_t size);
+
+static bool _bijson_writer_write_string(_bijson_writer_write_func_t write, void *write_data, const char *spool, size_t size) {
+	if(!write(write_data, "\x08", 1))
+		return false;
+	if(!write(write_data, spool, size))
+		return false;
+
+	return true;
+}
+
+static _bijson_writer_write_type_func_t _bijson_writer_typewriters[] = {
+	NULL,
+	_bijson_writer_write_string,
+	NULL,
+	NULL,
+};
+
+static bool _bijson_writer_write_value(_bijson_writer_write_func_t write, void *write_data, const char *spool) {
+	_bijson_spool_type_t type = *(const uint8_t *)spool;
+	size_t size = *(const size_t *)(spool + sizeof type);
+	_bijson_writer_write_type_func_t typewriter = _bijson_writer_typewriters[type];
+	return typewriter(write, write_data, spool + sizeof type + sizeof size, size);
+}
+
+static bool _bijson_writer_write(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data) {
+	const char *buffer = writer->spool._buffer;
+	const _bijson_container_t *container = (const _bijson_container_t *)buffer;
+	if(container->total_count != 1)
+		return warnx("incorrect number of root items (should be one): %zu\n", container->total_count), false;
+	return _bijson_writer_write_value(write, write_data, buffer + sizeof(_bijson_container_t));
+}
+
+bool bijson_writer_write_to_fd(bijson_writer_t *writer, int fd) {
+	return _bijson_writer_write(writer, _bijson_write_to_fd, &fd);
+}
+
+int main(void) {
+	bijson_writer_t *writer = bijson_writer_alloc();
+
+	// bijson_writer_begin_array(writer);
+	// bijson_writer_begin_object(writer);
+	// bijson_writer_add_key(writer, "foo", 3);
+	bijson_writer_add_string(writer, "bar", 3);
+	// bijson_writer_end_object(writer);
+	// bijson_writer_end_array(writer);
+
+	bijson_writer_write_to_fd(writer, STDOUT_FILENO);
+
+	bijson_writer_free(writer);
 }
