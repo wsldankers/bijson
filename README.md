@@ -166,11 +166,13 @@ So this 17 byte sequence: [1, 2, 3] would mean:
 
 #### 0x30..0x3F: array
 
-Corresponds to a Javascript array. The lower two bits (bits 0 and 1) denote the
-size of the following length-1 integer that describes the number of items in the
-array. This integer is followed by that number-1 of integers denoting offsets of
-array entries. Bits 2 and 3 together denote the size of each offset. The last
-entry's size is inferred from the total size of the array representation.
+Corresponds to a Javascript array. The lower two bits (bits 0 and 1) denote
+the size of the following length-1 integer that describes the number of items
+in the array. This integer is followed by that number-1 of integers denoting
+offsets of array entries. Bits 2 and 3 together denote the size of each
+offset. The type identification bytes are not included in the item offsets.
+When fetching the n'th item, add n to the offset. The last entry's size is
+inferred from the total size of the array representation.
 
 #### 0x40..0x7F: object
 
