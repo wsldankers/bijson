@@ -37,6 +37,8 @@ typedef struct _bijson_buffer {
 	void *_buffer;
 	size_t _size;
 	size_t used;
+	bool _finalized;
+	bool _failed;
 } _bijson_buffer_t;
 
 static const _bijson_buffer_t _bijson_buffer_0 = {0};
@@ -88,29 +90,39 @@ static bool _bijson_buffer_alloc(_bijson_buffer_t *buffer) {
 
 static void _bijson_buffer_free(_bijson_buffer_t *buffer) {
 	free(buffer->_buffer);
-	buffer->_size = 0;
-	buffer->used = 0;
+	*buffer = _bijson_buffer_0;
 }
 
 static bool _bijson_buffer_read(_bijson_buffer_t *buffer, size_t offset, void *data, size_t len) {
+	if(buffer->_failed)
+		return false;
 	memcpy(data, buffer->_buffer + offset, len);
 	return true;
 }
 
 static bool _bijson_buffer_write(_bijson_buffer_t *buffer, size_t offset, const void *data, size_t len) {
+	if(buffer->_failed || buffer->_finalized)
+		return false;
 	memcpy(buffer->_buffer + offset, data, len);
 	return true;
 }
 
 static const char *_bijson_buffer_finalize(_bijson_buffer_t *buffer) {
+	if(buffer->_failed)
+		return NULL;
+	buffer->_finalized = true;
 	return buffer->_buffer;
 }
 
 static inline const size_t _bijson_buffer_offset(_bijson_buffer_t *buffer, const char *pointer) {
+	if(buffer->_failed || !buffer->_finalized)
+		return SIZE_MAX;
 	return pointer - (const char *)buffer->_buffer;
 }
 
 static void *_bijson_buffer_push(_bijson_buffer_t *buffer, const void *data, size_t len) {
+	if(buffer->_failed || buffer->_finalized)
+		return false;
 	size_t used = buffer->used;
 	if(data && !_bijson_buffer_write(buffer, used, data, len))
 		return NULL;
@@ -119,6 +131,8 @@ static void *_bijson_buffer_push(_bijson_buffer_t *buffer, const void *data, siz
 }
 
 static bool _bijson_buffer_pop(_bijson_buffer_t *buffer, void *data, size_t len) {
+	if(buffer->_failed || buffer->_finalized)
+		return false;
 	buffer->used -= len;
 	if(data && !_bijson_buffer_read(buffer, buffer->used, data, len))
 		return false;
