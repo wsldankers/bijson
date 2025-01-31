@@ -65,6 +65,8 @@ typedef struct _bijson_container {
 
 static const _bijson_container_t _bijson_container_0 = {0};
 
+typedef bool (*_bijson_writer_write_func_t)(void *write_data, const void *data, size_t len);
+
 static void *xalloc(size_t len) {
 	void *buffer = malloc(len);
 	if (!buffer)
@@ -100,6 +102,14 @@ static bool _bijson_buffer_write(_bijson_buffer_t *buffer, size_t offset, const 
 	return true;
 }
 
+static const char *_bijson_buffer_finalize(_bijson_buffer_t *buffer) {
+	return buffer->_buffer;
+}
+
+static inline const size_t _bijson_buffer_offset(_bijson_buffer_t *buffer, const char *pointer) {
+	return pointer - (const char *)buffer->_buffer;
+}
+
 static void *_bijson_buffer_push(_bijson_buffer_t *buffer, const void *data, size_t len) {
 	size_t used = buffer->used;
 	if(data && !_bijson_buffer_write(buffer, used, data, len))
@@ -115,17 +125,17 @@ static bool _bijson_buffer_pop(_bijson_buffer_t *buffer, void *data, size_t len)
 	return true;
 }
 
-typedef size_t (*_bijson_writer_size_type_func_t)(bijson_writer_t *writer, const char *spool);
+typedef size_t (*_bijson_writer_size_type_func_t)(bijson_writer_t *writer, size_t spool_offset);
 
-static size_t _bijson_writer_size_scalar(bijson_writer_t *writer, const char *spool) {
+static size_t _bijson_writer_size_scalar(bijson_writer_t *writer, size_t spool_offset) {
 	size_t spool_size;
-	memcpy(&spool_size, spool, sizeof spool_size);
+	_BIJSON_CHECK(_bijson_buffer_read(&writer->spool, spool_offset, &spool_size, sizeof spool_size));
 	return spool_size;
 }
 
-static size_t _bijson_writer_size_container(bijson_writer_t *writer, const char *spool) {
+static size_t _bijson_writer_size_container(bijson_writer_t *writer, size_t spool_offset) {
 	size_t output_size;
-	memcpy(&output_size, spool + sizeof _bijson_container_0.spool_size, sizeof output_size);
+	_BIJSON_CHECK(_bijson_buffer_read(&writer->spool, spool_offset + sizeof _bijson_container_0.spool_size, &output_size, sizeof output_size));
 	return output_size;
 }
 
@@ -135,10 +145,11 @@ static _bijson_writer_size_type_func_t _bijson_writer_typesizers[] = {
 	_bijson_writer_size_container,
 };
 
-static size_t _bijson_writer_size_value(bijson_writer_t *writer, const char *spool) {
-	_bijson_spool_type_t spool_type = *(const _bijson_spool_type_t *)spool;
+static size_t _bijson_writer_size_value(bijson_writer_t *writer, size_t spool_offset) {
+	_bijson_spool_type_t spool_type;
+	_BIJSON_CHECK(_bijson_buffer_read(&writer->spool, spool_offset, &spool_type, sizeof spool_type));
 	_bijson_writer_size_type_func_t typesizer = _bijson_writer_typesizers[spool_type];
-	return typesizer(writer, spool + sizeof spool_type);
+	return typesizer(writer, spool_offset + sizeof spool_type);
 }
 
 bool _bijson_container_push(bijson_writer_t *writer) {
@@ -178,36 +189,34 @@ bool bijson_writer_end_object(bijson_writer_t *writer) {
 	_bijson_container_t container = _bijson_container_0;
 	container.spool_size = spool_used - current_container - sizeof container.spool_size;
 
-	const char *spool_buffer = writer->spool._buffer;
-	const char *spool = spool_buffer + current_container + sizeof container;
-	const char *spool_end = spool_buffer + spool_used;
+	size_t spool_offset = current_container + sizeof container;
 
 	size_t keys_output_size = 0;
 	size_t values_output_size = 0;
 
-	const char *object_item = spool;
-	while(object_item < spool_end) {
+	size_t object_item_offset = spool_offset;
+	while(object_item_offset < spool_used) {
 		container.count++;
 		size_t key_spool_size;
-		memcpy(&key_spool_size, object_item, sizeof key_spool_size);
+		_BIJSON_CHECK(_bijson_buffer_read(&writer->spool, object_item_offset, &key_spool_size, sizeof key_spool_size));
 		keys_output_size += key_spool_size;
-		object_item += sizeof key_spool_size;
-		object_item += key_spool_size;
-		values_output_size += _bijson_writer_size_value(writer, object_item);
+		object_item_offset += sizeof key_spool_size;
+		object_item_offset += key_spool_size;
+		values_output_size += _bijson_writer_size_value(writer, object_item_offset);
 
-		object_item += sizeof(_bijson_spool_type_t);
+		object_item_offset += sizeof(_bijson_spool_type_t);
 		size_t value_spool_size;
-		memcpy(&value_spool_size, object_item, sizeof value_spool_size);
-		object_item += sizeof value_spool_size;
-		object_item += value_spool_size;
+		_BIJSON_CHECK(_bijson_buffer_read(&writer->spool, object_item_offset, &value_spool_size, sizeof value_spool_size));
+		object_item_offset += sizeof value_spool_size;
+		object_item_offset += value_spool_size;
 	}
 
 	container.output_size = container.count
-		? _bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size1(container.count)) +
+		? 1 + _bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size1(container.count)) +
 			container.count * _bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size(keys_output_size)) +
-			(container.count - 1) * _bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size(values_output_size)) +
-			keys_output_size + values_output_size + container.count
-		: 0;
+			(container.count - 1) * _bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size(values_output_size - container.count)) +
+			keys_output_size + values_output_size
+		: 1;
 
 	_BIJSON_CHECK(_bijson_buffer_write(&writer->spool, current_container, &container, sizeof container));
 
@@ -222,28 +231,26 @@ bool bijson_writer_end_array(bijson_writer_t *writer) {
 	_bijson_container_t container = _bijson_container_0;
 	container.spool_size = spool_used - current_container - sizeof container.spool_size;
 
-	const char *spool_buffer = writer->spool._buffer;
-	const char *spool = spool_buffer + current_container + sizeof container;
-	const char *spool_end = spool_buffer + spool_used;
+	size_t spool_offset = current_container + sizeof container;
 
 	size_t items_output_size = 0;
 
-	const char *item = spool;
-	while(item < spool_end) {
+	size_t item_offset = spool_offset;
+	while(item_offset < spool_used) {
 		container.count++;
-		items_output_size += _bijson_writer_size_value(writer, item);
-		item += sizeof(_bijson_spool_type_t);
-		size_t value_spool_size;
-		memcpy(&value_spool_size, item, sizeof value_spool_size);
-		item += sizeof value_spool_size;
-		item += value_spool_size;
+		items_output_size += _bijson_writer_size_value(writer, item_offset);
+		item_offset += sizeof(_bijson_spool_type_t);
+		size_t item_spool_size;
+		_BIJSON_CHECK(_bijson_buffer_read(&writer->spool, item_offset, &item_spool_size, sizeof item_spool_size));
+		item_offset += sizeof item_spool_size;
+		item_offset += item_spool_size;
 	}
 
 	container.output_size = container.count
-		? _bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size1(container.count)) +
-			(container.count - 1) * _bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size(items_output_size)) +
-			items_output_size + container.count
-		: 0;
+		? 1 + _bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size1(container.count)) +
+			(container.count - 1) * _bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size(items_output_size - container.count)) +
+			items_output_size
+		: 1;
 
 	_BIJSON_CHECK(_bijson_buffer_write(&writer->spool, current_container, &container, sizeof container));
 
@@ -254,7 +261,9 @@ bool bijson_writer_end_array(bijson_writer_t *writer) {
 
 bool bijson_writer_add_string(bijson_writer_t *writer, const char *string, size_t len) {
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &_bijson_spool_type_scalar, sizeof _bijson_spool_type_scalar));
-	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &len, sizeof len));
+	size_t output_size = len + 1;
+	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &output_size, sizeof output_size));
+	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, "\x08", 1));
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, string, len));
 	return true;
 }
@@ -275,39 +284,24 @@ bijson_writer_t *bijson_writer_alloc(void) {
 	return writer;
 }
 
-typedef bool (*_bijson_writer_write_func_t)(bijson_writer_t *writer, void *userdata, const void *data, size_t len);
-
-static bool _bijson_write_to_fd(bijson_writer_t *writer, void *userdata, const void *data, size_t len) {
-	int fd = *(int *)userdata;
-	while(len > 0) {
-		ssize_t written = write(fd, data, len);
-		if(written < 0)
-			return false;
-		len -= written;
-		data = (const char *)data + written;
-	}
-	return true;
-}
-
 typedef bool (*_bijson_writer_write_type_func_t)(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, const char *spool);
 
-static inline bool _bijson_writer_write_compact_int(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, uint64_t u, uint8_t width) {
+static inline bool _bijson_writer_write_compact_int(_bijson_writer_write_func_t write, void *write_data, uint64_t u, uint8_t width) {
 	size_t nbytes = 1 << width;
 	uint8_t buf[8];
 	for(size_t z = 0; z < nbytes; z++) {
 		buf[z] = u & UINT8_C(0xFF);
 		u >>= 8;
 	}
-	return write(writer, write_data, buf, nbytes);
+	return write(write_data, buf, nbytes);
 }
 
 static bool _bijson_writer_write_value(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, const char *spool);
 
 static bool _bijson_writer_write_scalar(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, const char *spool) {
-	_BIJSON_CHECK(write(writer, write_data, "\x08", 1));
 	size_t spool_size;
 	memcpy(&spool_size, spool, sizeof spool_size);
-	_BIJSON_CHECK(write(writer, write_data, spool + sizeof spool_size, spool_size));
+	_BIJSON_CHECK(write(write_data, spool + sizeof spool_size, spool_size));
 	return true;
 }
 
@@ -336,7 +330,7 @@ static bool _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writer_
 	spool += sizeof container;
 
 	if(container.count == 0)
-		return write(writer, write_data, "\x04", 1);
+		return write(write_data, "\x04", 1);
 
 	const char **object_items;
 	size_t object_items_size = container.count * sizeof *object_items;
@@ -354,7 +348,7 @@ static bool _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writer_
 		object_item += sizeof key_spool_size;
 		object_item += key_spool_size;
 
-		values_output_size += _bijson_writer_size_value(writer, object_item);
+		values_output_size += _bijson_writer_size_value(writer, _bijson_buffer_offset(&writer->spool, object_item));
 		object_item += sizeof(_bijson_spool_type_t);
 		size_t value_spool_size;
 		memcpy(&value_spool_size, object_item, sizeof value_spool_size);
@@ -367,10 +361,10 @@ static bool _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writer_
 	uint8_t key_offsets_width = _bijson_optimal_storage_size(keys_output_size);
 	uint8_t value_offsets_width = _bijson_optimal_storage_size1(values_output_size);
 	uint8_t final_type = UINT8_C(0x40) | count_width | (key_offsets_width << 2) | (value_offsets_width << 4);
-	_BIJSON_CHECK(write(writer, write_data, &final_type, sizeof final_type));
+	_BIJSON_CHECK(write(write_data, &final_type, sizeof final_type));
 
 	size_t container_count_1 = container.count - 1;
-	_BIJSON_CHECK(_bijson_writer_write_compact_int(writer, write, write_data, container_count_1, count_width));
+	_BIJSON_CHECK(_bijson_writer_write_compact_int(write, write_data, container_count_1, count_width));
 
 	// Write the key offsets
 	size_t key_offset = 0;
@@ -379,7 +373,7 @@ static bool _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writer_
 		size_t key_spool_size;
 		memcpy(&key_spool_size, object_item, sizeof key_spool_size);
 		key_offset += key_spool_size;
-		_BIJSON_CHECK(_bijson_writer_write_compact_int(writer, write, write_data, key_offset, key_offsets_width));
+		_BIJSON_CHECK(_bijson_writer_write_compact_int(write, write_data, key_offset, key_offsets_width));
 	}
 
 	// Write the value offsets
@@ -390,8 +384,8 @@ static bool _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writer_
 		memcpy(&key_spool_size, object_item, sizeof key_spool_size);
 		object_item += sizeof key_spool_size;
 		object_item += key_spool_size;
-		value_output_offset += _bijson_writer_size_value(writer, object_item);
-		_BIJSON_CHECK(_bijson_writer_write_compact_int(writer, write, write_data, value_output_offset, value_offsets_width));
+		value_output_offset += _bijson_writer_size_value(writer, _bijson_buffer_offset(&writer->spool, object_item));
+		_BIJSON_CHECK(_bijson_writer_write_compact_int(write, write_data, value_output_offset, value_offsets_width));
 	}
 
 	// Write the keys
@@ -400,7 +394,7 @@ static bool _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writer_
 		size_t key_spool_size;
 		memcpy(&key_spool_size, object_item, sizeof key_spool_size);
 		object_item += sizeof key_spool_size;
-		_BIJSON_CHECK(write(writer, write_data, object_item, key_spool_size));
+		_BIJSON_CHECK(write(write_data, object_item, key_spool_size));
 	}
 
 	// Write the values
@@ -423,13 +417,13 @@ static bool _bijson_writer_write_array(bijson_writer_t *writer, _bijson_writer_w
 	spool += sizeof container;
 
 	if(container.count == 0)
-		return write(writer, write_data, "\x05", 1);
+		return write(write_data, "\x05", 1);
 
 	size_t items_output_size = 0;
 
 	const char *item = spool;
 	for(size_t z = 0; z < container.count; z++) {
-		items_output_size += _bijson_writer_size_value(writer, item);
+		items_output_size += _bijson_writer_size_value(writer, _bijson_buffer_offset(&writer->spool, item));
 		item += sizeof(_bijson_spool_type_t);
 		size_t item_spool_size;
 		memcpy(&item_spool_size, item, sizeof item_spool_size);
@@ -441,10 +435,10 @@ static bool _bijson_writer_write_array(bijson_writer_t *writer, _bijson_writer_w
 	uint8_t item_offsets_width = _bijson_optimal_storage_size1(items_output_size);
 	uint8_t final_type = UINT8_C(0x30) | count_width | (item_offsets_width << 4);
 
-	_BIJSON_CHECK(write(writer, write_data, &final_type, sizeof final_type));
+	_BIJSON_CHECK(write(write_data, &final_type, sizeof final_type));
 
 	size_t container_count1 = container.count - 1;
-	_BIJSON_CHECK(_bijson_writer_write_compact_int(writer, write, write_data, container_count1, count_width));
+	_BIJSON_CHECK(_bijson_writer_write_compact_int(write, write_data, container_count1, count_width));
 
 	size_t container_count_1 = container.count - 1;
 
@@ -456,8 +450,8 @@ static bool _bijson_writer_write_array(bijson_writer_t *writer, _bijson_writer_w
 		memcpy(&item_spool_size, item, sizeof item_spool_size);
 		item += sizeof item_spool_size;
 		item += item_spool_size;
-		item_output_offset += _bijson_writer_size_value(writer, item);
-		_BIJSON_CHECK(_bijson_writer_write_compact_int(writer, write, write_data, item_output_offset, item_offsets_width));
+		item_output_offset += _bijson_writer_size_value(writer, _bijson_buffer_offset(&writer->spool, item));
+		_BIJSON_CHECK(_bijson_writer_write_compact_int(write, write_data, item_output_offset, item_offsets_width));
 	}
 
 	// Write the element values
@@ -487,7 +481,21 @@ static bool _bijson_writer_write_value(bijson_writer_t *writer, _bijson_writer_w
 }
 
 static bool _bijson_writer_write(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data) {
-	return _bijson_writer_write_value(writer, write, write_data, writer->spool._buffer);
+	const char *spool = _bijson_buffer_finalize(&writer->spool);
+	_BIJSON_CHECK(spool);
+	return _bijson_writer_write_value(writer, write, write_data, spool);
+}
+
+static bool _bijson_write_to_fd(void *write_data, const void *data, size_t len) {
+	int fd = *(int *)write_data;
+	while(len > 0) {
+		ssize_t written = write(fd, data, len);
+		if(written < 0)
+			return false;
+		len -= written;
+		data = (const char *)data + written;
+	}
+	return true;
 }
 
 bool bijson_writer_write_to_fd(bijson_writer_t *writer, int fd) {
