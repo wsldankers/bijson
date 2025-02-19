@@ -18,9 +18,9 @@ Every element starts with a byte that indicates its type:
 - 0x07: [NaN]
 - 0x08: string
 - 0x09: [bytes]
-- 0x10..0x11: integer
-- 0x12..0x13: float zero
-- 0x14..0x15: decimal zero
+- 0x10..0x11: binary integer
+- 0x12..0x13: decimal integer
+- 0x14..0x15: float zero
 - 0x16..0x17: [Inf]
 
 - 0x18: [reserved]
@@ -48,16 +48,16 @@ All basic integers are encoded as little-endian.
 Whenever a type needs to store offsets, it does so in an integer size that is
 signaled using two bits (bit 0 is the least significant) that form an integer:
 
-0x0: 8-bit integer
-0x1: 16-bit integer
-0x2: 32-bit integer
-0x3: 64-bit integer
+- 0x0: 8-bit integer
+- 0x1: 16-bit integer
+- 0x2: 32-bit integer
+- 0x3: 64-bit integer
 
 Whenever a type needs to store a sign, it does so using a single bit
 inside its type-indicating byte:
 
-0x0: positive sign
-0x1: negative sign
+- 0x0: positive sign
+- 0x1: negative sign
 
 Unless otherwise noted, whenever a list of offsets is stored, the first offset
 is omitted because it's always zero. The size of the last entry can always be
@@ -110,20 +110,21 @@ sequence.
 
 Corresponds to a byte string. Non-standard.
 
-#### 0x10..0x11: integer
+#### 0x10..0x11: binary integer
 
 Corresponds to an integer number. The lower two bit indicates the sign. The
 following bytes represent the number in unsigned little-endian format.
 
-#### 0x12..0x13: float zero
+#### 0x12..0x13: decimal integer
+
+A shorthand to denote decimal integers, which are the same as decimal values
+but without an exponent. The lower bit encodes the sign. See the decimal type
+for the method of encoding the mantissa.
+
+#### 0x14..0x15: float zero
 
 A shorthand to denote the numbers +0.0 and -0.0 respectively. The lower bit
 encodes the sign. Represent using the shortest conveniently available float.
-
-#### 0x14..0x15: decimal zero
-
-A shorthand to denote the numbers +0 and -0 respectively. The lower bit encodes
-the sign. Represent using the decimal number representation.
 
 #### 0x16..0x17: [Inf]
 
@@ -137,7 +138,7 @@ length in bytes. The floats are represented in little-endian IEEE 754 format.
 
 #### 0x20..0x2F: decimal
 
-A decimal number.
+A decimal number with exponent.
 
 Exponent length size, sign, sign.
 
@@ -148,21 +149,24 @@ making the value effectively a decimally represented integer.
 Bit 2 is the sign of the mantissa. Bit 3 is the sign of the exponent.
 
 After the length integer follow the exponent and mantissa, respectively. The
-length of the mantissa can be inferred from the bounding size.
+length of the mantissa can be inferred from the bounding size. If this length
+is 0 then the number is 0.
 
-The mantissa and exponent consist of any number of 64-bit unsigned integers, the
-first of which is truncated if and only if the full 64-bit integer is not
-necessary to encode that part.
+The mantissa and exponent consist of any number of 64-bit unsigned integers,
+the last of which is reduced by one and truncated if and only if the full
+64-bit integer is not necessary to encode that part.
 
 64-bit integers denote values between 0 (inclusive) and 10000000000000000000
-(exclusive).
+(exclusive). That's 1e19, the largest power of 10 that fits in a 64-bit
+unsigned integer.
 
 The value of the mantissa and exponent are equal to the zero-padded decimal
-representations of each integer concatenated (big-endian, so first value is the
-most significant).
+representations of each integer concatenated in reverse order. In other words,
+the stored value is little-endian and the last value is the most significant.
 
-So this 17 byte sequence: [1, 2, 3] would mean:
-100000000000000000020000000000000000003
+As an example, this 17 byte sequence: [1 (8 bytes), 2 (8 bytes), 3 (1 byte)]
+would represent the value 400000000000000000020000000000000000001 (recall that
+the last value was reduced by one before storing).
 
 #### 0x30..0x3F: array
 

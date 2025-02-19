@@ -275,10 +275,111 @@ bool bijson_writer_end_array(bijson_writer_t *writer) {
 
 bool bijson_writer_add_string(bijson_writer_t *writer, const char *string, size_t len) {
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &_bijson_spool_type_scalar, sizeof _bijson_spool_type_scalar));
-	size_t output_size = len + 1;
-	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &output_size, sizeof output_size));
+	size_t size = len + 1;
+	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &size, sizeof size));
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, "\x08", 1));
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, string, len));
+	return true;
+}
+
+static inline bool is_ascii_digit(char c) {
+	return '0' <= c && c <= '9';
+}
+
+bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *string, size_t len) {
+	if(!len)
+		return false;
+
+	const char *string_pointer = string;
+
+	bool mantissa_negative = *string_pointer == '-';
+	if(mantissa_negative || *string_pointer == '+')
+		string_pointer++;
+
+	const char *string_end = string + len;
+
+	while(string_pointer != string_end && *string_pointer == '0')
+		string_pointer++;
+	const char *mantissa_start = string_pointer;
+
+	while(string_pointer != string_end && is_ascii_digit(*string_pointer))
+		string_pointer++;
+
+	const char *mantissa_end = string_pointer;
+
+	const char *decimal_point = NULL;
+
+	if(string_pointer != string_end && *string_pointer == '.') {
+		decimal_point = string_pointer++;
+		while(string_pointer != string_end) {
+			char c = *string_pointer;
+			if(is_ascii_digit(*string_pointer)) {
+				string_pointer++;
+				if(*string_pointer != '0')
+					mantissa_end = string_pointer;
+			} else {
+				break;
+			}
+		}
+	}
+
+	const char *exponent_start = NULL;
+	if(string_pointer != string_end) {
+		int c = *string_pointer;
+		if(c == 'e' || c == 'E') {
+			string_pointer++;
+
+			while(string_pointer != string_end && *string_pointer == '0')
+				string_pointer++;
+
+			exponent_start = string_pointer;
+
+			while(string_pointer != string_end && is_ascii_digit(*string_pointer))
+				string_pointer++;
+		}
+	}
+
+	if(string_pointer != string_end)
+		return false;
+
+	size_t mantissa_digits = (mantissa_end - mantissa_start) - (bool)decimal_point;
+
+	size_t mantissa_output_size = 0;
+	size_t mantissa_msb_output_size = 0;
+	size_t most_significant_digits = 0;
+	size_t less_significant_digits = 0;
+	uint64_t most_significant_word = 0;
+	if(mantissa_digits) {
+		most_significant_digits = (mantissa_digits + 17) % 18 + 1;
+		less_significant_digits = mantissa_digits - most_significant_digits;
+		const char *most_significant_digits_end = mantissa_start + most_significant_digits;
+		if(most_significant_digits_end > decimal_point)
+			most_significant_digits_end++;
+		for(const char *msd = mantissa_start; msd < most_significant_digits_end; msd++)
+			if(msd != decimal_point)
+				most_significant_word = most_significant_word * 10 + *msd - '0';
+		most_significant_word--;
+
+		mantissa_msb_output_size =
+			most_significant_word > UINT64_C(0xFFFFFFFFF)
+				? most_significant_word > UINT64_C(0xFFFFFFFFFFFFF)
+					? most_significant_word > UINT64_C(0xFFFFFFFFFFFFFFF)
+						? 8
+						: 7
+					: most_significant_word > UINT64_C(0xFFFFFFFFFF)
+						? 6
+						: 5
+				: most_significant_word > UINT64_C(0xFFFF)
+					? most_significant_word > UINT64_C(0xFFFFFF)
+						? 4
+						: 3
+					: most_significant_word > UINT64_C(0xFF)
+						? 2
+						: 1;
+
+		mantissa_output_size = less_significant_digits / 18 * sizeof(uint64_t) + mantissa_msb_output_size;
+	}
+
 	return true;
 }
 
