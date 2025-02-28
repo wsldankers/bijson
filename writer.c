@@ -67,6 +67,7 @@ typedef struct _bijson_container {
 
 static const _bijson_container_t _bijson_container_0 = {0};
 
+// If data == NULL: write a zeroed region of length len (or seek, if appropriate).
 typedef bool (*_bijson_writer_write_func_t)(void *write_data, const void *data, size_t len);
 
 static void *xalloc(size_t len) {
@@ -103,7 +104,10 @@ static bool _bijson_buffer_read(_bijson_buffer_t *buffer, size_t offset, void *d
 static bool _bijson_buffer_write(_bijson_buffer_t *buffer, size_t offset, const void *data, size_t len) {
 	if(buffer->_failed || buffer->_finalized)
 		return false;
-	memcpy(buffer->_buffer + offset, data, len);
+	if(data)
+		memcpy(buffer->_buffer + offset, data, len);
+	else
+		memset(buffer->_buffer + offset, '\0', len);
 	return true;
 }
 
@@ -323,14 +327,13 @@ static inline int _bijson_compare_digits(const char *a_start, size_t a_len, cons
 	return a_len > b_len ? 1 : a_len < b_len ? -1 : memcmp(a_start, b_start, a_len);
 }
 
-static size_t _bijson_add_digits(const char *a_start, size_t a_len, const char *b_start, size_t b_len, _bijson_writer_write_func_t write, void *write_data) {
+static bool _bijson_add_digits(const char *a_start, size_t a_len, const char *b_start, size_t b_len, _bijson_writer_write_func_t write, void *write_data) {
 	assert(!a_len || *a_start != '0');
 	assert(!b_len || *b_start != '0');
 
 	if(!a_len || !b_len)
 		return 0;
 
-	size_t total_size = 0;
 	size_t magnitude = 1;
 	bool carry = 0;
 	const char *a = a_start + a_len;
@@ -348,11 +351,10 @@ static size_t _bijson_add_digits(const char *a_start, size_t a_len, const char *
 		sum += a_b_sum * magnitude;
 		if(a <= a_start && b <= b_start && !carry)
 			break;
-		magnitude *= 10;
+		magnitude *= UINT64_C(10);
 		if(magnitude == UINT64_C(10000000000000000000)) {
-			total_size += sizeof sum;
-			if(write && !_bijson_writer_write_minimal_int(write, write_data, sum, sizeof sum))
-				return SIZE_MAX;
+			if(!_bijson_writer_write_minimal_int(write, write_data, sum, sizeof sum))
+				return false;
 			magnitude = 1;
 			sum = 0;
 		}
@@ -365,16 +367,13 @@ static size_t _bijson_add_digits(const char *a_start, size_t a_len, const char *
 
 	assert(sum);
 
-	sum--;
-	size_t last_digit_size = _bijson_fit_uint64(sum);
-	total_size += last_digit_size;
-	if(write && !_bijson_writer_write_minimal_int(write, write_data, sum, last_digit_size))
-		return SIZE_MAX;
+	if(!_bijson_writer_write_minimal_int(write, write_data, sum, _bijson_fit_uint64(sum - 1)))
+		return false;
 
-	return total_size;
+	return true;
 }
 
-static size_t _bijson_subtract_digits(const char *a_start, size_t a_len, const char *b_start, size_t b_len, _bijson_writer_write_func_t write, void *write_data) {
+static bool _bijson_subtract_digits(const char *a_start, size_t a_len, const char *b_start, size_t b_len, _bijson_writer_write_func_t write, void *write_data) {
 	// Compute a-b; a must not be smaller than b. Neither a nor be can have
 	// leading zeroes.
 	assert(!a_len || *a_start != '0');
@@ -384,14 +383,13 @@ static size_t _bijson_subtract_digits(const char *a_start, size_t a_len, const c
 	if(!a_len || !b_len)
 		return 0;
 
-	size_t total_size = 0;
 	size_t magnitude = 1;
 	bool carry = 0;
 	const char *a = a_start + a_len;
 	const char *b = b_start + b_len;
 	uint64_t diff = 0;
-	uint64_t delayed_diff = 0;
-	uint64_t delayed_zeroes = 0;
+	bool pending_diff = false;
+	uint64_t pending_zeroes = 0;
 	for(;;) {
 		a--;
 		b--;
@@ -401,62 +399,48 @@ static size_t _bijson_subtract_digits(const char *a_start, size_t a_len, const c
 		carry = a_b_diff < 10;
 		if(!carry)
 			a_b_diff -= 10;
-		diff += a_b_diff * magnitude;
+
+		if(a_b_diff) {
+			// Ok, we have a new contender for the new most significant word.
+			// Write out any delayed stuff to make place for it.
+			if(pending_diff) {
+				if(!_bijson_writer_write_minimal_int(write, write_data, diff, sizeof diff))
+					return false;
+				pending_diff = false;
+				diff = a_b_diff * magnitude;
+			} else {
+				diff += a_b_diff * magnitude;
+			}
+
+			if(pending_zeroes) {
+				size_t zeroes_size = pending_zeroes * sizeof diff;
+				if(!write(write_data, NULL, zeroes_size))
+					return false;
+				pending_zeroes = 0;
+			}
+		}
+
 		if(a == a_start)
 			break;
-		magnitude *= 10;
+
+		magnitude *= UINT64_C(10);
 		if(magnitude == UINT64_C(10000000000000000000)) {
-			if(diff) {
-				if(delayed_diff) {
-					total_size += sizeof delayed_diff;
-					if(write && !_bijson_writer_write_minimal_int(write, write_data, diff, sizeof diff))
-						return SIZE_MAX;
-				}
-
-				total_size += delayed_zeroes * sizeof diff;
-				if(write) {
-					while(delayed_zeroes--)
-						if(!_bijson_writer_write_minimal_int(write, write_data, 0, sizeof diff))
-							return SIZE_MAX;
-				} else {
-					delayed_zeroes = 0;
-				}
-
-				delayed_diff = diff;
-			} else {
-				delayed_zeroes++;
-			}
+			// We can't write out diff immediately, it might be the most
+			// significant word, which requires special handling.
+			if(diff)
+				pending_diff = true;
+			else
+				pending_zeroes++;
 			magnitude = 1;
-			diff = 0;
 		}
 	}
 
 	assert(!carry);
 
-	if(delayed_diff) {
-		if(diff) {
-			total_size += sizeof delayed_diff;
-			if(write && !_bijson_writer_write_minimal_int(write, write_data, diff, sizeof diff))
-				return SIZE_MAX;
-		} else {
-			diff = delayed_diff;
-		}
-	}
+	if(diff && !_bijson_writer_write_minimal_int(write, write_data, diff, _bijson_fit_uint64(diff - 1)))
+		return false;
 
-	if(diff) {
-		diff--;
-		size_t last_digit_size = _bijson_fit_uint64(diff);
-		total_size += delayed_zeroes * sizeof diff + last_digit_size;
-		if(write) {
-			while(delayed_zeroes--)
-				if(!_bijson_writer_write_minimal_int(write, write_data, 0, sizeof diff))
-					return SIZE_MAX;
-			if(!_bijson_writer_write_minimal_int(write, write_data, diff, last_digit_size))
-				return SIZE_MAX;
-		}
-	}
-
-	return total_size;
+	return true;
 }
 
 typedef struct _bijson_digit_analysis {
@@ -774,14 +758,29 @@ static bool _bijson_writer_write(bijson_writer_t *writer, _bijson_writer_write_f
 	return _bijson_writer_write_value(writer, write, write_data, spool);
 }
 
+static const char _bijson_nul_bytes[4096];
+
+static inline size_t _bijson_size_min(size_t a, size_t b) {
+	return a < b ? a : b;
+}
+
 static bool _bijson_write_to_fd(void *write_data, const void *data, size_t len) {
 	int fd = *(int *)write_data;
-	while(len > 0) {
-		ssize_t written = write(fd, data, len);
-		if(written < 0)
-			return false;
-		len -= written;
-		data = (const char *)data + written;
+	if(data) {
+		while(len) {
+			ssize_t written = write(fd, data, len);
+			if(written < 0)
+				return false;
+			len -= written;
+			data = (const char *)data + written;
+		}
+	} else {
+		while(len) {
+			ssize_t written = write(fd, _bijson_nul_bytes, _bijson_size_min(len, sizeof _bijson_nul_bytes));
+			if(written < 0)
+				return false;
+			len -= written;
+		}
 	}
 	return true;
 }
