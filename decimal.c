@@ -360,9 +360,11 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 			}
 		}
 
-		output_parameters.total_size = output_parameters.mantissa_size + output_parameters.exponent_size;
+		output_parameters.total_size = SIZE_C(1) + output_parameters.mantissa_size;
 		if(output_parameters.exponent_size)
-			output_parameters.total_size += _bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size1(output_parameters.exponent_size));
+			output_parameters.total_size +=
+				_bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size1(output_parameters.exponent_size))
+				 + output_parameters.exponent_size;
 
 		if(output_parameters.total_size < best_output_parameters.total_size)
 			best_output_parameters = output_parameters;
@@ -370,6 +372,7 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &_bijson_spool_type_scalar, sizeof _bijson_spool_type_scalar));
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &best_output_parameters.total_size, sizeof best_output_parameters.total_size));
+	size_t offset = writer->spool.used;
 	uint8_t type = best_output_parameters.exponent_size
 		? UINT8_C(0x20)
 			| _bijson_optimal_storage_size1(best_output_parameters.exponent_size)
@@ -378,15 +381,13 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 		: UINT8_C(0x12) | string_analysis.mantissa_negative;
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &type, sizeof type));
 
-	// packing the mantissa and exponent with the optimal shift adjustment
-	if(!_bijson_shift_digits(
-		string_analysis.significand_start, string_analysis.significand_end - string_analysis.significand_start,
-		string_analysis.decimal_point, best_output_parameters.shift_adjustment,
-		_bijson_decimal_buffer_push_writer, &writer->spool
-	))
-		return false;
-
 	if(best_output_parameters.exponent_size) {
+		size_t exponent_size_1 = best_output_parameters.exponent_size - 1;
+		_BIJSON_CHECK(_bijson_writer_write_compact_int(
+			_bijson_decimal_buffer_push_writer, &writer->spool,
+			exponent_size_1, _bijson_optimal_storage_size(exponent_size_1)
+		));
+
 		if(shift_negative == string_analysis.exponent_negative) {
 			// add the shift to the exponent
 			if(!_bijson_add_digits(
@@ -415,6 +416,16 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 			}
 		}
 	}
+
+	// packing the mantissa and exponent with the optimal shift adjustment
+	if(!_bijson_shift_digits(
+		string_analysis.significand_start, string_analysis.significand_end - string_analysis.significand_start,
+		string_analysis.decimal_point, best_output_parameters.shift_adjustment,
+		_bijson_decimal_buffer_push_writer, &writer->spool
+	))
+		return false;
+
+	fprintf(stderr, "total_size=%zu written=%zu\n", best_output_parameters.total_size, writer->spool.used - offset);
 
 	return true;
 }

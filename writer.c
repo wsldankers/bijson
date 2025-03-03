@@ -3,9 +3,10 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "common.h"
 #include "buffer.h"
+#include "common.h"
 #include "container.h"
+#include "decimal.h"
 #include "string.h"
 #include "writer.h"
 
@@ -114,14 +115,15 @@ bool bijson_writer_write_to_fd(bijson_writer_t *writer, int fd) {
 int main(void) {
 	bijson_writer_t *writer = bijson_writer_alloc();
 
-	bijson_writer_begin_array(writer);
-	bijson_writer_begin_object(writer);
-	bijson_writer_add_key(writer, "foo", 3);
-	bijson_writer_add_string(writer, "bar", 3);
-	bijson_writer_add_key(writer, "quux", 4);
-	bijson_writer_add_string(writer, "xyzzy", 5);
-	bijson_writer_end_object(writer);
-	bijson_writer_end_array(writer);
+	// bijson_writer_begin_array(writer);
+	// bijson_writer_begin_object(writer);
+	// bijson_writer_add_key(writer, "foo", 3);
+	// bijson_writer_add_string(writer, "bar", 3);
+	// bijson_writer_add_key(writer, "quux", 4);
+	// bijson_writer_add_string(writer, "xyzzy", 5);
+	// bijson_writer_end_object(writer);
+	bijson_writer_add_decimal_from_string(writer, "3.14", 4);
+	// bijson_writer_end_array(writer);
 
 	bijson_writer_write_to_fd(writer, STDOUT_FILENO);
 
