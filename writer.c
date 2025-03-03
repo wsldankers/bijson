@@ -79,11 +79,12 @@ static bool _bijson_writer_write(bijson_writer_t *writer, _bijson_writer_write_f
 	return _bijson_writer_write_value(writer, write, write_data, spool);
 }
 
-static const char _bijson_nul_bytes[4096];
-
-static inline size_t _bijson_size_min(size_t a, size_t b) {
-	return a < b ? a : b;
+bool _bijson_writer_bytecounter_writer(void *write_data, const void *data, size_t len) {
+	*(size_t *)write_data += len;
+	return true;
 }
+
+static const char _bijson_nul_bytes[4096];
 
 static bool _bijson_write_to_fd(void *write_data, const void *data, size_t len) {
 	int fd = *(int *)write_data;

@@ -143,8 +143,7 @@ A decimal number with exponent.
 Exponent length size, sign, sign.
 
 Exponent: bits 0 and 1 denote the size of the following integer, which describes
-the length of the exponent in bytes. If this length is 0 then the exponent is 0,
-making the value effectively a decimally represented integer.
+the length-1 of the exponent in bytes.
 
 Bit 2 is the sign of the mantissa. Bit 3 is the sign of the exponent.
 
