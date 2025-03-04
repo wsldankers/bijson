@@ -302,6 +302,7 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 		int exponent_adjusted_shift_cmp;
 		char adjusted_shift_string[__SIZEOF_SIZE_T__ * 5 / 2 + 1];
 		bool exponent_negative;
+		bool adjusted_shift_negative;
 	} output_parameters_t;
 
 	output_parameters_t best_output_parameters = {
@@ -312,18 +313,31 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 	// Moving part of the exponent to the mantissa may reduce the size of the
 	// exponent while not affecting the size of the mantissa too much due to
 	// byte-level packing granularity. Try a few sizes to see what is optimal.
-	size_t max_shift_adjustment = (shift_negative || string_analysis.exponent_negative) ? SIZE_C(0) : _bijson_size_min(shift, SIZE_C(10));
+	size_t max_shift_adjustment = shift_negative && string_analysis.exponent_negative ? SIZE_C(0) : SIZE_C(10);
 
 	for(size_t shift_adjustment = 0; shift_adjustment <= max_shift_adjustment; shift_adjustment++) {
-		size_t adjusted_shift = shift - shift_adjustment;
+		size_t adjusted_shift;
+		bool adjusted_shift_negative;
+		if(shift_negative) {
+			adjusted_shift_negative = true;
+			adjusted_shift = shift + shift_adjustment;
+		} else {
+			adjusted_shift_negative = shift < shift_adjustment;
+			adjusted_shift = adjusted_shift_negative
+				? shift_adjustment - shift
+				: shift - shift_adjustment;
+		}
 
 		output_parameters_t output_parameters = {
 			.exponent_negative = string_analysis.exponent_negative,
 			.shift_adjustment = shift_adjustment,
+			.adjusted_shift_negative = adjusted_shift_negative,
 		};
-		output_parameters.adjusted_shift_string_len = adjusted_shift ? sprintf(output_parameters.adjusted_shift_string, "%zu", adjusted_shift) : 0;
+		output_parameters.adjusted_shift_string_len = adjusted_shift
+			? sprintf(output_parameters.adjusted_shift_string, "%zu", adjusted_shift)
+			: 0;
 
-		if(shift_negative == string_analysis.exponent_negative) {
+		if(adjusted_shift_negative == string_analysis.exponent_negative) {
 			// add the shift to the exponent
 			if(!_bijson_add_digits(
 				string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
@@ -372,6 +386,9 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 				_bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size1(output_parameters.exponent_size))
 				 + output_parameters.exponent_size;
 
+		// fprintf(stderr, "shift=%s%zu shift_adjustment=%zu adjusted_shift=%s%zu mantissa_size=%zu exponent_size=%zu total_size=%zu\n",
+		// 	shift_negative ? "-" : "", shift, shift_adjustment, adjusted_shift_negative ? "-" : "", adjusted_shift, output_parameters.mantissa_size, output_parameters.exponent_size, output_parameters.total_size);
+
 		// Prefer the smallest total output size.
 		// If they are equal in length, prefer a fully integer version over one with an exponent.
 		if(best_output_parameters.total_size > output_parameters.total_size || (
@@ -399,7 +416,7 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 			exponent_size_1, _bijson_optimal_storage_size(exponent_size_1)
 		));
 
-		if(shift_negative == string_analysis.exponent_negative) {
+		if(best_output_parameters.adjusted_shift_negative == string_analysis.exponent_negative) {
 			// add the shift to the exponent
 			if(!_bijson_add_digits(
 				string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
