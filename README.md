@@ -63,9 +63,9 @@ Unless otherwise noted, whenever a list of offsets is stored, the first offset
 is omitted because it's always zero. The size of the last entry can always be
 computed using its offset and the bounding size of the container.
 
-Whenever a length or count is stored and the length cannot reasonably 0 (given
-the existence of dedicated empty array/object/zero types) then the stored value
-is one less than the actual length. This is denoted as length-1.
+Whenever a length or count is stored and the length cannot reasonably be 0
+(given the existence of dedicated empty array/object/zero types) then the
+stored value is one less than the actual length. This is denoted as length-1.
 
 ### For each type:
 
@@ -113,13 +113,14 @@ Corresponds to a byte string. Non-standard.
 #### 0x10..0x11: binary integer
 
 Corresponds to an integer number. The lower two bit indicates the sign. The
-following bytes represent the number in unsigned little-endian format.
+following bytes represent the absolute value of the number in unsigned
+little-endian format.
 
 #### 0x12..0x13: decimal integer
 
 A shorthand to denote decimal integers, which are the same as decimal values
-but without an exponent. The lower bit encodes the sign. See the decimal type
-for the method of encoding the mantissa.
+(see below) but without an exponent. The lower bit encodes the sign. See the
+decimal type for the method of encoding the mantissa.
 
 #### 0x14..0x15: float zero
 

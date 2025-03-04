@@ -4,6 +4,16 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#if __SIZEOF_SIZE_T__ == 8
+#define SIZE_C(x) UINT64_C(x)
+#elif __SIZEOF_SIZE_T__ == 4
+#define SIZE_C(x) UINT32_C(x)
+#else
+#define SIZE_C(x) ((size_t)(x))
+#endif
+
+#define orz(x) (sizeof (x) / sizeof *(x))
+
 extern void *_bijson_xalloc(size_t len);
 extern void _bijson_xfree(void *buf);
 extern bool _bijson_is_valid_utf8(const char *string, size_t len);
@@ -20,11 +30,3 @@ static inline size_t _bijson_size_clamp(size_t min, size_t x, size_t max) {
 	assert(min <= max);
 	return x < min ? min : x > max ? max : x;
 }
-
-#if __SIZEOF_SIZE_T__ == 8
-#define SIZE_C(x) UINT64_C(x)
-#elif __SIZEOF_SIZE_T__ == 4
-#define SIZE_C(x) UINT32_C(x)
-#else
-#define SIZE_C(x) ((size_t)(x))
-#endif

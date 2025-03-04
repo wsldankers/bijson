@@ -1,0 +1,15 @@
+CC = gcc
+OPTIMIZE = -O3
+WERROR = -Werror
+FILE_OFFSET_BITS = 64
+D_FILE_OFFSET_BITS = -D_FILE_OFFSET_BITS=$(FILE_OFFSET_BITS)
+STANDARD = -std=c99
+LTO = -flto
+BASIC = -pipe -D_GNU_SOURCE $(D_FILE_OFFSET_BITS) -g -Wall $(WERROR) $(LTO)
+CFLAGS = $(STANDARD) $(OPTIMIZE) $(SPECIALIZE) $(BASIC) $(EXTRA_CFLAGS)
+STRICT = -pedantic-errors -Wextra
+STRICT += -Wno-missing-field-initializers -Wno-unused-parameter
+STRICT += -Waggregate-return -Wbad-function-cast -Wcast-align -Wcast-qual -Wconversion -Wdeclaration-after-statement -Winline -Wmissing-declarations -Wmissing-prototypes -Wnested-externs -Wold-style-definition -Wpointer-arith -Wredundant-decls -Wshadow -Wstack-protector -Wstrict-prototypes -Wundef -Wwrite-strings
+EXTRA_STRICT = $(STRICT) -Wunreachable-code
+STRIP = -s
+LDFLAGS = -pipe $(OPTIMIZE) $(LTO) $(STRIP)

@@ -2,4 +2,4 @@
 !/.git*
 !/.clang-format
 writer
-
+*.o

@@ -314,6 +314,7 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 	// exponent while not affecting the size of the mantissa too much due to
 	// byte-level packing granularity. Try a few sizes to see what is optimal.
 	size_t max_shift_adjustment = shift_negative && string_analysis.exponent_negative ? SIZE_C(0) : SIZE_C(10);
+	// (better criterion: in_exp > -shift)
 
 	for(size_t shift_adjustment = 0; shift_adjustment <= max_shift_adjustment; shift_adjustment++) {
 		size_t adjusted_shift;

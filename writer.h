@@ -10,7 +10,8 @@ extern const _bijson_spool_type_t _bijson_spool_type_scalar;
 extern const _bijson_spool_type_t _bijson_spool_type_object;
 extern const _bijson_spool_type_t _bijson_spool_type_array;
 
-#define _BIJSON_CHECK(ok) do { if(!(ok)) { writer->failed = true; return false; }} while(false)
+#define _BIJSON_CHECK_OR_RETURN(ok, ret) do { if(!(ok)) { writer->failed = true; return ret; }} while(false)
+#define _BIJSON_CHECK(ok) _BIJSON_CHECK_OR_RETURN(ok, false)
 
 typedef struct bijson_writer {
 	// The spool contains values, each starting with a _bijson_spool_type_t,

@@ -1,0 +1,22 @@
+define programrule
+$1_OBJECTS ?= $1.o
+$1_LDFLAGS ?= $$(LDFLAGS)
+$1_LIBS ?= $$(LIBS)
+objects += $$($1_OBJECTS) $$($1_EXTRA_OBJECTS)
+
+$1: $$(sort $$($1_OBJECTS) $$($1_EXTRA_OBJECTS))
+	exec $$(strip $(CC) $$($1_LDFLAGS) $$($1_EXTRA_LDFLAGS) $$^ -o $$@ $$($1_LIBS) $$($1_EXTRA_LIBS))
+endef
+
+$(foreach prog,$(programs),$(eval $(call programrule,$(prog))))
+
+define objectrule
+$1_CFLAGS ?= $$(CFLAGS)
+
+$1.o: $1.c $$($1_EXTRA_DEPS)
+	exec $$(strip $(CC) $$($1_CFLAGS) $$($1_EXTRA_CFLAGS) -c $$< -o $$@)
+endef
+
+$(foreach obj,$(sort $(objects:.o=)),$(eval $(call objectrule,$(obj))))
+
+.PHONY: all clean install recursive

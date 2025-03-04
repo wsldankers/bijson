@@ -50,7 +50,8 @@ static _bijson_writer_size_type_func_t _bijson_writer_typesizers[] = {
 
 size_t _bijson_writer_size_value(bijson_writer_t *writer, size_t spool_offset) {
 	_bijson_spool_type_t spool_type;
-	_BIJSON_CHECK(_bijson_buffer_read(&writer->spool, spool_offset, &spool_type, sizeof spool_type));
+	_BIJSON_CHECK_OR_RETURN(_bijson_buffer_read(&writer->spool, spool_offset, &spool_type, sizeof spool_type), SIZE_MAX);
+	assert(spool_type < orz(_bijson_writer_typesizers));
 	_bijson_writer_size_type_func_t typesizer = _bijson_writer_typesizers[spool_type];
 	return typesizer(writer, spool_offset + sizeof spool_type);
 }
@@ -137,6 +138,8 @@ int main(void) {
 	bijson_writer_add_decimal_from_string(writer, "1e7", 3);
 	bijson_writer_add_decimal_from_string(writer, "1e8", 3);
 	bijson_writer_add_string(writer, "あ", 3);
+	// for(uint32_t u = 0; u < UINT32_C(10000000); u++)
+	// 	bijson_writer_add_string(writer, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64);
 	bijson_writer_add_null(writer);
 	bijson_writer_add_false(writer);
 	bijson_writer_add_true(writer);

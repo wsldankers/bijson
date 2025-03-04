@@ -8,6 +8,7 @@ typedef struct _bijson_buffer {
 	void *_buffer;
 	size_t _size;
 	size_t used;
+	int _fd;
 	bool _finalized;
 	bool _failed;
 } _bijson_buffer_t;
