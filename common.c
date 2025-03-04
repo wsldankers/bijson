@@ -64,7 +64,7 @@ bool _bijson_is_valid_utf8(const char *string, size_t len) {
 				return false; // premature end
 			if((*s++ & 0xC0) != 0x80)
 				return false; // not a continuation byte
-		} if((c & 0xF0) == 0xE0) { // 0b1110....
+		} else if((c & 0xF0) == 0xE0) { // 0b1110....
 			// Size 3 sequences can encode 5 + 6 + 6 = 17 bits.
 			if(s == end)
 				return false; // premature end
@@ -77,7 +77,7 @@ bool _bijson_is_valid_utf8(const char *string, size_t len) {
 				return false; // premature end
 			if((*s++ & 0xC0) != 0x80)
 				return false; // not a continuation byte
-		} if((c & 0xF8) == 0xF0) { // 0b11110...
+		} else if((c & 0xF8) == 0xF0) { // 0b11110...
 			// Size 4 sequences can encode 5 + 6 + 6 + 6 = 23 bits.
 			if(s == end)
 				return false; // premature end

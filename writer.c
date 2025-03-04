@@ -128,6 +128,7 @@ int main(void) {
 	bijson_writer_add_decimal_from_string(writer, "10000000", 8);
 	bijson_writer_add_decimal_from_string(writer, "100000000", 9);
 	bijson_writer_add_decimal_from_string(writer, "3.1415", 6);
+	bijson_writer_add_string(writer, "あ", 3);
 	bijson_writer_add_null(writer);
 	bijson_writer_add_false(writer);
 	bijson_writer_add_true(writer);
