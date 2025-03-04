@@ -122,7 +122,8 @@ int main(void) {
 	// bijson_writer_add_key(writer, "quux", 4);
 	// bijson_writer_add_string(writer, "xyzzy", 5);
 	// bijson_writer_end_object(writer);
-	bijson_writer_add_decimal_from_string(writer, "3.14", 4);
+	// bijson_writer_add_decimal_from_string(writer, "3.1415", 6);
+	bijson_writer_add_decimal_from_string(writer, "-1", 2);
 	// bijson_writer_end_array(writer);
 
 	bijson_writer_write_to_fd(writer, STDOUT_FILENO);
