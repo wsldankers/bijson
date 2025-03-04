@@ -270,6 +270,7 @@ bool _bijson_writer_write_array(bijson_writer_t *writer, _bijson_writer_write_fu
 	item = spool;
 	size_t item_output_offset = 0;
 	for(size_t z = 0; z < container_count_1; z++) {
+		item += sizeof(_bijson_spool_type_t);
 		size_t item_spool_size;
 		memcpy(&item_spool_size, item, sizeof item_spool_size);
 		item += sizeof item_spool_size;
