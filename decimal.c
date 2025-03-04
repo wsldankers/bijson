@@ -312,9 +312,9 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 	// Moving part of the exponent to the mantissa may reduce the size of the
 	// exponent while not affecting the size of the mantissa too much due to
 	// byte-level packing granularity. Try a few sizes to see what is optimal.
-	size_t max_adjustment = _bijson_size_min(shift, (shift_negative || string_analysis.exponent_negative) ? SIZE_C(0) : SIZE_C(10)) + SIZE_C(1);
+	size_t max_shift_adjustment = (shift_negative || string_analysis.exponent_negative) ? SIZE_C(0) : _bijson_size_min(shift, SIZE_C(10));
 
-	for(size_t shift_adjustment = 0; shift_adjustment < max_adjustment; shift_adjustment++) {
+	for(size_t shift_adjustment = 0; shift_adjustment <= max_shift_adjustment; shift_adjustment++) {
 		size_t adjusted_shift = shift - shift_adjustment;
 
 		output_parameters_t output_parameters = {
