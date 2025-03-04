@@ -117,21 +117,22 @@ bool bijson_writer_write_to_fd(bijson_writer_t *writer, int fd) {
 int main(void) {
 	bijson_writer_t *writer = bijson_writer_alloc();
 
-	// bijson_writer_begin_array(writer);
-	// bijson_writer_begin_object(writer);
-	// bijson_writer_add_key(writer, "foo", 3);
-	// bijson_writer_add_string(writer, "bar", 3);
-	// bijson_writer_add_key(writer, "quux", 4);
-	// bijson_writer_add_string(writer, "xyzzy", 5);
-	// bijson_writer_end_object(writer);
-	// bijson_writer_add_decimal_from_string(writer, "123456", 6);
-	bijson_writer_add_decimal_from_string(writer, "100000000000", 9);
-	// bijson_writer_add_decimal_from_string(writer, "3.1415", 6);
-	// bijson_writer_add_null(writer);
-	// bijson_writer_add_false(writer);
-	// bijson_writer_add_true(writer);
-	// bijson_writer_add_bytes(writer, NULL, 0);
-	// bijson_writer_end_array(writer);
+	bijson_writer_begin_array(writer);
+	bijson_writer_begin_object(writer);
+	bijson_writer_add_key(writer, "foo", 3);
+	bijson_writer_add_string(writer, "bar", 3);
+	bijson_writer_add_key(writer, "quux", 4);
+	bijson_writer_add_string(writer, "xyzzy", 5);
+	bijson_writer_end_object(writer);
+	bijson_writer_add_decimal_from_string(writer, "123456", 6);
+	bijson_writer_add_decimal_from_string(writer, "10000000", 8);
+	bijson_writer_add_decimal_from_string(writer, "100000000", 9);
+	bijson_writer_add_decimal_from_string(writer, "3.1415", 6);
+	bijson_writer_add_null(writer);
+	bijson_writer_add_false(writer);
+	bijson_writer_add_true(writer);
+	bijson_writer_add_bytes(writer, NULL, 0);
+	bijson_writer_end_array(writer);
 
 	bijson_writer_write_to_fd(writer, STDOUT_FILENO);
 
