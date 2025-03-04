@@ -79,8 +79,10 @@ static bool _bijson_add_digits(const char *a_start, size_t a_len, const char *b_
 	assert(!a_len || *a_start != '0');
 	assert(!b_len || *b_start != '0');
 
-	if(!a_len || !b_len)
-		return true;
+	if(!a_len)
+		return !b_len || _bijson_shift_digits(b_start, b_len, NULL, 0, write, write_data);
+	else if(!b_len)
+		return _bijson_shift_digits(a_start, a_len, NULL, 0, write, write_data);
 
 	size_t magnitude = 1;
 	bool carry = 0;
@@ -296,7 +298,7 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 		size_t shift_adjustment;
 		size_t mantissa_size;
 		size_t exponent_size;
-		size_t shift_string_len;
+		size_t adjusted_shift_string_len;
 		int exponent_adjusted_shift_cmp;
 		char adjusted_shift_string[__SIZEOF_SIZE_T__ * 5 / 2 + 1];
 		bool exponent_negative;
@@ -310,7 +312,8 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 	// Moving part of the exponent to the mantissa may reduce the size of the
 	// exponent while not affecting the size of the mantissa too much due to
 	// byte-level packing granularity. Try a few sizes to see what is optimal.
-	size_t max_adjustment = _bijson_size_clamp(SIZE_C(1), shift, (shift_negative || string_analysis.exponent_negative) ? SIZE_C(1) : SIZE_C(19));
+	size_t max_adjustment = _bijson_size_min(shift, (shift_negative || string_analysis.exponent_negative) ? SIZE_C(0) : SIZE_C(19)) + SIZE_C(1);
+
 	for(size_t shift_adjustment = 0; shift_adjustment < max_adjustment; shift_adjustment++) {
 		size_t adjusted_shift = shift - shift_adjustment;
 
@@ -318,21 +321,13 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 			.exponent_negative = string_analysis.exponent_negative,
 			.shift_adjustment = shift_adjustment,
 		};
-		output_parameters.shift_string_len = adjusted_shift ? sprintf(output_parameters.adjusted_shift_string, "%zu", adjusted_shift) : 0;
-
-		// try packing the mantissa and exponent with shift adjusted by this adjustment
-		if(!_bijson_shift_digits(
-			string_analysis.significand_start, string_analysis.significand_end - string_analysis.significand_start,
-			string_analysis.decimal_point, shift_adjustment,
-			_bijson_writer_bytecounter_writer, &output_parameters.mantissa_size
-		))
-			return false;
+		output_parameters.adjusted_shift_string_len = adjusted_shift ? sprintf(output_parameters.adjusted_shift_string, "%zu", adjusted_shift) : 0;
 
 		if(shift_negative == string_analysis.exponent_negative) {
 			// add the shift to the exponent
 			if(!_bijson_add_digits(
 				string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
-				output_parameters.adjusted_shift_string, output_parameters.shift_string_len,
+				output_parameters.adjusted_shift_string, output_parameters.adjusted_shift_string_len,
 				_bijson_writer_bytecounter_writer, &output_parameters.exponent_size
 			))
 				return false;
@@ -340,13 +335,13 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 			// if the exponent is larger than the shift:
 			output_parameters.exponent_adjusted_shift_cmp = _bijson_compare_digits(
 				string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
-				output_parameters.adjusted_shift_string, output_parameters.shift_string_len
+				output_parameters.adjusted_shift_string, output_parameters.adjusted_shift_string_len
 			);
 			if(output_parameters.exponent_adjusted_shift_cmp < 0) {
 				// if the exponent is smaller than the shift, subtract the
 				// exponent from the shift and invert the sign
 				if(!_bijson_subtract_digits(
-					output_parameters.adjusted_shift_string, output_parameters.shift_string_len,
+					output_parameters.adjusted_shift_string, output_parameters.adjusted_shift_string_len,
 					string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
 					_bijson_writer_bytecounter_writer, &output_parameters.exponent_size
 				))
@@ -356,12 +351,20 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 				// if the exponent is larger than the shift, subtract the shift from the exponent
 				if(!_bijson_subtract_digits(
 					string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
-					output_parameters.adjusted_shift_string, output_parameters.shift_string_len,
+					output_parameters.adjusted_shift_string, output_parameters.adjusted_shift_string_len,
 					_bijson_writer_bytecounter_writer, &output_parameters.exponent_size
 				))
 					return false;
 			}
 		}
+
+		// pack the mantissa with shift adjusted by this adjustment
+		if(!_bijson_shift_digits(
+			string_analysis.significand_start, string_analysis.significand_end - string_analysis.significand_start,
+			string_analysis.decimal_point, shift_adjustment,
+			_bijson_writer_bytecounter_writer, &output_parameters.mantissa_size
+		))
+			return false;
 
 		output_parameters.total_size = SIZE_C(1) + output_parameters.mantissa_size;
 		if(output_parameters.exponent_size)
@@ -369,7 +372,7 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 				_bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size1(output_parameters.exponent_size))
 				 + output_parameters.exponent_size;
 
-		if(output_parameters.total_size < best_output_parameters.total_size)
+		if(best_output_parameters.total_size >= output_parameters.total_size)
 			best_output_parameters = output_parameters;
 	}
 
@@ -394,7 +397,7 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 			// add the shift to the exponent
 			if(!_bijson_add_digits(
 				string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
-				best_output_parameters.adjusted_shift_string, best_output_parameters.shift_string_len,
+				best_output_parameters.adjusted_shift_string, best_output_parameters.adjusted_shift_string_len,
 				_bijson_decimal_buffer_push_writer, &writer->spool
 			))
 				return false;
@@ -402,7 +405,7 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 			if(best_output_parameters.exponent_adjusted_shift_cmp < 0) {
 				// if the exponent is smaller than the shift, subtract the exponent from the shift
 				if(!_bijson_subtract_digits(
-					best_output_parameters.adjusted_shift_string, best_output_parameters.shift_string_len,
+					best_output_parameters.adjusted_shift_string, best_output_parameters.adjusted_shift_string_len,
 					string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
 					_bijson_decimal_buffer_push_writer, &writer->spool
 				))
@@ -411,7 +414,7 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 				// if the exponent is larger than the shift, subtract the shift from the exponent
 				if(!_bijson_subtract_digits(
 					string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
-					best_output_parameters.adjusted_shift_string, best_output_parameters.shift_string_len,
+					best_output_parameters.adjusted_shift_string, best_output_parameters.adjusted_shift_string_len,
 					_bijson_decimal_buffer_push_writer, &writer->spool
 				))
 					return false;
