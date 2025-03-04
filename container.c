@@ -3,6 +3,7 @@
 #include <string.h>
 #include <xxhash.h>
 
+#include "common.h"
 #include "container.h"
 #include "format.h"
 #include "buffer.h"
@@ -42,6 +43,7 @@ bool bijson_writer_begin_array(bijson_writer_t *writer) {
 }
 
 bool bijson_writer_add_key(bijson_writer_t *writer, const char *key, size_t len) {
+	_BIJSON_CHECK(_bijson_is_valid_utf8(key, len));
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &len, sizeof len));
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, key, len));
 	return true;

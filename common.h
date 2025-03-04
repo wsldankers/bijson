@@ -2,9 +2,11 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
-void *xalloc(size_t len);
-void xfree(void *buf);
+extern void *_bijson_xalloc(size_t len);
+extern void _bijson_xfree(void *buf);
+extern bool _bijson_is_valid_utf8(const char *string, size_t len);
 
 static inline size_t _bijson_size_min(size_t a, size_t b) {
 	return a < b ? a : b;

@@ -10,12 +10,12 @@ const _bijson_buffer_t _bijson_buffer_0 = {0};
 bool _bijson_buffer_alloc(_bijson_buffer_t *buffer) {
 	*buffer = _bijson_buffer_0;
 	buffer->_size = 65536;
-	buffer->_buffer = xalloc(buffer->_size);
+	buffer->_buffer = _bijson_xalloc(buffer->_size);
 	return true;
 }
 
 void _bijson_buffer_free(_bijson_buffer_t *buffer) {
-	xfree(buffer->_buffer);
+	_bijson_xfree(buffer->_buffer);
 	*buffer = _bijson_buffer_0;
 }
 

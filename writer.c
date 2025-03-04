@@ -19,11 +19,11 @@ const _bijson_spool_type_t _bijson_spool_type_array = UINT8_C(2);
 void bijson_writer_free(bijson_writer_t *writer) {
 	_bijson_buffer_free(&writer->spool);
 	_bijson_buffer_free(&writer->stack);
-	xfree(writer);
+	_bijson_xfree(writer);
 }
 
 bijson_writer_t *bijson_writer_alloc(void) {
-	bijson_writer_t *writer = xalloc(sizeof *writer);
+	bijson_writer_t *writer = _bijson_xalloc(sizeof *writer);
 	*writer = _bijson_writer_0;
 	if(!_bijson_buffer_alloc(&writer->spool))
 		return bijson_writer_free(writer), NULL;
