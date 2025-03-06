@@ -66,8 +66,8 @@ is omitted because it's always zero. The size of the last entry can always be
 computed using its offset and the bounding size of the container.
 
 Whenever a length or count is stored and the length cannot reasonably be 0
-(given the existence of dedicated empty array/object/zero types) then the
-stored value is one less than the actual length. This is denoted as length-1.
+(given the option that the bounding size can be set to 0) then the stored value
+is one less than the actual length. This is denoted as length-1.
 
 ### For each type:
 
