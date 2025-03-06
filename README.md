@@ -97,7 +97,7 @@ Must not be used. May be used in the future.
 
 #### 0x08: string
 
-Corresponds to a JSON text string. The following bytes MUST form a valid UTF-8
+Corresponds to a JSON text string. The following bytes must form a valid UTF-8
 sequence.
 
 #### 0x09: [bytes]
@@ -120,7 +120,7 @@ Must not be used. May be used in the future.
 
 #### 0x10..0x11: [sNaN]
 
-Denotes a sigmaling NaN (Not a Number). The lower bit encodes the sign.
+Denotes a signaling NaN (Not a Number). The lower bit encodes the sign.
 Non-standard.
 
 #### 0x12..0x13: [qNaN]
