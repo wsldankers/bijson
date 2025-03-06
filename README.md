@@ -12,25 +12,27 @@ Every element starts with a byte that indicates its type:
 - 0x01: null
 - 0x02: false
 - 0x03: true
-- 0x04: empty object
-- 0x05: empty array
-- 0x06: [undefined]
-- 0x07: [NaN]
+- 0x04: [undefined]
+
+- 0x05..0x07: [reserved]
+
 - 0x08: string
 - 0x09: [bytes]
-- 0x10..0x11: binary integer
-- 0x12..0x13: decimal integer
-- 0x14..0x15: float zero
-- 0x16..0x17: [Inf]
+- 0x0A: IEEE 754-2008 binary floating point
+- 0x0B: IEEE 754-2008 decimal floating point
 
-- 0x18: [reserved]
-- 0x19: float16
-- 0x1A: float32
-- 0x1B: float64
-- 0x1C: float128
-- 0x1D: float256
-- 0x1E: [reserved]
-- 0x1F: [reserved]
+- 0x0C..0x0F: [reserved]
+
+- 0x10..0x11: [sNaN]
+- 0x12..0x13: [qNaN]
+- 0x14..0x15: [Inf]
+
+- 0x1C..0x1F: [reserved]
+
+- 0x18..0x19: binary integer
+- 0x1A..0x1B: decimal integer
+
+- 0x1C..0x1F: [reserved]
 
 - 0x20..0x2F: decimal
 
@@ -71,7 +73,7 @@ stored value is one less than the actual length. This is denoted as length-1.
 
 #### 0x00 [reserved]
 
-Must not be used.
+Must not be used. Implies file corruption if encountered.
 
 #### 0x01: null
 
@@ -85,21 +87,13 @@ Corresponds to JSON false.
 
 Corresponds to JSON true.
 
-#### 0x04: empty object
-
-A shorthand to denote an empty object.
-
-#### 0x05: empty array
-
-A shorthand to denote an empty array.
-
-#### 0x06: [undefined]
+#### 0x04: [undefined]
 
 Corresponds to Javascript undefined. Non-standard.
 
-#### 0x07: [NaN]
+#### 0x05..0x07: [reserved]
 
-Corresponds to floating-point NaN (not-a-number). Non-standard.
+Must not be used. May be used in the future.
 
 #### 0x08: string
 
@@ -110,32 +104,50 @@ sequence.
 
 Corresponds to a byte string. Non-standard.
 
-#### 0x10..0x11: binary integer
+#### 0x0A: IEEE 754-2008 binary floating point
 
-Corresponds to an integer number. The lower two bit indicates the sign. The
+The bounding size determines the number of bits in the floating point number.
+Uses little-endian encoding.
+
+#### 0x0B: IEEE 754-2008 decimal floating point
+
+The bounding size determines the number of bits in the floating point number.
+Uses little-endian encoding.
+
+#### 0x09..0x0F: [reserved]
+
+Must not be used. May be used in the future.
+
+#### 0x10..0x11: [sNaN]
+
+Denotes a sigmaling NaN (Not a Number). The lower bit encodes the sign.
+Non-standard.
+
+#### 0x12..0x13: [qNaN]
+
+Denotes a quiet NaN (Not a Number). The lower bit encodes the sign.
+Non-standard.
+
+#### 0x14..0x15: [Inf]
+
+Denotes +infinity and -infinity respectively. The lower bit encodes the sign.
+Non-standard.
+
+#### 0x18..0x19: binary integer
+
+Corresponds to an integer number. The lower bit indicates the sign. The
 following bytes represent the absolute value of the number in unsigned
 little-endian format.
 
-#### 0x12..0x13: decimal integer
+#### 0x1A..0x1B: decimal integer
 
 A shorthand to denote decimal integers, which are the same as decimal values
 (see below) but without an exponent. The lower bit encodes the sign. See the
 decimal type for the method of encoding the mantissa.
 
-#### 0x14..0x15: float zero
+#### 0x1A..0x1F: [reserved]
 
-A shorthand to denote the numbers +0.0 and -0.0 respectively. The lower bit
-encodes the sign. Represent using the shortest conveniently available float.
-
-#### 0x16..0x17: [Inf]
-
-A shorthand to denote +infinity and -infinity respectively. The lower bit
-encodes the sign. Non-standard.
-
-#### 0x19..0x1D: float
-
-Floating point types. The lower 3 bits, when used as an exponent to 2, form the
-length in bytes. The floats are represented in little-endian IEEE 754 format.
+Must not be used. May be used in the future.
 
 #### 0x20..0x2F: decimal
 
@@ -178,6 +190,9 @@ offset. The type identification bytes are not included in the item offsets.
 When fetching the n'th item, add n to the offset. The last entry's size is
 inferred from the total size of the array representation.
 
+If the bounding size is 0, the array is empty. In this case the type value
+should be 0x30 (no other bits set).
+
 #### 0x40..0x7F: object
 
 Corresponds to a Javascript object.
@@ -209,3 +224,6 @@ that lookups finish in O(log n) time.
 
 Uses XXH3_128 for hashing. Use the xxhash supplied comparison functions for
 128-bit hashes while sorting and performing lookups.
+
+If the bounding size is 0, the object is empty. In this case the type value
+should be 0x40 (no other bits set).

@@ -156,7 +156,7 @@ bool _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writer_write_f
 	spool += sizeof container;
 
 	if(container.count == 0)
-		return write(write_data, "\x04", 1);
+		return write(write_data, "\x40", 1);
 
 	const char **object_items;
 	size_t object_items_size = container.count * sizeof *object_items;
@@ -243,7 +243,7 @@ bool _bijson_writer_write_array(bijson_writer_t *writer, _bijson_writer_write_fu
 	spool += sizeof container;
 
 	if(container.count == 0)
-		return write(write_data, "\x05", 1);
+		return write(write_data, "\x30", 1);
 
 	size_t items_output_size = 0;
 

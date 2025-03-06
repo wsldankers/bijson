@@ -407,7 +407,7 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 			| _bijson_optimal_storage_size1(best_output_parameters.exponent_size)
 			| (string_analysis.mantissa_negative << 2)
 			| (best_output_parameters.exponent_negative << 3)
-		: UINT8_C(0x12) | string_analysis.mantissa_negative;
+		: UINT8_C(0x1A) | string_analysis.mantissa_negative;
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &type, sizeof type));
 
 	if(best_output_parameters.exponent_size) {
