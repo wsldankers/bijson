@@ -112,9 +112,14 @@ Uses little-endian encoding.
 #### 0x0B: IEEE 754-2008 decimal floating point
 
 The bounding size determines the number of bits in the floating point number.
-Uses little-endian encoding.
+Uses the binary integer format in little-endian encoding.
 
-#### 0x09..0x0F: [reserved]
+#### 0x0C: IEEE 754-2008 decimal floating point (DPD)
+
+The bounding size determines the number of bits in the floating point number.
+Uses the densely packed decimal format in little-endian encoding.
+
+#### 0x0D..0x0F: [reserved]
 
 Must not be used. May be used in the future.
 
