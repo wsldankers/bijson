@@ -20,8 +20,9 @@ Every element starts with a byte that indicates its type:
 - 0x09: [bytes]
 - 0x0A: IEEE 754-2008 binary floating point
 - 0x0B: IEEE 754-2008 decimal floating point
+- 0x0C: IEEE 754-2008 decimal floating point (DPD)
 
-- 0x0C..0x0F: [reserved]
+- 0x0D..0x0F: [reserved]
 
 - 0x10..0x11: [sNaN]
 - 0x12..0x13: [qNaN]

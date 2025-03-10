@@ -3,20 +3,19 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <bijson/writer.h>
+
 #include "buffer.h"
-#include "bytes.h"
 #include "common.h"
-#include "constants.h"
 #include "container.h"
-#include "decimal.h"
 #include "string.h"
 #include "writer.h"
-
-const bijson_writer_t _bijson_writer_0 = {{0}};
 
 const _bijson_spool_type_t _bijson_spool_type_scalar = UINT8_C(0);
 const _bijson_spool_type_t _bijson_spool_type_object = UINT8_C(1);
 const _bijson_spool_type_t _bijson_spool_type_array = UINT8_C(2);
+
+static const bijson_writer_t _bijson_writer_0 = {{0}};
 
 void bijson_writer_free(bijson_writer_t *writer) {
 	_bijson_buffer_free(&writer->spool);
@@ -115,38 +114,55 @@ bool bijson_writer_write_to_fd(bijson_writer_t *writer, int fd) {
 	return _bijson_writer_write(writer, _bijson_write_to_fd, &fd);
 }
 
-int main(void) {
-	bijson_writer_t *writer = bijson_writer_alloc();
+typedef struct _bijson_buffer_write_state {
+	void *buffer;
+	size_t size;
+	size_t written;
+} _bijson_buffer_write_state_t;
 
-	bijson_writer_begin_array(writer);
-	bijson_writer_begin_object(writer);
-	bijson_writer_add_key(writer, "foo", 3);
-	bijson_writer_add_string(writer, "bar", 3);
-	bijson_writer_add_key(writer, "quux", 4);
-	bijson_writer_add_string(writer, "xyzzy", 5);
-	bijson_writer_end_object(writer);
-	bijson_writer_add_decimal_from_string(writer, "123456", 6);
-	bijson_writer_add_decimal_from_string(writer, "10000000", 8);
-	bijson_writer_add_decimal_from_string(writer, "100000000", 9);
-	bijson_writer_add_decimal_from_string(writer, "3.1415", 6);
-	bijson_writer_add_decimal_from_string(writer, "1e1", 3);
-	bijson_writer_add_decimal_from_string(writer, "1e2", 3);
-	bijson_writer_add_decimal_from_string(writer, "1e3", 3);
-	bijson_writer_add_decimal_from_string(writer, "1e4", 3);
-	bijson_writer_add_decimal_from_string(writer, "1e5", 3);
-	bijson_writer_add_decimal_from_string(writer, "1e6", 3);
-	bijson_writer_add_decimal_from_string(writer, "1e7", 3);
-	bijson_writer_add_decimal_from_string(writer, "1e8", 3);
-	bijson_writer_add_string(writer, "あ", 3);
-	// for(uint32_t u = 0; u < UINT32_C(10000000); u++)
-	// 	bijson_writer_add_string(writer, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64);
-	bijson_writer_add_null(writer);
-	bijson_writer_add_false(writer);
-	bijson_writer_add_true(writer);
-	bijson_writer_add_bytes(writer, NULL, 0);
-	bijson_writer_end_array(writer);
+static bool _bijson_write_to_buffer(void *write_data, const void *data, size_t len) {
+	_bijson_buffer_write_state_t state = *(_bijson_buffer_write_state_t *)write_data;
+	if(state.buffer && state.size > state.written) {
+		size_t remainder = state.size - state.written;
+		memcpy(state.buffer + state.written, data, len < remainder ? len : remainder);
+	}
+	((_bijson_buffer_write_state_t *)write_data)->written = state.written + len;
+	return true;
+}
 
-	bijson_writer_write_to_fd(writer, STDOUT_FILENO);
+bool bijson_writer_write_to_buffer(bijson_writer_t *writer, void **result_buffer, size_t *result_size) {
+	_bijson_buffer_write_state_t state = {.size = 4096};
+	state.buffer = malloc(state.size);
+	if(!state.buffer)
+		return false;
 
-	bijson_writer_free(writer);
+	if(!(_bijson_writer_write(writer, _bijson_write_to_buffer, &state))) {
+		free(state.buffer);
+		return false;
+	}
+
+	if(state.written <= state.size) {
+		if(state.written < state.size) {
+			void *new_buffer = realloc(state.buffer, state.written);
+			if(new_buffer)
+				state.buffer = new_buffer;
+		}
+	} else {
+		free(state.buffer);
+		state = (_bijson_buffer_write_state_t){
+			.buffer = malloc(state.written),
+			.size = state.written,
+		};
+		if(!state.buffer)
+			return false;
+		if(!(_bijson_writer_write(writer, _bijson_write_to_buffer, &state))) {
+			free(state.buffer);
+			return false;
+		}
+	}
+
+	*result_buffer = state.buffer;
+	*result_size = state.written;
+
+	return true;
 }

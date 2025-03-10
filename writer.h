@@ -27,8 +27,6 @@ typedef struct bijson_writer {
 	bool failed;
 } bijson_writer_t;
 
-extern const bijson_writer_t _bijson_writer_0;
-
 // If data == NULL: write a zeroed region of length len (or seek, if appropriate).
 typedef bool (*_bijson_writer_write_func_t)(void *write_data, const void *data, size_t len);
 extern bool _bijson_writer_bytecounter_writer(void *write_data, const void *data, size_t len);
