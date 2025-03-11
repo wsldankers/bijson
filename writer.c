@@ -13,8 +13,8 @@
 #include "io.h"
 
 const _bijson_spool_type_t _bijson_spool_type_scalar = UINT8_C(0);
-const _bijson_spool_type_t _bijson_spool_type_object = UINT8_C(1);
-const _bijson_spool_type_t _bijson_spool_type_array = UINT8_C(2);
+const _bijson_spool_type_t _bijson_spool_type_array = UINT8_C(1);
+const _bijson_spool_type_t _bijson_spool_type_object = UINT8_C(2);
 
 static const bijson_writer_t _bijson_writer_0 = {{0}};
 
@@ -67,8 +67,8 @@ static bool _bijson_writer_write_scalar(bijson_writer_t *writer, _bijson_writer_
 
 static _bijson_writer_write_type_func_t _bijson_writer_typewriters[] = {
 	_bijson_writer_write_scalar,
-	_bijson_writer_write_object,
 	_bijson_writer_write_array,
+	_bijson_writer_write_object,
 };
 
 bool _bijson_writer_write_value(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, const char *spool) {
