@@ -2,12 +2,14 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 typedef struct bijson_writer bijson_writer_t;
 
 extern void bijson_writer_free(bijson_writer_t *writer);
 extern bijson_writer_t *bijson_writer_alloc(void);
 extern bool bijson_writer_write_to_fd(bijson_writer_t *writer, int fd);
+extern bool bijson_writer_write_to_FILE(bijson_writer_t *writer, FILE *file);
 extern bool bijson_writer_write_to_malloc(bijson_writer_t *writer, void **result_buffer, size_t *result_size);
 
 extern bool bijson_writer_begin_object(bijson_writer_t *writer);

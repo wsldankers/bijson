@@ -2,9 +2,6 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <string.h>
-#include <sys/uio.h>
-#include <poll.h>
-#include <errno.h>
 
 #include <bijson/writer.h>
 
@@ -110,6 +107,11 @@ bool _bijson_writer_write_callback(
 bool bijson_writer_write_to_fd(bijson_writer_t *writer, int fd) {
 	_bijson_writer_write_state_t state = {writer};
 	return _bijson_io_write_to_fd(_bijson_writer_write_callback, &state, fd);
+}
+
+bool bijson_writer_write_to_FILE(bijson_writer_t *writer, FILE *file) {
+	_bijson_writer_write_state_t state = {writer};
+	return _bijson_io_write_to_FILE(_bijson_writer_write_callback, &state, file);
 }
 
 bool bijson_writer_write_to_malloc(

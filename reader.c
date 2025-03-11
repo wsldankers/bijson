@@ -545,14 +545,6 @@ bool bijson_to_json(const bijson_t *bijson, bijson_output_callback callback, voi
 	return false;
 }
 
-static bool _bijson_stdio_output_callback(void *callback_data, const void *data, size_t len) {
-	return fwrite(data, sizeof *data, len, callback_data) == len * sizeof *data;
-}
-
-bool bijson_to_json_FILE(const bijson_t *bijson, FILE *file) {
-	return bijson_to_json(bijson, _bijson_stdio_output_callback, file);
-}
-
 typedef struct _bijson_to_json_state {
 	const bijson_t *bijson;
 } _bijson_to_json_state_t;
@@ -572,6 +564,11 @@ bool _bijson_to_json_callback(
 bool bijson_to_json_fd(const bijson_t *bijson, int fd) {
 	_bijson_to_json_state_t state = {bijson};
 	return _bijson_io_write_to_fd(_bijson_to_json_callback, &state, fd);
+}
+
+bool bijson_to_json_FILE(const bijson_t *bijson, FILE *file) {
+	_bijson_to_json_state_t state = {bijson};
+	return _bijson_io_write_to_FILE(_bijson_to_json_callback, &state, file);
 }
 
 bool bijson_to_json_malloc(

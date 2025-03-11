@@ -147,6 +147,21 @@ bool _bijson_io_write_to_fd(bijson_output_action_callback action_callback, void 
 	return ok;
 }
 
+static bool _bijson_io_write_to_FILE_output_callback(void *callback_data, const void *data, size_t len) {
+	return fwrite(data, sizeof *data, len, callback_data) == len * sizeof *data;
+}
+
+bool _bijson_io_write_to_FILE(
+    bijson_output_action_callback action_callback,
+    void *action_callback_data,
+    FILE *file
+) {
+    return action_callback(
+        action_callback_data,
+        _bijson_io_write_to_FILE_output_callback,
+        file
+    );
+}
 
 typedef struct _bijson_io_write_to_malloc_state {
 	void *buffer;

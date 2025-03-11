@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <bijson/common.h>
 
@@ -17,6 +18,12 @@ extern bool _bijson_io_write_to_fd(
     bijson_output_action_callback action_callback,
     void *action_callback_data,
     int fd
+);
+
+extern bool _bijson_io_write_to_FILE(
+    bijson_output_action_callback action_callback,
+    void *action_callback_data,
+    FILE *file
 );
 
 extern bool _bijson_io_write_to_malloc(
