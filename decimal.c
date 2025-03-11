@@ -6,7 +6,6 @@
 #include <stdio.h>
 
 #include "common.h"
-#include "decimal.h"
 #include "format.h"
 #include "writer.h"
 

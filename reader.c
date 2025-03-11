@@ -1,5 +1,5 @@
 #include <stdbool.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 
 #include <bijson/reader.h>
@@ -85,6 +85,104 @@ static bool _bijson_string_to_json(const bijson_t *bijson, bijson_output_callbac
 	return _bijson_raw_string_to_json(&raw_string, callback, userdata);
 }
 
+static inline bool _bijson_decimal_part_to_json(const bijson_t *bijson, bijson_output_callback callback, void *userdata) {
+	const uint8_t *buffer = bijson->buffer;
+	size_t size = bijson->size;
+
+	size_t last_word_size = ((size - SIZE_C(1)) & SIZE_C(0x7)) + SIZE_C(1);
+
+	const uint8_t *last_word_start = buffer + size - last_word_size;
+	uint64_t last_word = _bijson_read_minimal_int(last_word_start, last_word_size);
+	if(last_word > UINT64_C(9999999999999999998))
+		return false;
+	last_word++;
+
+	char word_chars[20];
+	if(!callback(word_chars, sprintf(word_chars, "%"PRIu64, last_word), userdata))
+		return false;
+
+	const uint8_t *word_start = last_word_start;
+	while(word_start > buffer) {
+		word_start -= sizeof(uint64_t);
+		uint64_t word = _bijson_read_minimal_int(word_start, sizeof(uint64_t));
+		if(word > UINT64_C(9999999999999999999))
+			return false;
+		if(!callback(word_chars, sprintf(word_chars, "%019"PRIu64, word), userdata))
+			return false;
+	}
+
+	return true;
+}
+
+static bool _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_callback callback, void *userdata) {
+	const uint8_t *buffer = bijson->buffer;
+	const uint8_t *buffer_end = buffer + bijson->size;
+	if(!buffer || buffer == buffer_end)
+		return false;
+
+	uint8_t type = *buffer;
+
+	const uint8_t *exponent_size_location = buffer + SIZE_C(1);
+	if(exponent_size_location == buffer_end)
+		return false;
+
+	size_t exponent_size_size = SIZE_C(1) << (type & UINT8_C(0x3));
+	const uint8_t *exponent_start = exponent_size_location + exponent_size_size;
+	if(exponent_start + SIZE_C(1) > buffer_end)
+		return false;
+	uint64_t raw_exponent_size = _bijson_read_minimal_int(exponent_size_location, exponent_size_size);
+	if(raw_exponent_size > SIZE_MAX - SIZE_C(1))
+		return false;
+	size_t exponent_size = (size_t)raw_exponent_size + SIZE_C(1);
+	if(exponent_size > buffer_end - exponent_start - SIZE_C(1))
+		return false;
+
+	if(type & UINT8_C(0x4) && !callback("-", SIZE_C(1), userdata))
+		return false;
+
+	const uint8_t *significand_start = exponent_start + exponent_size;
+	bijson_t significand = {
+		significand_start,
+		buffer_end - significand_start,
+	};
+	if(!_bijson_decimal_part_to_json(&significand, callback, userdata))
+		return false;
+
+	if(!callback("e", SIZE_C(1), userdata))
+		return false;
+
+	if(type & UINT8_C(0x8) && !callback("-", SIZE_C(1), userdata))
+		return false;
+
+	bijson_t exponent = {
+		exponent_start,
+		exponent_size,
+	};
+	if(!_bijson_decimal_part_to_json(&exponent, callback, userdata))
+		return false;
+
+	return true;
+}
+
+static bool _bijson_decimal_integer_to_json(const bijson_t *bijson, bijson_output_callback callback, void *userdata) {
+	const uint8_t *buffer = bijson->buffer;
+	size_t size = bijson->size;
+	if(!buffer || !size)
+		return false;
+
+	uint8_t type = *buffer;
+	if(type & UINT8_C(0x1) && !callback("-", SIZE_C(1), userdata))
+		return false;
+
+	if(size == SIZE_C(1))
+		return callback("0", SIZE_C(1), userdata);
+
+	bijson_t integer = {
+		buffer + SIZE_C(1),
+		size - SIZE_C(1),
+	};
+	return _bijson_decimal_part_to_json(&integer, callback, userdata);
+}
 
 bool bijson_object_count(const bijson_t *bijson, size_t *result) {
 	if(!bijson)
@@ -408,23 +506,38 @@ bool bijson_to_json(const bijson_t *bijson, bijson_output_callback callback, voi
 
 	const uint8_t type = *buffer;
 
-	if((type & UINT8_C(0xC0)) == UINT8_C(0x40))
-		return _bijson_object_to_json(bijson, callback, userdata);
-	if((type & UINT8_C(0xF0)) == UINT8_C(0x30))
-		return _bijson_array_to_json(bijson, callback, userdata);
-
-	switch(type) {
-		case UINT8_C(0x01):
-		case UINT8_C(0x05): // undefined
-			return callback("null", 4, userdata);
-		case UINT8_C(0x02):
-			return callback("false", 5, userdata);
-		case UINT8_C(0x03):
-			return callback("true", 4, userdata);
-		case UINT8_C(0x08):
-			return _bijson_string_to_json(bijson, callback, userdata);
-		default:
-			return false;
+	switch(type & UINT8_C(0xF0)) {
+		case UINT8_C(0x00):
+			switch(type) {
+				case UINT8_C(0x01):
+				case UINT8_C(0x05): // undefined
+					return callback("null", 4, userdata);
+				case UINT8_C(0x02):
+					return callback("false", 5, userdata);
+				case UINT8_C(0x03):
+					return callback("true", 4, userdata);
+				case UINT8_C(0x08):
+					return _bijson_string_to_json(bijson, callback, userdata);
+			}
+			break;
+		case UINT8_C(0x10):
+			switch(type & UINT8_C(0xFE)) {
+				case UINT8_C(0x1A):
+					return _bijson_decimal_integer_to_json(bijson, callback, userdata);
+			}
+			break;
+		case UINT8_C(0x20):
+			return _bijson_decimal_to_json(bijson, callback, userdata);
+			break;
+		case UINT8_C(0x30):
+			return _bijson_array_to_json(bijson, callback, userdata);
+			break;
+		case UINT8_C(0x40):
+		case UINT8_C(0x50):
+		case UINT8_C(0x60):
+		case UINT8_C(0x70):
+			return _bijson_object_to_json(bijson, callback, userdata);
+			break;
 	}
 
 	return false;
