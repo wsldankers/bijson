@@ -18,8 +18,8 @@ static inline uint64_t _bijson_read_minimal_int(const uint8_t *buffer, size_t nb
 static const unsigned char hex[16] = "0123456789ABCDEF";
 
 static bool _bijson_raw_string_to_json(const bijson_t *bijson, bijson_output_callback callback, void *userdata) {
-    const uint8_t *string = bijson->buffer + 1;
-    size_t len = bijson->size - SIZE_C(1);
+    const uint8_t *string = bijson->buffer;
+    size_t len = bijson->size;
     const uint8_t *previously_written = string;
     uint8_t escape[2] = "\\x";
     uint8_t unicode_escape[6] = "\\u00XX";
@@ -131,22 +131,23 @@ bool bijson_object_get_index(const bijson_t *bijson, size_t index, bijson_t *key
     if(!buffer || buffer == buffer_end)
         return false;
 
-    uint8_t type = *buffer++;
-    if(buffer == buffer_end)
+    uint8_t type = *buffer;
+
+    const uint8_t *count_location = buffer + SIZE_C(1);
+    if(count_location == buffer_end)
         return false;
 
     size_t count_size = SIZE_C(1) << (type & UINT8_C(0x3));
-    const uint8_t *count_end = buffer + count_size;
-    if(count_end > buffer_end)
+    const uint8_t *key_index = count_location + count_size;
+    if(key_index > buffer_end)
         return false;
-    uint64_t raw_count = _bijson_read_minimal_int(buffer, count_size);
+    uint64_t raw_count = _bijson_read_minimal_int(count_location, count_size);
     if(raw_count > SIZE_MAX - SIZE_C(1))
         return false;
     size_t count_1 = (size_t)raw_count;
-    size_t count = count + SIZE_C(1);
+    size_t count = count_1 + SIZE_C(1);
 
-    const uint8_t *key_index = buffer = count_end;
-    size_t index_and_data_size = buffer_end - buffer;
+    size_t index_and_data_size = buffer_end - key_index;
 
     size_t key_index_item_size = SIZE_C(1) << ((type >> 2) & UINT8_C(0x3));
     size_t value_index_item_size = SIZE_C(1) << ((type >> 4) & UINT8_C(0x3));
@@ -161,22 +162,35 @@ bool bijson_object_get_index(const bijson_t *bijson, size_t index, bijson_t *key
     if(index >= count)
         return false;
 
-    buffer += count * key_index_item_size;
-    const uint8_t *value_index = buffer;
+    const uint8_t *value_index = key_index + count * key_index_item_size;
+    const uint8_t *key_data_start = value_index + count_1 * value_index_item_size;
 
-    buffer += count_1 * value_index_item_size;
-    const uint8_t *key_data_start = buffer;
-
+    fprintf(stderr, "count = %zu\n", count);
+    fprintf(stderr, "count_1 = %zu\n", count_1);
+    fprintf(stderr, "count_location = %zu\n", count_location - buffer);
+    fprintf(stderr, "key_index = %zu\n", key_index - buffer);
+    fprintf(stderr, "value_index = %zu\n", value_index - buffer);
+    fprintf(stderr, "key_data_start = %zu\n", key_data_start - buffer);
 
     uint64_t raw_last_key_end_offset =
-        _bijson_read_minimal_int(key_data_start + key_index_item_size * count_1, key_index_item_size);
+        _bijson_read_minimal_int(key_index + key_index_item_size * count_1, key_index_item_size);
     if(raw_last_key_end_offset > SIZE_MAX)
         return false;
+
     size_t last_key_end_offset = (size_t)raw_last_key_end_offset;
+
+    fprintf(stderr, "yo!\n");
+
+    fprintf(stderr, "last_key_end_offset = %zu\nbuffer_end - key_data_start = %zu\ncount = %zu\n",
+        last_key_end_offset, (size_t)(buffer_end - key_data_start), count);
+
     if(last_key_end_offset > buffer_end - key_data_start - count)
         return false;
 
-    const uint8_t *value_data_start = buffer + last_key_end_offset;
+    fprintf(stderr, "yo?\n");
+
+    const uint8_t *value_data_start = key_data_start + last_key_end_offset;
+    fprintf(stderr, "value_data_start = %zu\n", value_data_start - buffer);
     size_t value_data_size = buffer_end - value_data_start;
 
     uint64_t raw_key_start_offset = index
@@ -201,6 +215,9 @@ bool bijson_object_get_index(const bijson_t *bijson, size_t index, bijson_t *key
         return false;
 
 
+    fprintf(stderr, "buffer_length = %zu\n", bijson->size);
+
+
     // This is for comparing the raw offsets to, so it doesn't include
     // the implicit "+ index" term yet.
     size_t highest_valid_value_offset = value_data_size - count;
@@ -216,14 +233,21 @@ bool bijson_object_get_index(const bijson_t *bijson, size_t index, bijson_t *key
     value_start_offset += index;
 
     uint64_t raw_value_end_offset = index == count_1
-        ? value_data_size
+        ? highest_valid_value_offset
         : _bijson_read_minimal_int(value_index + value_index_item_size * index, value_index_item_size);
     if(raw_value_end_offset > SIZE_MAX)
         return false;
     size_t value_end_offset = (size_t)raw_value_end_offset;
+    fprintf(stderr, "sup? value_end_offset=%zu highest_valid_value_offset=%zu\n",
+        value_end_offset, highest_valid_value_offset);
+
     if(value_end_offset > highest_valid_value_offset)
         return false;
+    fprintf(stderr, "sup!\n");
+
     value_end_offset += index + SIZE_C(1);
+    if(index == count_1)
+        value_end_offset = value_data_size;
 
     if(value_start_offset >= value_end_offset)
         return false;
@@ -238,6 +262,8 @@ bool bijson_object_get_index(const bijson_t *bijson, size_t index, bijson_t *key
         key_result->buffer = key_buffer;
         key_result->size = key_size;
     }
+
+    fprintf(stderr, "value offset = %zu\n", value_data_start + value_start_offset - buffer);
 
     if(value_result) {
         value_result->buffer = value_data_start + value_start_offset;
@@ -376,7 +402,7 @@ static bool _bijson_object_to_json(const bijson_t *bijson, bijson_output_callbac
             return false;
         if(!_bijson_raw_string_to_json(&key, callback, userdata))
             return false;
-        if(u && !callback(":", 1, userdata))
+        if(!callback(":", 1, userdata))
             return false;
         if(!bijson_to_json(&value, callback, userdata))
             return false;

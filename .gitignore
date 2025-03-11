@@ -1,5 +1,6 @@
 /.*
 !/.git*
 !/.clang-format
+!/.clangd
 /test
 *.o

@@ -117,15 +117,26 @@ void _bijson_buffer_free(_bijson_buffer_t *buffer) {
 #endif
 }
 
-bool _bijson_buffer_read(_bijson_buffer_t *buffer, size_t offset, void *data, size_t len) {
+const void *_bijson_buffer_access(_bijson_buffer_t *buffer, size_t offset, size_t len) {
+	// This function may fail because the underlying implementation does not use mmap().
+	// Always have a fallback that uses _bijson_buffer_read().
 	if(buffer->_failed)
-		return false;
+		return NULL;
 	// fprintf(stderr, "offset=%zu len=%zu used=%zu\n", offset, len, buffer->used);
-	assert(data);
 	assert(offset + len <= buffer->used);
-	if(offset + len > buffer->used || !data)
+	if(offset + len > buffer->used)
+		return NULL;
+	return buffer->_buffer + offset;
+}
+
+bool _bijson_buffer_read(_bijson_buffer_t *buffer, size_t offset, void *data, size_t len) {
+	assert(data);
+	if(!data)
 		return false;
-	memcpy(data, buffer->_buffer + offset, len);
+	const void *offset_buffer = _bijson_buffer_access(buffer, offset, len);
+	if(!offset_buffer)
+		return false;
+	memcpy(data, offset_buffer, len);
 	return true;
 }
 
