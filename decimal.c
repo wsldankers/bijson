@@ -387,9 +387,6 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 				_bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size1(output_parameters.exponent_size))
 				 + output_parameters.exponent_size;
 
-		// fprintf(stderr, "shift=%s%zu shift_adjustment=%zu adjusted_shift=%s%zu mantissa_size=%zu exponent_size=%zu total_size=%zu\n",
-		// 	shift_negative ? "-" : "", shift, shift_adjustment, adjusted_shift_negative ? "-" : "", adjusted_shift, output_parameters.mantissa_size, output_parameters.exponent_size, output_parameters.total_size);
-
 		// Prefer the smallest total output size.
 		// If they are equal in length, prefer a fully integer version over one with an exponent.
 		if(best_output_parameters.total_size > output_parameters.total_size || (

@@ -30,6 +30,8 @@ static bool _bijson_container_pop(bijson_writer_t *writer) {
 }
 
 bool bijson_writer_begin_object(bijson_writer_t *writer) {
+	if(writer->failed)
+		return false;
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &_bijson_spool_type_object, sizeof _bijson_spool_type_object));
 	_BIJSON_CHECK(_bijson_container_push(writer));
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &_bijson_container_0, sizeof _bijson_container_0));
@@ -37,6 +39,8 @@ bool bijson_writer_begin_object(bijson_writer_t *writer) {
 }
 
 bool bijson_writer_begin_array(bijson_writer_t *writer) {
+	if(writer->failed)
+		return false;
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &_bijson_spool_type_array, sizeof _bijson_spool_type_array));
 	_BIJSON_CHECK(_bijson_container_push(writer));
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &_bijson_container_0, sizeof _bijson_container_0));
@@ -44,6 +48,8 @@ bool bijson_writer_begin_array(bijson_writer_t *writer) {
 }
 
 bool bijson_writer_add_key(bijson_writer_t *writer, const char *key, size_t len) {
+	if(writer->failed)
+		return false;
 	_BIJSON_CHECK(_bijson_is_valid_utf8(key, len));
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &len, sizeof len));
 	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, key, len));
@@ -51,6 +57,9 @@ bool bijson_writer_add_key(bijson_writer_t *writer, const char *key, size_t len)
 }
 
 bool bijson_writer_end_object(bijson_writer_t *writer) {
+	if(writer->failed)
+		return false;
+
 	size_t spool_used = writer->spool.used;
 	size_t current_container = writer->current_container;
 	_bijson_container_t container = _bijson_container_0;
@@ -72,37 +81,9 @@ bool bijson_writer_end_object(bijson_writer_t *writer) {
 		keys_output_size += key_spool_size;
 		object_item_offset += sizeof key_spool_size;
 
-		XXH128_hash_t object_item_hash;
-		const void *key = NULL; // _bijson_buffer_access(&writer->spool, object_item_offset, key_spool_size);
-		if(key) {
-			object_item_hash = XXH3_128bits(key, key_spool_size);
-		} else {
-			XXH3_state_t *hash_state = XXH3_createState();
-			_BIJSON_CHECK(hash_state);
-			if(!XXH3_128bits_reset(hash_state)) {
-				XXH3_freeState(hash_state);
-				_BIJSON_CHECK(false);
-			}
-
-			char buffer[1024];
-			size_t offset = object_item_offset;
-			size_t remaining = key_spool_size;
-			while(remaining) {
-				size_t len = remaining < sizeof buffer ? remaining : sizeof buffer;
-				if(!_bijson_buffer_read(&writer->spool, offset, buffer, len)) {
-					XXH3_freeState(hash_state);
-					_BIJSON_CHECK(false);
-				}
-				if(!XXH3_128bits_update(hash_state, buffer, len)) {
-					XXH3_freeState(hash_state);
-					_BIJSON_CHECK(false);
-				}
-				offset += len;
-				remaining -= len;
-			}
-			object_item_hash = XXH3_128bits_digest(hash_state);
-			_BIJSON_CHECK(XXH3_freeState(hash_state));
-		}
+		const void *key = _bijson_buffer_access(&writer->spool, object_item_offset, key_spool_size);
+		_BIJSON_CHECK(key);
+		XXH128_hash_t object_item_hash = XXH3_128bits(key, key_spool_size);
 
 		object_item_offset += key_spool_size;
 		values_output_size += _bijson_writer_size_value(writer, object_item_offset);
@@ -120,8 +101,6 @@ bool bijson_writer_end_object(bijson_writer_t *writer) {
 
 		container.count++;
 	}
-
-	fprintf(stderr, "keys_output_size=%zu values_output_size=%zu count=%zu\n", keys_output_size, values_output_size, container.count);
 
 	size_t container_count_1 = container.count - SIZE_C(1);
 
@@ -142,6 +121,8 @@ bool bijson_writer_end_object(bijson_writer_t *writer) {
 }
 
 bool bijson_writer_end_array(bijson_writer_t *writer) {
+	if(writer->failed)
+		return false;
 	size_t spool_used = writer->spool.used;
 	size_t current_container = writer->current_container;
 	_bijson_container_t container = _bijson_container_0;
