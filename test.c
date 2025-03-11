@@ -38,11 +38,12 @@ int main(void) {
 	close(fd);
 
 	bijson_t bijson = {};
-	bijson_writer_write_to_buffer(writer, (void **)&bijson.buffer, &bijson.size);
+	bijson_writer_write_to_malloc(writer, (void **)&bijson.buffer, &bijson.size);
 
 	bijson_writer_free(writer);
 
-	bijson_to_json(&bijson, bijson_stdio_output_callback, stdout);
+	// bijson_to_json_FILE(&bijson, stdout);
+	bijson_to_json_fd(&bijson, STDOUT_FILENO);
 	putchar('\n');
 
 	return 0;

@@ -2,6 +2,9 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/uio.h>
+#include <poll.h>
+#include <errno.h>
 
 #include <bijson/writer.h>
 
@@ -10,6 +13,7 @@
 #include "container.h"
 #include "string.h"
 #include "writer.h"
+#include "io.h"
 
 const _bijson_spool_type_t _bijson_spool_type_scalar = UINT8_C(0);
 const _bijson_spool_type_t _bijson_spool_type_object = UINT8_C(1);
@@ -87,82 +91,50 @@ bool _bijson_writer_bytecounter_writer(void *write_data, const void *data, size_
 	return true;
 }
 
-static const char _bijson_nul_bytes[4096];
+typedef struct _bijson_writer_write_state {
+	bijson_writer_t *writer;
+} _bijson_writer_write_state_t;
 
-static bool _bijson_write_to_fd(void *write_data, const void *data, size_t len) {
-	int fd = *(int *)write_data;
-	if(data) {
-		while(len) {
-			ssize_t written = write(fd, data, len);
-			if(written < 0)
-				return false;
-			len -= written;
-			data = (const char *)data + written;
-		}
-	} else {
-		while(len) {
-			ssize_t written = write(fd, _bijson_nul_bytes, _bijson_size_min(len, sizeof _bijson_nul_bytes));
-			if(written < 0)
-				return false;
-			len -= written;
-		}
-	}
-	return true;
+bool _bijson_writer_write_callback(
+	void *action_callback_data,
+	bijson_output_callback output_callback,
+    void *output_callback_data
+) {
+	return _bijson_writer_write(
+		((_bijson_writer_write_state_t *)action_callback_data)->writer,
+		output_callback,
+		output_callback_data
+	);
 }
 
 bool bijson_writer_write_to_fd(bijson_writer_t *writer, int fd) {
-	return _bijson_writer_write(writer, _bijson_write_to_fd, &fd);
+	_bijson_writer_write_state_t state = {writer};
+	return _bijson_io_write_to_fd(_bijson_writer_write_callback, &state, fd);
 }
 
-typedef struct _bijson_buffer_write_state {
-	void *buffer;
-	size_t size;
-	size_t written;
-} _bijson_buffer_write_state_t;
-
-static bool _bijson_write_to_buffer(void *write_data, const void *data, size_t len) {
-	_bijson_buffer_write_state_t state = *(_bijson_buffer_write_state_t *)write_data;
-	if(state.buffer && state.size > state.written) {
-		size_t remainder = state.size - state.written;
-		memcpy(state.buffer + state.written, data, len < remainder ? len : remainder);
-	}
-	((_bijson_buffer_write_state_t *)write_data)->written = state.written + len;
-	return true;
+bool bijson_writer_write_to_malloc(
+	bijson_writer_t *writer,
+	void **result_buffer,
+    size_t *result_size
+) {
+	_bijson_writer_write_state_t state = {writer};
+	return _bijson_io_write_to_malloc(
+		_bijson_writer_write_callback,
+		&state,
+		result_buffer,
+		result_size
+	);
 }
 
-bool bijson_writer_write_to_buffer(bijson_writer_t *writer, void **result_buffer, size_t *result_size) {
-	_bijson_buffer_write_state_t state = {.size = 4096};
-	state.buffer = malloc(state.size);
-	if(!state.buffer)
-		return false;
-
-	if(!(_bijson_writer_write(writer, _bijson_write_to_buffer, &state))) {
-		free(state.buffer);
-		return false;
-	}
-
-	if(state.written <= state.size) {
-		if(state.written < state.size) {
-			void *new_buffer = realloc(state.buffer, state.written);
-			if(new_buffer)
-				state.buffer = new_buffer;
-		}
-	} else {
-		free(state.buffer);
-		state = (_bijson_buffer_write_state_t){
-			.buffer = malloc(state.written),
-			.size = state.written,
-		};
-		if(!state.buffer)
-			return false;
-		if(!(_bijson_writer_write(writer, _bijson_write_to_buffer, &state))) {
-			free(state.buffer);
-			return false;
-		}
-	}
-
-	*result_buffer = state.buffer;
-	*result_size = state.written;
-
-	return true;
+bool bijson_writer_write_bytecounter(
+	bijson_writer_t *writer,
+	void **result_buffer,
+    size_t *result_size
+) {
+	_bijson_writer_write_state_t state = {writer};
+	return _bijson_io_write_bytecounter(
+		_bijson_writer_write_callback,
+		&state,
+		result_size
+	);
 }

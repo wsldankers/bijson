@@ -1,11 +1,13 @@
 #include <stdbool.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 #include <bijson/reader.h>
 
 #include "common.h"
-
+#include "io.h"
 
 static inline uint64_t _bijson_read_minimal_int(const uint8_t *buffer, size_t nbytes) {
 	uint64_t r = 0;
@@ -16,13 +18,13 @@ static inline uint64_t _bijson_read_minimal_int(const uint8_t *buffer, size_t nb
 
 static const unsigned char hex[16] = "0123456789ABCDEF";
 
-static bool _bijson_raw_string_to_json(const bijson_t *bijson, bijson_output_callback callback, void *userdata) {
+static bool _bijson_raw_string_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data) {
 	const uint8_t *string = bijson->buffer;
 	size_t len = bijson->size;
 	const uint8_t *previously_written = string;
 	uint8_t escape[2] = "\\x";
 	uint8_t unicode_escape[6] = "\\u00XX";
-	if(!callback("\"", 1, userdata))
+	if(!callback(callback_data, "\"", 1))
 		return false;
 	const uint8_t *string_end = string + len;
 	while(string < string_end) {
@@ -56,24 +58,24 @@ static bool _bijson_raw_string_to_json(const bijson_t *bijson, bijson_output_cal
 					continue;
 		}
 		if(string_pos > previously_written)
-			if(!callback(previously_written, string_pos - previously_written, userdata))
+			if(!callback(callback_data, previously_written, string_pos - previously_written))
 				return false;
 		previously_written = string;
 		if(plain_escape) {
 			escape[1] = plain_escape;
-			if(!callback(escape, sizeof escape, userdata))
+			if(!callback(callback_data, escape, sizeof escape))
 				return false;
 		} else {
 			unicode_escape[4] = hex[c >> 4];
 			unicode_escape[5] = hex[c & UINT8_C(0xF)];
-			if(!callback(unicode_escape, sizeof unicode_escape, userdata))
+			if(!callback(callback_data, unicode_escape, sizeof unicode_escape))
 				return false;
 		}
 	}
 	if(string > previously_written)
-		if(!callback(previously_written, string - previously_written, userdata))
+		if(!callback(callback_data, previously_written, string - previously_written))
 			return false;
-	if(!callback("\"", 1, userdata))
+	if(!callback(callback_data, "\"", 1))
 		return false;
 	return true;
 }
@@ -85,7 +87,7 @@ static bool _bijson_string_to_json(const bijson_t *bijson, bijson_output_callbac
 	return _bijson_raw_string_to_json(&raw_string, callback, userdata);
 }
 
-static inline bool _bijson_decimal_part_to_json(const bijson_t *bijson, bijson_output_callback callback, void *userdata) {
+static inline bool _bijson_decimal_part_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data) {
 	const uint8_t *buffer = bijson->buffer;
 	size_t size = bijson->size;
 
@@ -98,7 +100,7 @@ static inline bool _bijson_decimal_part_to_json(const bijson_t *bijson, bijson_o
 	last_word++;
 
 	char word_chars[20];
-	if(!callback(word_chars, sprintf(word_chars, "%"PRIu64, last_word), userdata))
+	if(!callback(callback_data, word_chars, sprintf(word_chars, "%"PRIu64, last_word)))
 		return false;
 
 	const uint8_t *word_start = last_word_start;
@@ -107,14 +109,14 @@ static inline bool _bijson_decimal_part_to_json(const bijson_t *bijson, bijson_o
 		uint64_t word = _bijson_read_minimal_int(word_start, sizeof(uint64_t));
 		if(word > UINT64_C(9999999999999999999))
 			return false;
-		if(!callback(word_chars, sprintf(word_chars, "%019"PRIu64, word), userdata))
+		if(!callback(callback_data, word_chars, sprintf(word_chars, "%019"PRIu64, word)))
 			return false;
 	}
 
 	return true;
 }
 
-static bool _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_callback callback, void *userdata) {
+static bool _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data) {
 	const uint8_t *buffer = bijson->buffer;
 	const uint8_t *buffer_end = buffer + bijson->size;
 	if(!buffer || buffer == buffer_end)
@@ -137,7 +139,7 @@ static bool _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_callba
 	if(exponent_size > buffer_end - exponent_start - SIZE_C(1))
 		return false;
 
-	if(type & UINT8_C(0x4) && !callback("-", SIZE_C(1), userdata))
+	if(type & UINT8_C(0x4) && !callback(callback_data, "-", SIZE_C(1)))
 		return false;
 
 	const uint8_t *significand_start = exponent_start + exponent_size;
@@ -145,43 +147,43 @@ static bool _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_callba
 		significand_start,
 		buffer_end - significand_start,
 	};
-	if(!_bijson_decimal_part_to_json(&significand, callback, userdata))
+	if(!_bijson_decimal_part_to_json(&significand, callback, callback_data))
 		return false;
 
-	if(!callback("e", SIZE_C(1), userdata))
+	if(!callback(callback_data, "e", SIZE_C(1)))
 		return false;
 
-	if(type & UINT8_C(0x8) && !callback("-", SIZE_C(1), userdata))
+	if(type & UINT8_C(0x8) && !callback(callback_data, "-", SIZE_C(1)))
 		return false;
 
 	bijson_t exponent = {
 		exponent_start,
 		exponent_size,
 	};
-	if(!_bijson_decimal_part_to_json(&exponent, callback, userdata))
+	if(!_bijson_decimal_part_to_json(&exponent, callback, callback_data))
 		return false;
 
 	return true;
 }
 
-static bool _bijson_decimal_integer_to_json(const bijson_t *bijson, bijson_output_callback callback, void *userdata) {
+static bool _bijson_decimal_integer_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data) {
 	const uint8_t *buffer = bijson->buffer;
 	size_t size = bijson->size;
 	if(!buffer || !size)
 		return false;
 
 	uint8_t type = *buffer;
-	if(type & UINT8_C(0x1) && !callback("-", SIZE_C(1), userdata))
+	if(type & UINT8_C(0x1) && !callback(callback_data, "-", SIZE_C(1)))
 		return false;
 
 	if(size == SIZE_C(1))
-		return callback("0", SIZE_C(1), userdata);
+		return callback(callback_data, "0", SIZE_C(1));
 
 	bijson_t integer = {
 		buffer + SIZE_C(1),
 		size - SIZE_C(1),
 	};
-	return _bijson_decimal_part_to_json(&integer, callback, userdata);
+	return _bijson_decimal_part_to_json(&integer, callback, callback_data);
 }
 
 bool bijson_object_count(const bijson_t *bijson, size_t *result) {
@@ -450,54 +452,54 @@ bool bijson_array_get_index(const bijson_t *bijson, size_t index, bijson_t *resu
 	return true;
 }
 
-static bool _bijson_object_to_json(const bijson_t *bijson, bijson_output_callback callback, void *userdata) {
+static bool _bijson_object_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data) {
 	size_t count;
 	if(!bijson_array_count(bijson, &count))
 		return false;
-	if(!callback("{", 1, userdata))
+	if(!callback(callback_data, "{", 1))
 		return false;
 
 	for(size_t u = 0; u < count; u++) {
-		if(u && !callback(",", 1, userdata))
+		if(u && !callback(callback_data, ",", 1))
 			return false;
 
 		bijson_t key, value;
 		if(!bijson_object_get_index(bijson, u, &key, &value))
 			return false;
-		if(!_bijson_raw_string_to_json(&key, callback, userdata))
+		if(!_bijson_raw_string_to_json(&key, callback, callback_data))
 			return false;
-		if(!callback(":", 1, userdata))
+		if(!callback(callback_data, ":", 1))
 			return false;
-		if(!bijson_to_json(&value, callback, userdata))
+		if(!bijson_to_json(&value, callback, callback_data))
 			return false;
 	}
 
-	return callback("}", 1, userdata);
+	return callback(callback_data, "}", 1);
 }
 
-static bool _bijson_array_to_json(const bijson_t *bijson, bijson_output_callback callback, void *userdata) {
+static bool _bijson_array_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data) {
 	size_t count;
 	if(!bijson_array_count(bijson, &count))
 		return false;
 
-	if(!callback("[", 1, userdata))
+	if(!callback(callback_data, "[", 1))
 		return false;
 
 	for(size_t u = 0; u < count; u++) {
-		if(u && !callback(",", 1, userdata))
+		if(u && !callback(callback_data, ",", 1))
 			return false;
 
 		bijson_t item;
 		if(!bijson_array_get_index(bijson, u, &item))
 			return false;
-		if(!bijson_to_json(&item, callback, userdata))
+		if(!bijson_to_json(&item, callback, callback_data))
 			return false;
 	}
 
-	return callback("]", 1, userdata);
+	return callback(callback_data, "]", 1);
 }
 
-bool bijson_to_json(const bijson_t *bijson, bijson_output_callback callback, void *userdata) {
+bool bijson_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data) {
 	if(!bijson)
 		return false;
 	const uint8_t *buffer = bijson->buffer;
@@ -511,38 +513,90 @@ bool bijson_to_json(const bijson_t *bijson, bijson_output_callback callback, voi
 			switch(type) {
 				case UINT8_C(0x01):
 				case UINT8_C(0x05): // undefined
-					return callback("null", 4, userdata);
+					return callback(callback_data, "null", 4);
 				case UINT8_C(0x02):
-					return callback("false", 5, userdata);
+					return callback(callback_data, "false", 5);
 				case UINT8_C(0x03):
-					return callback("true", 4, userdata);
+					return callback(callback_data, "true", 4);
 				case UINT8_C(0x08):
-					return _bijson_string_to_json(bijson, callback, userdata);
+					return _bijson_string_to_json(bijson, callback, callback_data);
 			}
 			break;
 		case UINT8_C(0x10):
 			switch(type & UINT8_C(0xFE)) {
 				case UINT8_C(0x1A):
-					return _bijson_decimal_integer_to_json(bijson, callback, userdata);
+					return _bijson_decimal_integer_to_json(bijson, callback, callback_data);
 			}
 			break;
 		case UINT8_C(0x20):
-			return _bijson_decimal_to_json(bijson, callback, userdata);
+			return _bijson_decimal_to_json(bijson, callback, callback_data);
 			break;
 		case UINT8_C(0x30):
-			return _bijson_array_to_json(bijson, callback, userdata);
+			return _bijson_array_to_json(bijson, callback, callback_data);
 			break;
 		case UINT8_C(0x40):
 		case UINT8_C(0x50):
 		case UINT8_C(0x60):
 		case UINT8_C(0x70):
-			return _bijson_object_to_json(bijson, callback, userdata);
+			return _bijson_object_to_json(bijson, callback, callback_data);
 			break;
 	}
 
 	return false;
 }
 
-bool bijson_stdio_output_callback(const void *data, size_t len, void *userdata) {
-	return fwrite(data, sizeof *data, len, userdata) == len * sizeof *data;
+static bool _bijson_stdio_output_callback(void *callback_data, const void *data, size_t len) {
+	return fwrite(data, sizeof *data, len, callback_data) == len * sizeof *data;
+}
+
+bool bijson_to_json_FILE(const bijson_t *bijson, FILE *file) {
+	return bijson_to_json(bijson, _bijson_stdio_output_callback, file);
+}
+
+typedef struct _bijson_to_json_state {
+	const bijson_t *bijson;
+} _bijson_to_json_state_t;
+
+bool _bijson_to_json_callback(
+	void *action_callback_data,
+	bijson_output_callback output_callback,
+    void *output_callback_data
+) {
+	return bijson_to_json(
+		((_bijson_to_json_state_t *)action_callback_data)->bijson,
+		output_callback,
+		output_callback_data
+	);
+}
+
+bool bijson_to_json_fd(const bijson_t *bijson, int fd) {
+	_bijson_to_json_state_t state = {bijson};
+	return _bijson_io_write_to_fd(_bijson_to_json_callback, &state, fd);
+}
+
+bool bijson_to_json_malloc(
+	const bijson_t *bijson,
+	void **result_buffer,
+    size_t *result_size
+) {
+	_bijson_to_json_state_t state = {bijson};
+	return _bijson_io_write_to_malloc(
+		_bijson_to_json_callback,
+		&state,
+		result_buffer,
+		result_size
+	);
+}
+
+bool bijson_to_json_bytecounter(
+	const bijson_t *bijson,
+	void **result_buffer,
+    size_t *result_size
+) {
+	_bijson_to_json_state_t state = {bijson};
+	return _bijson_io_write_bytecounter(
+		_bijson_to_json_callback,
+		&state,
+		result_size
+	);
 }
