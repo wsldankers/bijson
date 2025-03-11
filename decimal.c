@@ -221,7 +221,7 @@ static inline bool _bijson_analyze_string(_bijson_string_analysis_t *result, con
 
 	while(string != string_end) {
 		c = *string;
-	 	if(!_bijson_is_ascii_digit(c))
+		if(!_bijson_is_ascii_digit(c))
 			break;
 		if(c != '0') {
 			result->significand_start = string;
