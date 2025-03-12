@@ -10,6 +10,17 @@ typedef struct bijson {
 	size_t size;
 } bijson_t;
 
+extern bijson_error_t bijson_array_count(const bijson_t *bijson, size_t *result);
+extern bijson_error_t bijson_array_get_index(const bijson_t *bijson, size_t index, bijson_t *result);
+extern bijson_error_t bijson_object_count(const bijson_t *bijson, size_t *result);
+extern bijson_error_t bijson_object_get_index(
+	const bijson_t *bijson,
+	size_t index,
+	const void **key_buffer_result,
+	size_t *key_size_result,
+	bijson_t *value_result
+);
+
 extern bijson_error_t bijson_to_json(
 	const bijson_t *bijson,
 	bijson_output_callback_t callback,

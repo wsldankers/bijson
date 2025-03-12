@@ -208,7 +208,13 @@ bijson_error_t bijson_object_count(const bijson_t *bijson, size_t *result) {
 	return NULL;
 }
 
-bijson_error_t bijson_object_get_index(const bijson_t *bijson, size_t index, bijson_t *key_result, bijson_t *value_result) {
+bijson_error_t bijson_object_get_index(
+	const bijson_t *bijson,
+	size_t index,
+	const void **key_buffer_result,
+	size_t *key_size_result,
+	bijson_t *value_result
+) {
 	_BIJSON_ERROR_RETURN(_bijson_check_bijson(bijson));
 	const uint8_t *buffer = bijson->buffer;
 	const uint8_t *buffer_end = buffer + bijson->size;
@@ -321,10 +327,11 @@ bijson_error_t bijson_object_get_index(const bijson_t *bijson, size_t index, bij
 	else if(error)
 		return error;
 
-	if(key_result) {
-		key_result->buffer = key_buffer;
-		key_result->size = key_size;
-	}
+	if(key_buffer_result)
+		*key_buffer_result = key_buffer;
+
+	if(key_size_result)
+		*key_size_result = key_size;
 
 	if(value_result) {
 		value_result->buffer = value_data_start + value_start_offset;
@@ -443,7 +450,7 @@ static bijson_error_t _bijson_object_to_json(const bijson_t *bijson, bijson_outp
 			_BIJSON_ERROR_RETURN(callback(callback_data, ",", 1));
 
 		bijson_t key, value;
-		_BIJSON_ERROR_RETURN(bijson_object_get_index(bijson, u, &key, &value));
+		_BIJSON_ERROR_RETURN(bijson_object_get_index(bijson, u, &key.buffer, &key.size, &value));
 		_BIJSON_ERROR_RETURN(_bijson_raw_string_to_json(&key, callback, callback_data));
 		_BIJSON_ERROR_RETURN(callback(callback_data, ":", 1));
 		_BIJSON_ERROR_RETURN(bijson_to_json(&value, callback, callback_data));
