@@ -13,8 +13,6 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
-const _bijson_buffer_t _bijson_buffer_0 = {._fd = -1};
-
 #define _BIJSON_SMALL_BUFFER SIZE_C(4096)
 #define _BIJSON_MEDIUM_BUFFER SIZE_C(65536)
 #define _BIJSON_LARGE_BUFFER SIZE_C(1048576)
@@ -26,6 +24,17 @@ bijson_error_t _bijson_buffer_init(_bijson_buffer_t *buffer) {
 	buffer->_size = _BIJSON_SMALL_BUFFER;
 	buffer->_buffer = malloc(buffer->_size);
 	return buffer->_buffer ? NULL : bijson_error_system;
+}
+
+void _bijson_buffer_wipe(_bijson_buffer_t *buffer) {
+	int fd = buffer->_fd;
+	if(fd == -1) {
+		free(buffer->_buffer);
+	} else {
+		close(fd);
+		munmap(buffer->_buffer, buffer->_size);
+	}
+	IF_DEBUG(memset(buffer, 'A', sizeof *buffer));
 }
 
 static bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t required) {
@@ -106,17 +115,6 @@ static bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size
 	return NULL;
 }
 
-void _bijson_buffer_wipe(_bijson_buffer_t *buffer) {
-	int fd = buffer->_fd;
-	if(fd == -1) {
-		free(buffer->_buffer);
-	} else {
-		close(fd);
-		munmap(buffer->_buffer, buffer->_size);
-	}
-	IF_DEBUG(memset(buffer, 'A', sizeof *buffer));
-}
-
 void *_bijson_buffer_access(_bijson_buffer_t *buffer, size_t offset, size_t len) {
 	assert(!buffer->_failed);
 	assert(offset + len <= buffer->used);
@@ -150,6 +148,10 @@ bijson_error_t _bijson_buffer_push(_bijson_buffer_t *buffer, const void *data, s
 	_BIJSON_ERROR_RETURN(_bijson_buffer_ensure_space(buffer, new_used));
 	if(data)
 		memcpy(buffer->_buffer + old_used, data, len);
+#ifndef NDEBUG
+	else
+		memset(buffer->_buffer + old_used, 'A', len);
+#endif
 	buffer->used = new_used;
 	if(result)
 		*(void **)result = buffer->_buffer + old_used;
@@ -157,11 +159,13 @@ bijson_error_t _bijson_buffer_push(_bijson_buffer_t *buffer, const void *data, s
 }
 
 bijson_error_t _bijson_buffer_append(_bijson_buffer_t *buffer, const void *data, size_t len) {
-	assert(data);
 	size_t old_used = buffer->used;
 	size_t new_used = old_used + len;
 	_BIJSON_ERROR_RETURN(_bijson_buffer_ensure_space(buffer, new_used));
-	memcpy(buffer->_buffer + old_used, data, len);
+	if(data)
+		memcpy(buffer->_buffer + old_used, data, len);
+	else
+		memset(buffer->_buffer + old_used, '\0', len);
 	buffer->used = new_used;
 	return NULL;
 }

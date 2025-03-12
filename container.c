@@ -33,27 +33,27 @@ static void _bijson_container_pop(bijson_writer_t *writer) {
 bijson_error_t bijson_writer_begin_object(bijson_writer_t *writer) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
-	_BIJSON_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_spool_type_object, sizeof _bijson_spool_type_object));
-	_BIJSON_ERROR_RETURN(_bijson_container_push(writer));
-	_BIJSON_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_container_0, sizeof _bijson_container_0));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_spool_type_object, sizeof _bijson_spool_type_object));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_container_push(writer));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_container_0, sizeof _bijson_container_0));
 	return NULL;
 }
 
 bijson_error_t bijson_writer_begin_array(bijson_writer_t *writer) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
-	_BIJSON_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_spool_type_array, sizeof _bijson_spool_type_array));
-	_BIJSON_ERROR_RETURN(_bijson_container_push(writer));
-	_BIJSON_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_container_0, sizeof _bijson_container_0));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_spool_type_array, sizeof _bijson_spool_type_array));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_container_push(writer));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_container_0, sizeof _bijson_container_0));
 	return NULL;
 }
 
 bijson_error_t bijson_writer_add_key(bijson_writer_t *writer, const char *key, size_t len) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
-	_BIJSON_ERROR_RETURN(_bijson_check_valid_utf8(key, len));
-	_BIJSON_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &len, sizeof len));
-	_BIJSON_ERROR_RETURN(_bijson_buffer_append(&writer->spool, key, len));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_check_valid_utf8(key, len));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &len, sizeof len));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, key, len));
 	return NULL;
 }
 

@@ -5,12 +5,6 @@
 
 #include <bijson/common.h>
 
-typedef bijson_error_t (*bijson_output_callback_t)(
-	void *output_callback_data,
-	const void *data,
-	size_t len
-);
-
 typedef bijson_error_t (*bijson_output_action_callback_t)(
 	void *action_callback_data,
 	bijson_output_callback_t output_callback,

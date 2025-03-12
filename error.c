@@ -10,6 +10,7 @@ const char bijson_error_parameter_is_zero[] = "parameter is zero";
 const char bijson_error_parameter_is_null[] = "parameter is NULL";
 const char bijson_error_internal_error[] = "internal error";
 const char bijson_error_unsupported_feature[] = "unsupported feature";
+const char bijson_error_unsupported_data_type[] = "unsupported data type";
 const char bijson_error_file_format_error[] = "file format error";
 const char bijson_error_value_out_of_range[] = "value out of range";
 const char bijson_error_key_before_value[] = "attempt to write a key when a value was expected";

@@ -11,6 +11,7 @@ extern const _bijson_spool_type_t _bijson_spool_type_scalar;
 extern const _bijson_spool_type_t _bijson_spool_type_object;
 extern const _bijson_spool_type_t _bijson_spool_type_array;
 
+// Use in public functions:
 #define _BIJSON_WRITER_ERROR_RETURN(x) _BIJSON_ERROR_CLEANUP_AND_RETURN(x, writer->failed = true)
 
 typedef struct bijson_writer {

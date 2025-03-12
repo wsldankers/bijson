@@ -6,7 +6,8 @@
 #include <bijson/reader.h>
 
 int main(void) {
-	bijson_writer_t *writer = bijson_writer_alloc();
+	bijson_writer_t *writer = NULL;
+	bijson_writer_alloc(&writer);
 	bijson_writer_begin_array(writer);
 	bijson_writer_begin_object(writer);
 	bijson_writer_add_key(writer, "foo", 3);

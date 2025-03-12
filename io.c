@@ -21,8 +21,6 @@ typedef struct _bijson_buffer_write_to_fd_state {
 static const char _bijson_nul_bytes[4096];
 
 static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, const void *data, size_t len) {
-	if(!len)
-		return true;
 	_bijson_buffer_write_to_fd_state_t state = *(_bijson_buffer_write_to_fd_state_t *)write_data;
 	if(data) {
 		if(state.fill + len < state.size) {
@@ -192,7 +190,7 @@ bijson_error_t _bijson_io_write_to_malloc(
 	_bijson_io_write_to_malloc_state_t state = {.size = 4096};
 	state.buffer = malloc(state.size);
 	if(!state.buffer)
-		return false;
+		return bijson_error_system;
 
 	_BIJSON_ERROR_CLEANUP_AND_RETURN(action_callback(
 		action_callback_data,
@@ -207,7 +205,7 @@ bijson_error_t _bijson_io_write_to_malloc(
 			.size = state.written,
 		};
 		if(!state.buffer)
-			return false;
+			return bijson_error_system;
 
 		_BIJSON_ERROR_CLEANUP_AND_RETURN(action_callback(
 			action_callback_data,

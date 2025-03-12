@@ -25,8 +25,6 @@
 #define _BIJSON_ERROR_CLEANUP_AND_RETURN(x, cleanup) do { bijson_error_t _error = (x); if(__builtin_expect((bool)_error, 0)) { cleanup; return _error; } } while(false)
 #define _BIJSON_ERROR_RETURN(x) _BIJSON_ERROR_CLEANUP_AND_RETURN((x), do {} while(false))
 
-extern void *_bijson_xalloc(size_t len);
-extern void _bijson_xfree(void *buf);
 extern bijson_error_t _bijson_check_valid_utf8(const char *string, size_t len);
 
 static inline size_t _bijson_size_min(size_t a, size_t b) {

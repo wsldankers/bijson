@@ -15,30 +15,37 @@
 const _bijson_spool_type_t _bijson_spool_type_scalar = UINT8_C(0);
 const _bijson_spool_type_t _bijson_spool_type_array = UINT8_C(1);
 const _bijson_spool_type_t _bijson_spool_type_object = UINT8_C(2);
+// const _bijson_spool_type_t _bijson_spool_type_extern = UINT8_C(3);
 
-static const bijson_writer_t _bijson_writer_0 = {{0}};
+#define _bijson_writer_0 ((bijson_writer_t){.spool = _bijson_buffer_0, .stack = _bijson_buffer_0,})
 
 void bijson_writer_free(bijson_writer_t *writer) {
-	_bijson_buffer_wipe(&writer->spool);
-	_bijson_buffer_wipe(&writer->stack);
-	_bijson_xfree(writer);
+	if(writer) {
+		_bijson_buffer_wipe(&writer->spool);
+		_bijson_buffer_wipe(&writer->stack);
+		free(writer);
+	}
 }
 
-bijson_writer_t *bijson_writer_alloc(void) {
-	bijson_writer_t *writer = _bijson_xalloc(sizeof *writer);
+bijson_error_t bijson_writer_alloc(bijson_writer_t **result) {
+	if(!result)
+		return bijson_error_parameter_is_zero;
+	bijson_writer_t *writer = malloc(sizeof *writer);
+	if(!writer)
+		return bijson_error_system;
+
 	*writer = _bijson_writer_0;
-	if(_bijson_buffer_init(&writer->spool))
-		return bijson_writer_free(writer), NULL;
-	if(_bijson_buffer_init(&writer->stack))
-		return bijson_writer_free(writer), NULL;
-	return writer;
+	_BIJSON_ERROR_CLEANUP_AND_RETURN(_bijson_buffer_init(&writer->spool), bijson_writer_free(writer));
+	_BIJSON_ERROR_CLEANUP_AND_RETURN(_bijson_buffer_init(&writer->stack), bijson_writer_free(writer));
+	*result = writer;
+	return NULL;
 }
 
 typedef size_t (*_bijson_writer_size_type_func_t)(bijson_writer_t *writer, size_t spool_offset);
 
 static size_t _bijson_writer_size_scalar(bijson_writer_t *writer, size_t spool_offset) {
 	size_t spool_size;
-	_BIJSON_CHECK(_bijson_buffer_read(&writer->spool, spool_offset, &spool_size, sizeof spool_size));
+	_bijson_buffer_read(&writer->spool, spool_offset, &spool_size, sizeof spool_size);
 	return spool_size;
 }
 
@@ -50,19 +57,28 @@ static _bijson_writer_size_type_func_t _bijson_writer_typesizers[] = {
 
 size_t _bijson_writer_size_value(bijson_writer_t *writer, size_t spool_offset) {
 	_bijson_spool_type_t spool_type;
-	_BIJSON_CHECK_OR_RETURN(_bijson_buffer_read(&writer->spool, spool_offset, &spool_type, sizeof spool_type), SIZE_MAX);
+	_bijson_buffer_read(&writer->spool, spool_offset, &spool_type, sizeof spool_type);
 	assert(spool_type < orz(_bijson_writer_typesizers));
 	_bijson_writer_size_type_func_t typesizer = _bijson_writer_typesizers[spool_type];
 	return typesizer(writer, spool_offset + sizeof spool_type);
 }
 
-typedef bool (*_bijson_writer_write_type_func_t)(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, const char *spool);
+typedef bijson_error_t (*_bijson_writer_write_type_func_t)(
+	bijson_writer_t *writer,
+	_bijson_writer_write_func_t write,
+	void *write_data,
+	const char *spool
+);
 
-static bool _bijson_writer_write_scalar(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, const char *spool) {
+static bijson_error_t _bijson_writer_write_scalar(
+	bijson_writer_t *writer,
+	_bijson_writer_write_func_t write,
+	void *write_data,
+	const char *spool
+) {
 	size_t spool_size;
 	memcpy(&spool_size, spool, sizeof spool_size);
-	_BIJSON_CHECK(write(write_data, spool + sizeof spool_size, spool_size));
-	return true;
+	return write(write_data, spool + sizeof spool_size, spool_size);
 }
 
 static _bijson_writer_write_type_func_t _bijson_writer_typewriters[] = {
@@ -71,28 +87,36 @@ static _bijson_writer_write_type_func_t _bijson_writer_typewriters[] = {
 	_bijson_writer_write_object,
 };
 
-bool _bijson_writer_write_value(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, const char *spool) {
+bijson_error_t _bijson_writer_write_value(
+	bijson_writer_t *writer,
+	_bijson_writer_write_func_t write,
+	void *write_data,
+	const char *spool
+) {
 	_bijson_spool_type_t spool_type = *(const _bijson_spool_type_t *)spool;
 	_bijson_writer_write_type_func_t typewriter = _bijson_writer_typewriters[spool_type];
 	return typewriter(writer, write, write_data, spool + sizeof spool_type);
 }
 
-static bool _bijson_writer_write(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data) {
+static bijson_error_t _bijson_writer_write(
+	bijson_writer_t *writer,
+	_bijson_writer_write_func_t write,
+	void *write_data
+) {
 	const char *spool = _bijson_buffer_finalize(&writer->spool);
-	_BIJSON_CHECK(spool);
 	return _bijson_writer_write_value(writer, write, write_data, spool);
 }
 
-bool _bijson_writer_bytecounter_writer(void *write_data, const void *data, size_t len) {
+bijson_error_t _bijson_writer_bytecounter_writer(void *write_data, const void *data, size_t len) {
 	*(size_t *)write_data += len;
-	return true;
+	return NULL;
 }
 
 typedef struct _bijson_writer_write_state {
 	bijson_writer_t *writer;
 } _bijson_writer_write_state_t;
 
-bool _bijson_writer_write_callback(
+bijson_error_t _bijson_writer_write_callback(
 	void *action_callback_data,
 	bijson_output_callback_t output_callback,
 	void *output_callback_data
@@ -104,17 +128,17 @@ bool _bijson_writer_write_callback(
 	);
 }
 
-bool bijson_writer_write_to_fd(bijson_writer_t *writer, int fd) {
+bijson_error_t bijson_writer_write_to_fd(bijson_writer_t *writer, int fd) {
 	_bijson_writer_write_state_t state = {writer};
 	return _bijson_io_write_to_fd(_bijson_writer_write_callback, &state, fd);
 }
 
-bool bijson_writer_write_to_FILE(bijson_writer_t *writer, FILE *file) {
+bijson_error_t bijson_writer_write_to_FILE(bijson_writer_t *writer, FILE *file) {
 	_bijson_writer_write_state_t state = {writer};
 	return _bijson_io_write_to_FILE(_bijson_writer_write_callback, &state, file);
 }
 
-bool bijson_writer_write_to_malloc(
+bijson_error_t bijson_writer_write_to_malloc(
 	bijson_writer_t *writer,
 	void **result_buffer,
 	size_t *result_size
@@ -128,7 +152,7 @@ bool bijson_writer_write_to_malloc(
 	);
 }
 
-bool bijson_writer_write_bytecounter(
+bijson_error_t bijson_writer_write_bytecounter(
 	bijson_writer_t *writer,
 	void **result_buffer,
 	size_t *result_size
