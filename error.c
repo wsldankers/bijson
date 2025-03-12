@@ -16,3 +16,5 @@ const char bijson_error_value_out_of_range[] = "value out of range";
 const char bijson_error_key_before_value[] = "attempt to write a key when a value was expected";
 const char bijson_error_value_before_key[] = "attempt to write a value when a key was expected";
 const char bijson_error_writer_failed[] = "attempt to operate a writer that has already failed";
+const char bijson_error_unmatched_end[] = "begin and end commands do not match";
+const char bijson_error_bad_root[] = "there must be one single root element";

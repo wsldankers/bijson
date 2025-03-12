@@ -103,6 +103,27 @@ static bijson_error_t _bijson_writer_write(
 	_bijson_writer_write_func_t write,
 	void *write_data
 ) {
+	if(writer->failed)
+		return bijson_error_writer_failed;
+
+	if(writer->current_container)
+		return bijson_error_unmatched_end;
+
+	size_t spool_used = writer->spool.used;
+	if(!spool_used)
+		return bijson_error_bad_root;
+
+	size_t root_spool_size;
+	_bijson_buffer_read(
+		&writer->spool,
+		sizeof(_bijson_spool_type_t),
+		&root_spool_size,
+		sizeof root_spool_size
+	);
+	root_spool_size += sizeof(_bijson_spool_type_t) + sizeof root_spool_size;
+	if(root_spool_size != spool_used)
+		return bijson_error_bad_root;
+
 	const char *spool = _bijson_buffer_finalize(&writer->spool);
 	return _bijson_writer_write_value(writer, write, write_data, spool);
 }

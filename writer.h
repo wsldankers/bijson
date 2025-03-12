@@ -25,6 +25,7 @@ typedef struct bijson_writer {
 	// computations.
 	_bijson_buffer_t stack;
 	size_t current_container;
+	size_t last_key;
 	bool failed;
 } bijson_writer_t;
 

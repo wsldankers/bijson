@@ -3,7 +3,6 @@
 
 #include "buffer.h"
 #include "common.h"
-#include "error.h"
 
 #include <stdio.h>
 #include <string.h>

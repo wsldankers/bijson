@@ -21,6 +21,8 @@ extern const char bijson_error_value_out_of_range[];
 extern const char bijson_error_key_before_value[];
 extern const char bijson_error_value_before_key[];
 extern const char bijson_error_writer_failed[];
+extern const char bijson_error_unmatched_end[];
+extern const char bijson_error_bad_root[];
 
 typedef bijson_error_t (*bijson_output_callback_t)(
 	void *output_callback_data,
