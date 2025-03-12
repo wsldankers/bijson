@@ -18,7 +18,7 @@ static inline uint64_t _bijson_read_minimal_int(const uint8_t *buffer, size_t nb
 
 static const unsigned char hex[16] = "0123456789ABCDEF";
 
-static bool _bijson_raw_string_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data) {
+static bool _bijson_raw_string_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	const uint8_t *string = bijson->buffer;
 	size_t len = bijson->size;
 	const uint8_t *previously_written = string;
@@ -80,14 +80,14 @@ static bool _bijson_raw_string_to_json(const bijson_t *bijson, bijson_output_cal
 	return true;
 }
 
-static bool _bijson_string_to_json(const bijson_t *bijson, bijson_output_callback callback, void *userdata) {
+static bool _bijson_string_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *userdata) {
 	bijson_t raw_string = { .buffer = bijson->buffer + SIZE_C(1), .size = bijson->size - SIZE_C(1) };
 	if(!_bijson_is_valid_utf8((const char *)raw_string.buffer, raw_string.size))
 		return false;
 	return _bijson_raw_string_to_json(&raw_string, callback, userdata);
 }
 
-static inline bool _bijson_decimal_part_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data) {
+static inline bool _bijson_decimal_part_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	const uint8_t *buffer = bijson->buffer;
 	size_t size = bijson->size;
 
@@ -116,7 +116,7 @@ static inline bool _bijson_decimal_part_to_json(const bijson_t *bijson, bijson_o
 	return true;
 }
 
-static bool _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data) {
+static bool _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	const uint8_t *buffer = bijson->buffer;
 	const uint8_t *buffer_end = buffer + bijson->size;
 	if(!buffer || buffer == buffer_end)
@@ -166,7 +166,7 @@ static bool _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_callba
 	return true;
 }
 
-static bool _bijson_decimal_integer_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data) {
+static bool _bijson_decimal_integer_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	const uint8_t *buffer = bijson->buffer;
 	size_t size = bijson->size;
 	if(!buffer || !size)
@@ -452,7 +452,7 @@ bool bijson_array_get_index(const bijson_t *bijson, size_t index, bijson_t *resu
 	return true;
 }
 
-static bool _bijson_object_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data) {
+static bool _bijson_object_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	size_t count;
 	if(!bijson_array_count(bijson, &count))
 		return false;
@@ -477,7 +477,7 @@ static bool _bijson_object_to_json(const bijson_t *bijson, bijson_output_callbac
 	return callback(callback_data, "}", 1);
 }
 
-static bool _bijson_array_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data) {
+static bool _bijson_array_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	size_t count;
 	if(!bijson_array_count(bijson, &count))
 		return false;
@@ -499,7 +499,7 @@ static bool _bijson_array_to_json(const bijson_t *bijson, bijson_output_callback
 	return callback(callback_data, "]", 1);
 }
 
-bool bijson_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data) {
+bool bijson_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	if(!bijson)
 		return false;
 	const uint8_t *buffer = bijson->buffer;
@@ -551,8 +551,8 @@ typedef struct _bijson_to_json_state {
 
 bool _bijson_to_json_callback(
 	void *action_callback_data,
-	bijson_output_callback output_callback,
-    void *output_callback_data
+	bijson_output_callback_t output_callback,
+	void *output_callback_data
 ) {
 	return bijson_to_json(
 		((_bijson_to_json_state_t *)action_callback_data)->bijson,
@@ -574,7 +574,7 @@ bool bijson_to_json_FILE(const bijson_t *bijson, FILE *file) {
 bool bijson_to_json_malloc(
 	const bijson_t *bijson,
 	void **result_buffer,
-    size_t *result_size
+	size_t *result_size
 ) {
 	_bijson_to_json_state_t state = {bijson};
 	return _bijson_io_write_to_malloc(
@@ -588,7 +588,7 @@ bool bijson_to_json_malloc(
 bool bijson_to_json_bytecounter(
 	const bijson_t *bijson,
 	void **result_buffer,
-    size_t *result_size
+	size_t *result_size
 ) {
 	_bijson_to_json_state_t state = {bijson};
 	return _bijson_io_write_bytecounter(

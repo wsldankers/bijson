@@ -3,6 +3,7 @@
 
 #include "buffer.h"
 #include "common.h"
+#include "error.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -20,20 +21,19 @@ const _bijson_buffer_t _bijson_buffer_0 = {._fd = -1};
 
 #define _BIJSON_MAX_BUFFER_EXTENSION SIZE_C(16777216)
 
-bool _bijson_buffer_alloc(_bijson_buffer_t *buffer) {
+bijson_error_t _bijson_buffer_init(_bijson_buffer_t *buffer) {
 	*buffer = _bijson_buffer_0;
 	buffer->_size = _BIJSON_SMALL_BUFFER;
 	buffer->_buffer = malloc(buffer->_size);
-	return buffer->_buffer;
+	return buffer->_buffer ? NULL : bijson_error_system;
 }
 
-static bool _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t required) {
-	if(buffer->_failed)
-		return false;
+static bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t required) {
+	assert(!buffer->_failed);
 
 	size_t old_size = buffer->_size;
 	if(required <= old_size)
-		return true;
+		return NULL;
 
 	int fd = buffer->_fd;
 	bool was_malloced = fd == -1;
@@ -44,8 +44,8 @@ static bool _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t require
 			: _BIJSON_LARGE_BUFFER;
 		void *new_buffer = realloc(buffer->_buffer, new_size);
 		if(!new_buffer) {
-			buffer->_failed = true;
-			return false;
+			IF_DEBUG(buffer->_failed = true);
+			return bijson_error_system;
 		}
 		buffer->_size = new_size;
 		buffer->_buffer = new_buffer;
@@ -60,25 +60,27 @@ static bool _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t require
 				new_size <<= 1;
 		}
 		if(was_malloced) {
-			const char *tmpdir = getenv("TMPDIR");
+			const char *tmpdir = getenv("BIJSON_TMPDIR");
+			if(!tmpdir)
+				tmpdir = getenv("TMPDIR");
 			if(!tmpdir)
 				tmpdir = "/tmp";
 			fd = open(tmpdir, O_RDWR|O_TMPFILE|O_CLOEXEC, 0600);
 			if(fd == -1) {
-				buffer->_failed = true;
-				return false;
+				IF_DEBUG(buffer->_failed = true);
+				return bijson_error_system;
 			}
 			buffer->_fd = fd;
 			if(posix_fallocate(fd, 0, new_size) == -1) {
 				close(fd);
-				buffer->_failed = true;
-				return false;
+				IF_DEBUG(buffer->_failed = true);
+				return bijson_error_system;
 			}
 		} else {
 			if(posix_fallocate(fd, old_size, new_size - old_size) == -1) {
 				close(fd);
-				buffer->_failed = true;
-				return false;
+				IF_DEBUG(buffer->_failed = true);
+				return bijson_error_system;
 			}
 		}
 		void *new_buffer = was_malloced
@@ -87,8 +89,8 @@ static bool _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t require
 
 		if(new_buffer == MAP_FAILED) {
 			close(fd);
-			buffer->_failed = true;
-			return false;
+			IF_DEBUG(buffer->_failed = true);
+			return bijson_error_system;
 		}
 
 		if(was_malloced) {
@@ -101,10 +103,10 @@ static bool _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t require
 		buffer->_size = new_size;
 	}
 
-	return true;
+	return NULL;
 }
 
-void _bijson_buffer_free(_bijson_buffer_t *buffer) {
+void _bijson_buffer_wipe(_bijson_buffer_t *buffer) {
 	int fd = buffer->_fd;
 	if(fd == -1) {
 		free(buffer->_buffer);
@@ -112,69 +114,62 @@ void _bijson_buffer_free(_bijson_buffer_t *buffer) {
 		close(fd);
 		munmap(buffer->_buffer, buffer->_size);
 	}
-#ifndef NDEBUG
-	*buffer = _bijson_buffer_0;
-#endif
+	IF_DEBUG(memset(buffer, 'A', sizeof *buffer));
 }
 
 void *_bijson_buffer_access(_bijson_buffer_t *buffer, size_t offset, size_t len) {
-	if(buffer->_failed)
-		return NULL;
+	assert(!buffer->_failed);
 	assert(offset + len <= buffer->used);
-	if(offset + len > buffer->used)
-		return NULL;
 	return buffer->_buffer + offset;
 }
 
-bool _bijson_buffer_read(_bijson_buffer_t *buffer, size_t offset, void *data, size_t len) {
+void _bijson_buffer_read(_bijson_buffer_t *buffer, size_t offset, void *data, size_t len) {
 	assert(data);
-	if(!data)
-		return false;
 	const void *offset_buffer = _bijson_buffer_access(buffer, offset, len);
-	if(!offset_buffer)
-		return false;
 	memcpy(data, offset_buffer, len);
-	return true;
 }
 
-bool _bijson_buffer_write(_bijson_buffer_t *buffer, size_t offset, const void *data, size_t len) {
-	if(buffer->_failed || buffer->_finalized)
-		return false;
-	if(offset + len > buffer->used)
-		return false;
+void _bijson_buffer_write(_bijson_buffer_t *buffer, size_t offset, const void *data, size_t len) {
+	assert(!buffer->_failed && !buffer->_finalized);
+	assert(offset + len <= buffer->used);
 	if(data)
 		memcpy(buffer->_buffer + offset, data, len);
 	else
 		memset(buffer->_buffer + offset, '\0', len);
-	return true;
 }
 
 const char *_bijson_buffer_finalize(_bijson_buffer_t *buffer) {
-	if(buffer->_failed)
-		return NULL;
-	buffer->_finalized = true;
+	assert(!buffer->_failed);
+	IF_DEBUG(buffer->_finalized = true);
 	return buffer->_buffer;
 }
 
-void *_bijson_buffer_push(_bijson_buffer_t *buffer, const void *data, size_t len) {
-	if(buffer->_failed || buffer->_finalized)
-		return false;
+bijson_error_t _bijson_buffer_push(_bijson_buffer_t *buffer, const void *data, size_t len, void *result) {
 	size_t old_used = buffer->used;
 	size_t new_used = old_used + len;
-	if(!_bijson_buffer_ensure_space(buffer, new_used))
-		return NULL;
+	_BIJSON_ERROR_RETURN(_bijson_buffer_ensure_space(buffer, new_used));
 	if(data)
 		memcpy(buffer->_buffer + old_used, data, len);
 	buffer->used = new_used;
-	return buffer->_buffer + old_used;
+	if(result)
+		*(void **)result = buffer->_buffer + old_used;
+	return NULL;
 }
 
-bool _bijson_buffer_pop(_bijson_buffer_t *buffer, void *data, size_t len) {
-	if(buffer->_failed || buffer->_finalized)
-		return false;
-	size_t new_used = buffer->used - len;
-	if(data && !_bijson_buffer_read(buffer, new_used, data, len))
-		return false;
+bijson_error_t _bijson_buffer_append(_bijson_buffer_t *buffer, const void *data, size_t len) {
+	assert(data);
+	size_t old_used = buffer->used;
+	size_t new_used = old_used + len;
+	_BIJSON_ERROR_RETURN(_bijson_buffer_ensure_space(buffer, new_used));
+	memcpy(buffer->_buffer + old_used, data, len);
 	buffer->used = new_used;
-	return true;
+	return NULL;
+}
+
+void _bijson_buffer_pop(_bijson_buffer_t *buffer, void *data, size_t len) {
+	assert(!buffer->_failed && !buffer->_finalized);
+	size_t new_used = buffer->used - len;
+	if(data)
+		_bijson_buffer_read(buffer, new_used, data, len);
+	buffer->used = new_used;
 }

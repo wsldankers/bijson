@@ -19,17 +19,17 @@ const _bijson_spool_type_t _bijson_spool_type_object = UINT8_C(2);
 static const bijson_writer_t _bijson_writer_0 = {{0}};
 
 void bijson_writer_free(bijson_writer_t *writer) {
-	_bijson_buffer_free(&writer->spool);
-	_bijson_buffer_free(&writer->stack);
+	_bijson_buffer_wipe(&writer->spool);
+	_bijson_buffer_wipe(&writer->stack);
 	_bijson_xfree(writer);
 }
 
 bijson_writer_t *bijson_writer_alloc(void) {
 	bijson_writer_t *writer = _bijson_xalloc(sizeof *writer);
 	*writer = _bijson_writer_0;
-	if(!_bijson_buffer_alloc(&writer->spool))
+	if(_bijson_buffer_init(&writer->spool))
 		return bijson_writer_free(writer), NULL;
-	if(!_bijson_buffer_alloc(&writer->stack))
+	if(_bijson_buffer_init(&writer->stack))
 		return bijson_writer_free(writer), NULL;
 	return writer;
 }
@@ -94,8 +94,8 @@ typedef struct _bijson_writer_write_state {
 
 bool _bijson_writer_write_callback(
 	void *action_callback_data,
-	bijson_output_callback output_callback,
-    void *output_callback_data
+	bijson_output_callback_t output_callback,
+	void *output_callback_data
 ) {
 	return _bijson_writer_write(
 		((_bijson_writer_write_state_t *)action_callback_data)->writer,
@@ -117,7 +117,7 @@ bool bijson_writer_write_to_FILE(bijson_writer_t *writer, FILE *file) {
 bool bijson_writer_write_to_malloc(
 	bijson_writer_t *writer,
 	void **result_buffer,
-    size_t *result_size
+	size_t *result_size
 ) {
 	_bijson_writer_write_state_t state = {writer};
 	return _bijson_io_write_to_malloc(
@@ -131,7 +131,7 @@ bool bijson_writer_write_to_malloc(
 bool bijson_writer_write_bytecounter(
 	bijson_writer_t *writer,
 	void **result_buffer,
-    size_t *result_size
+	size_t *result_size
 ) {
 	_bijson_writer_write_state_t state = {writer};
 	return _bijson_io_write_bytecounter(

@@ -1,0 +1,17 @@
+#include "error.h"
+
+const char bijson_error_system[] = "system error";
+const char bijson_error_index_out_of_range[] = "index out of range";
+const char bijson_error_key_not_found[] = "key not found";
+const char bijson_error_invalid_decimal_syntax[] = "invalid decimal syntax";
+const char bijson_error_invalid_json_format[] = "invalid JSON format";
+const char bijson_error_invalid_utf8[] = "invalid UTF-8";
+const char bijson_error_parameter_is_zero[] = "parameter is zero";
+const char bijson_error_parameter_is_null[] = "parameter is NULL";
+const char bijson_error_internal_error[] = "internal error";
+const char bijson_error_unsupported_feature[] = "unsupported feature";
+const char bijson_error_file_format_error[] = "file format error";
+const char bijson_error_value_out_of_range[] = "value out of range";
+const char bijson_error_key_before_value[] = "attempt to write a key when a value was expected";
+const char bijson_error_value_before_key[] = "attempt to write a value when a key was expected";
+const char bijson_error_writer_failed[] = "attempt to operate a writer that has already failed";

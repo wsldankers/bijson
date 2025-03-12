@@ -19,15 +19,14 @@ static inline int _bijson_compare_digits(const char *a_start, size_t a_len, cons
 	return a_len > b_len ? 1 : a_len < b_len ? -1 : memcmp(a_start, b_start, a_len);
 }
 
-static inline bool _bijson_shift_digits(const char *start, size_t len, const char *decimal_point, size_t shift, _bijson_writer_write_func_t write, void *write_data) {
+static inline bijson_error_t _bijson_shift_digits(const char *start, size_t len, const char *decimal_point, size_t shift, _bijson_writer_write_func_t write, void *write_data) {
 	assert(!len || *start != '0');
 
 	if(!len)
-		return true;
+		return NULL;
 
 	size_t big_shift = shift / SIZE_C(19);
-	if(!write(write_data, NULL, big_shift * sizeof(uint64_t)))
-		return false;
+	_BIJSON_ERROR_RETURN(write(write_data, NULL, big_shift * sizeof(uint64_t)));
 	shift -= big_shift * SIZE_C(19);
 
 	uint64_t magnitude = UINT64_C(1);
@@ -55,8 +54,7 @@ static inline bool _bijson_shift_digits(const char *start, size_t len, const cha
 		assert(_bijson_is_ascii_digit(*s));
 		uint64_t value = *s - '0';
 		if(magnitude == UINT64_C(10000000000000000000)) {
-			if(!_bijson_writer_write_minimal_int(write, write_data, word, sizeof word))
-				return false;
+			_BIJSON_ERROR_RETURN(_bijson_writer_write_minimal_int(write, write_data, word, sizeof word));
 			word = value;
 			magnitude = UINT64_C(1);
 		} else {
@@ -68,18 +66,17 @@ static inline bool _bijson_shift_digits(const char *start, size_t len, const cha
 	assert(word);
 
 	word--;
-	if(!_bijson_writer_write_minimal_int(write, write_data, word, _bijson_fit_uint64(word)))
-		return false;
+	_BIJSON_ERROR_RETURN(_bijson_writer_write_minimal_int(write, write_data, word, _bijson_fit_uint64(word)));
 
-	return true;
+	return NULL;
 }
 
-static bool _bijson_add_digits(const char *a_start, size_t a_len, const char *b_start, size_t b_len, _bijson_writer_write_func_t write, void *write_data) {
+static bijson_error_t _bijson_add_digits(const char *a_start, size_t a_len, const char *b_start, size_t b_len, _bijson_writer_write_func_t write, void *write_data) {
 	assert(!a_len || *a_start != '0');
 	assert(!b_len || *b_start != '0');
 
 	if(!a_len)
-		return !b_len || _bijson_shift_digits(b_start, b_len, NULL, 0, write, write_data);
+		return b_len ? _bijson_shift_digits(b_start, b_len, NULL, 0, write, write_data) : NULL;
 	else if(!b_len)
 		return _bijson_shift_digits(a_start, a_len, NULL, 0, write, write_data);
 
@@ -102,8 +99,7 @@ static bool _bijson_add_digits(const char *a_start, size_t a_len, const char *b_
 			break;
 		magnitude *= UINT64_C(10);
 		if(magnitude == UINT64_C(10000000000000000000)) {
-			if(!_bijson_writer_write_minimal_int(write, write_data, word, sizeof word))
-				return false;
+			_BIJSON_ERROR_RETURN(_bijson_writer_write_minimal_int(write, write_data, word, sizeof word));
 			magnitude = 1;
 			word = 0;
 		}
@@ -119,7 +115,7 @@ static bool _bijson_add_digits(const char *a_start, size_t a_len, const char *b_
 	return _bijson_writer_write_minimal_int(write, write_data, word, _bijson_fit_uint64(word - 1));
 }
 
-static bool _bijson_subtract_digits(const char *a_start, size_t a_len, const char *b_start, size_t b_len, _bijson_writer_write_func_t write, void *write_data) {
+static bijson_error_t _bijson_subtract_digits(const char *a_start, size_t a_len, const char *b_start, size_t b_len, _bijson_writer_write_func_t write, void *write_data) {
 	// Compute a-b; a must not be smaller than b. Neither a nor be can have
 	// leading zeroes.
 	assert(!a_len || *a_start != '0');
@@ -127,7 +123,7 @@ static bool _bijson_subtract_digits(const char *a_start, size_t a_len, const cha
 	assert(_bijson_compare_digits(a_start, a_len, b_start, b_len) >= 0);
 
 	if(!a_len)
-		return true;
+		return NULL;
 
 	if(!b_len)
 		return _bijson_shift_digits(a_start, a_len, NULL, 0, write, write_data);
@@ -153,8 +149,7 @@ static bool _bijson_subtract_digits(const char *a_start, size_t a_len, const cha
 			// Ok, we have a new contender for the new most significant word.
 			// Write out any delayed stuff to make place for it.
 			if(pending_word) {
-				if(!_bijson_writer_write_minimal_int(write, write_data, word, sizeof word))
-					return false;
+				_BIJSON_ERROR_RETURN(_bijson_writer_write_minimal_int(write, write_data, word, sizeof word));
 				pending_word = false;
 				word = a_b_diff * magnitude;
 			} else {
@@ -163,8 +158,7 @@ static bool _bijson_subtract_digits(const char *a_start, size_t a_len, const cha
 
 			if(pending_zeroes) {
 				size_t zeroes_size = pending_zeroes * sizeof word;
-				if(!write(write_data, NULL, zeroes_size))
-					return false;
+				_BIJSON_ERROR_RETURN(write(write_data, NULL, zeroes_size));
 				pending_zeroes = 0;
 			}
 		}
@@ -187,7 +181,7 @@ static bool _bijson_subtract_digits(const char *a_start, size_t a_len, const cha
 	assert(!carry);
 
 	if(!word)
-		return true;
+		return NULL;
 
 	word--;
 	return _bijson_writer_write_minimal_int(write, write_data, word, _bijson_fit_uint64(word));
@@ -205,7 +199,7 @@ typedef struct _bijson_string_analysis {
 
 static const _bijson_string_analysis_t _bijson_string_analysis_0 = {0};
 
-static inline bool _bijson_analyze_string(_bijson_string_analysis_t *result, const char *string, size_t len) {
+static inline bijson_error_t _bijson_analyze_string(_bijson_string_analysis_t *result, const char *string, size_t len) {
 	*result = _bijson_string_analysis_0;
 
 	const char *string_end = string + len;
@@ -272,20 +266,19 @@ static inline bool _bijson_analyze_string(_bijson_string_analysis_t *result, con
 		}
 	}
 
-	return string == string_end;
+	return string == string_end ? NULL : bijson_error_invalid_decimal_syntax;
 }
 
-static bool _bijson_decimal_buffer_push_writer(void *spool, const void *data, size_t len) {
-	return (bool)_bijson_buffer_push(spool, data, len);
+static bijson_error_t _bijson_decimal_buffer_push_writer(void *spool, const void *data, size_t len) {
+	return _bijson_buffer_append(spool, data, len);
 }
 
-bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *string, size_t len) {
+bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *string, size_t len) {
 	if(!len)
-		return false;
+		return bijson_error_parameter_is_zero;
 
 	_bijson_string_analysis_t string_analysis;
-	if(!_bijson_analyze_string(&string_analysis, string, len))
-		return false;
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_analyze_string(&string_analysis, string, len));
 
 	bool shift_negative = string_analysis.decimal_point < string_analysis.significand_end;
 	size_t shift = shift_negative
@@ -339,12 +332,11 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 
 		if(adjusted_shift_negative == string_analysis.exponent_negative) {
 			// add the shift to the exponent
-			if(!_bijson_add_digits(
+			_BIJSON_WRITER_ERROR_RETURN(_bijson_add_digits(
 				string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
 				output_parameters.adjusted_shift_string, output_parameters.adjusted_shift_string_len,
 				_bijson_writer_bytecounter_writer, &output_parameters.exponent_size
-			))
-				return false;
+			));
 		} else {
 			// if the exponent is larger than the shift:
 			output_parameters.exponent_adjusted_shift_cmp = _bijson_compare_digits(
@@ -354,31 +346,28 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 			if(output_parameters.exponent_adjusted_shift_cmp < 0) {
 				// if the exponent is smaller than the shift, subtract the
 				// exponent from the shift and invert the sign
-				if(!_bijson_subtract_digits(
+				_BIJSON_WRITER_ERROR_RETURN(_bijson_subtract_digits(
 					output_parameters.adjusted_shift_string, output_parameters.adjusted_shift_string_len,
 					string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
 					_bijson_writer_bytecounter_writer, &output_parameters.exponent_size
-				))
-					return false;
+				));
 				output_parameters.exponent_negative = shift_negative;
 			} else if(output_parameters.exponent_adjusted_shift_cmp > 0) {
 				// if the exponent is larger than the shift, subtract the shift from the exponent
-				if(!_bijson_subtract_digits(
+				_BIJSON_WRITER_ERROR_RETURN(_bijson_subtract_digits(
 					string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
 					output_parameters.adjusted_shift_string, output_parameters.adjusted_shift_string_len,
 					_bijson_writer_bytecounter_writer, &output_parameters.exponent_size
-				))
-					return false;
+				));
 			}
 		}
 
 		// pack the mantissa with shift adjusted by this adjustment
-		if(!_bijson_shift_digits(
+		_BIJSON_WRITER_ERROR_RETURN(_bijson_shift_digits(
 			string_analysis.significand_start, string_analysis.significand_end - string_analysis.significand_start,
 			string_analysis.decimal_point, shift_adjustment,
 			_bijson_writer_bytecounter_writer, &output_parameters.mantissa_size
-		))
-			return false;
+		));
 
 		output_parameters.total_size = SIZE_C(1) + output_parameters.mantissa_size;
 		if(output_parameters.exponent_size)
@@ -396,59 +385,55 @@ bool bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *
 			best_output_parameters = output_parameters;
 	}
 
-	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &_bijson_spool_type_scalar, sizeof _bijson_spool_type_scalar));
-	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &best_output_parameters.total_size, sizeof best_output_parameters.total_size));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_spool_type_scalar, sizeof _bijson_spool_type_scalar));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &best_output_parameters.total_size, sizeof best_output_parameters.total_size));
 	uint8_t type = best_output_parameters.exponent_size
 		? UINT8_C(0x20)
 			| _bijson_optimal_storage_size1(best_output_parameters.exponent_size)
 			| (string_analysis.mantissa_negative << 2)
 			| (best_output_parameters.exponent_negative << 3)
 		: UINT8_C(0x1A) | string_analysis.mantissa_negative;
-	_BIJSON_CHECK(_bijson_buffer_push(&writer->spool, &type, sizeof type));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &type, sizeof type));
 
 	if(best_output_parameters.exponent_size) {
 		size_t exponent_size_1 = best_output_parameters.exponent_size - 1;
-		_BIJSON_CHECK(_bijson_writer_write_compact_int(
+		_BIJSON_WRITER_ERROR_RETURN(_bijson_writer_write_compact_int(
 			_bijson_decimal_buffer_push_writer, &writer->spool,
 			exponent_size_1, _bijson_optimal_storage_size(exponent_size_1)
 		));
 
 		if(best_output_parameters.adjusted_shift_negative == string_analysis.exponent_negative) {
 			// add the shift to the exponent
-			if(!_bijson_add_digits(
+			_BIJSON_WRITER_ERROR_RETURN(_bijson_add_digits(
 				string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
 				best_output_parameters.adjusted_shift_string, best_output_parameters.adjusted_shift_string_len,
 				_bijson_decimal_buffer_push_writer, &writer->spool
-			))
-				return false;
+			));
 		} else {
 			if(best_output_parameters.exponent_adjusted_shift_cmp < 0) {
 				// if the exponent is smaller than the shift, subtract the exponent from the shift
-				if(!_bijson_subtract_digits(
+				_BIJSON_WRITER_ERROR_RETURN(_bijson_subtract_digits(
 					best_output_parameters.adjusted_shift_string, best_output_parameters.adjusted_shift_string_len,
 					string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
 					_bijson_decimal_buffer_push_writer, &writer->spool
-				))
-					return false;
+				));
 			} else if(best_output_parameters.exponent_adjusted_shift_cmp > 0) {
 				// if the exponent is larger than the shift, subtract the shift from the exponent
-				if(!_bijson_subtract_digits(
+				_BIJSON_WRITER_ERROR_RETURN(_bijson_subtract_digits(
 					string_analysis.exponent_start, string_analysis.exponent_end - string_analysis.exponent_start,
 					best_output_parameters.adjusted_shift_string, best_output_parameters.adjusted_shift_string_len,
 					_bijson_decimal_buffer_push_writer, &writer->spool
-				))
-					return false;
+				));
 			}
 		}
 	}
 
 	// packing the mantissa and exponent with the optimal shift adjustment
-	if(!_bijson_shift_digits(
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_shift_digits(
 		string_analysis.significand_start, string_analysis.significand_end - string_analysis.significand_start,
 		string_analysis.decimal_point, best_output_parameters.shift_adjustment,
 		_bijson_decimal_buffer_push_writer, &writer->spool
-	))
-		return false;
+	));
 
-	return true;
+	return NULL;
 }

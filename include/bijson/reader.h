@@ -3,14 +3,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <bijson/common.h>
+#include "common.h"
 
 typedef struct bijson {
 	const void *buffer;
 	size_t size;
 } bijson_t;
 
-extern bool bijson_to_json(const bijson_t *bijson, bijson_output_callback callback, void *callback_data);
+extern bool bijson_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data);
 extern bool bijson_to_json_FILE(const bijson_t *bijson, FILE *file);
 extern bool bijson_to_json_fd(const bijson_t *bijson, int fd);
 extern bool bijson_to_json_malloc(

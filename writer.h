@@ -4,14 +4,14 @@
 #include <stdlib.h>
 
 #include "buffer.h"
+#include "common.h"
 
 typedef uint8_t _bijson_spool_type_t;
 extern const _bijson_spool_type_t _bijson_spool_type_scalar;
 extern const _bijson_spool_type_t _bijson_spool_type_object;
 extern const _bijson_spool_type_t _bijson_spool_type_array;
 
-#define _BIJSON_CHECK_OR_RETURN(ok, ret) do { if(!(ok)) { writer->failed = true; return ret; }} while(false)
-#define _BIJSON_CHECK(ok) _BIJSON_CHECK_OR_RETURN(ok, false)
+#define _BIJSON_WRITER_ERROR_RETURN(x) _BIJSON_ERROR_CLEANUP_AND_RETURN(x, writer->failed = true)
 
 typedef struct bijson_writer {
 	// The spool contains values, each starting with a _bijson_spool_type_t,
@@ -28,12 +28,12 @@ typedef struct bijson_writer {
 } bijson_writer_t;
 
 // If data == NULL: write a zeroed region of length len (or seek, if appropriate).
-typedef bool (*_bijson_writer_write_func_t)(void *write_data, const void *data, size_t len);
-extern bool _bijson_writer_bytecounter_writer(void *write_data, const void *data, size_t len);
+typedef bijson_error_t (*_bijson_writer_write_func_t)(void *write_data, const void *data, size_t len);
+extern bijson_error_t _bijson_writer_bytecounter_writer(void *write_data, const void *data, size_t len);
 
 extern size_t _bijson_writer_size_value(bijson_writer_t *writer, size_t spool_offset);
 
-static inline bool _bijson_writer_write_minimal_int(_bijson_writer_write_func_t write, void *write_data, uint64_t u, size_t nbytes) {
+static inline bijson_error_t _bijson_writer_write_minimal_int(_bijson_writer_write_func_t write, void *write_data, uint64_t u, size_t nbytes) {
 	uint8_t buf[8];
 	for(size_t z = 0; z < nbytes; z++) {
 		buf[z] = u & UINT8_C(0xFF);
@@ -42,8 +42,8 @@ static inline bool _bijson_writer_write_minimal_int(_bijson_writer_write_func_t 
 	return write(write_data, buf, nbytes);
 }
 
-static inline bool _bijson_writer_write_compact_int(_bijson_writer_write_func_t write, void *write_data, uint64_t u, uint8_t width) {
+static inline bijson_error_t _bijson_writer_write_compact_int(_bijson_writer_write_func_t write, void *write_data, uint64_t u, uint8_t width) {
 	return _bijson_writer_write_minimal_int(write, write_data, u, 1 << width);
 }
 
-extern bool _bijson_writer_write_value(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, const char *spool);
+extern bijson_error_t _bijson_writer_write_value(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, const char *spool);
