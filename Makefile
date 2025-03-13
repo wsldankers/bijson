@@ -14,4 +14,4 @@ test_EXTRA_OBJECTS = writer.o reader.o buffer.o common.o container.o format.o st
 include Makerules
 
 clean:
-	rm -f $(sort $(objects) $(programs))
+	rm -f $(generated)

@@ -10,13 +10,19 @@ endef
 
 $(foreach prog,$(programs),$(eval $(call programrule,$(prog))))
 
+objects := $(sort $(objects))
+
 define objectrule
 $1_CFLAGS ?= $$(CFLAGS)
 
+-include $1.d
+
 $1.o: $1.c $$($1_EXTRA_DEPS)
-	exec $$(strip $(CC) $$($1_CFLAGS) $$($1_EXTRA_CFLAGS) -c $$< -o $$@)
+	exec $$(strip $(CC) $$($1_CFLAGS) $$($1_EXTRA_CFLAGS) -MMD -c $$< -o $$@)
 endef
 
-$(foreach obj,$(sort $(objects:.o=)),$(eval $(call objectrule,$(obj))))
+$(foreach obj,$(objects:.o=),$(eval $(call objectrule,$(obj))))
+
+generated = $(sort $(objects) $(objects:.o=.d) $(programs))
 
 .PHONY: all clean install recursive
