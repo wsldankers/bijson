@@ -17,7 +17,7 @@ $1_CFLAGS ?= $$(CFLAGS)
 
 -include $1.d
 
-$1.o: $1.c $$($1_EXTRA_DEPS)
+$1.o: $$(src)$1.c $$($1_EXTRA_DEPS)
 	exec $$(strip $(CC) $$($1_CFLAGS) $$($1_EXTRA_CFLAGS) -MMD -c $$< -o $$@)
 endef
 
