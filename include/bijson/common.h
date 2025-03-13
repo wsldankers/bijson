@@ -9,7 +9,7 @@ extern const char bijson_error_system[];
 extern const char bijson_error_index_out_of_range[];
 extern const char bijson_error_key_not_found[];
 extern const char bijson_error_invalid_decimal_syntax[];
-extern const char bijson_error_invalid_json_format[];
+extern const char bijson_error_invalid_json_syntax[];
 extern const char bijson_error_invalid_utf8[];
 extern const char bijson_error_parameter_is_zero[];
 extern const char bijson_error_parameter_is_null[];
