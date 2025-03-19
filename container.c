@@ -20,14 +20,6 @@ typedef struct _bijson_container {
 
 static const _bijson_container_t _bijson_container_0 = {0};
 
-static inline _bijson_spool_type_t _bijson_container_get_current_type(bijson_writer_t *writer) {
-	if(!writer->current_container)
-		return _bijson_spool_type_scalar;
-	_bijson_spool_type_t type;
-	_bijson_buffer_read(&writer->spool, writer->current_container - sizeof type, &type, sizeof type);
-	return type;
-}
-
 bool bijson_writer_is_in_array(bijson_writer_t *writer) {
 	return _bijson_container_get_current_type(writer) == _bijson_spool_type_array;
 }
