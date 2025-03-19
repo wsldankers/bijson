@@ -11,6 +11,8 @@ typedef struct bijson_writer bijson_writer_t;
 extern void bijson_writer_free(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_alloc(bijson_writer_t **result);
 
+extern bijson_error_t bijson_parse_json(bijson_writer_t *writer, const void *buffer, size_t len);
+
 extern bijson_error_t bijson_writer_write_to_fd(bijson_writer_t *writer, int fd);
 extern bijson_error_t bijson_writer_write_to_FILE(bijson_writer_t *writer, FILE *file);
 extern bijson_error_t bijson_writer_write_to_malloc(bijson_writer_t *writer, void **result_buffer, size_t *result_size);

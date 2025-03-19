@@ -63,6 +63,7 @@ static bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size
 		buffer->_size = new_size;
 		buffer->_buffer = new_buffer;
 	} else {
+		assert(false);
 		size_t new_size;
 		if(required > _BIJSON_MAX_BUFFER_EXTENSION) {
 			// round to next multiple of _BIJSON_MAX_BUFFER_EXTENSION
