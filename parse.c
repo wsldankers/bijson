@@ -75,67 +75,74 @@ static bijson_error_t _bijson_parse_json_string_escape(_bijson_json_parser_t *pa
 
 	uint8_t buffer_1 = buffer_pos[SIZE_C(1)];
 	switch(buffer_1) {
-			case '"':
-			case '\\':
-				_BIJSON_ERROR_RETURN(_bijson_buffer_append(&parser->spool, &buffer_1, sizeof buffer_1));
-				parser->buffer_pos = buffer_pos + SIZE_C(2);
-				break;
-			case '\b':
-				_BIJSON_ERROR_RETURN(_bijson_buffer_append(&parser->spool, "\b", 1));
-				parser->buffer_pos = buffer_pos + SIZE_C(2);
-				break;
-			case '\f':
-				_BIJSON_ERROR_RETURN(_bijson_buffer_append(&parser->spool, "\f", 1));
-				parser->buffer_pos = buffer_pos + SIZE_C(2);
-				break;
-			case '\n':
-				_BIJSON_ERROR_RETURN(_bijson_buffer_append(&parser->spool, "\n", 1));
-				parser->buffer_pos = buffer_pos + SIZE_C(2);
-				break;
-			case '\r':
-				_BIJSON_ERROR_RETURN(_bijson_buffer_append(&parser->spool, "\r", 1));
-				parser->buffer_pos = buffer_pos + SIZE_C(2);
-				break;
-			case '\t':
-				_BIJSON_ERROR_RETURN(_bijson_buffer_append(&parser->spool, "\t", 1));
-				parser->buffer_pos = buffer_pos + SIZE_C(2);
-				break;
-			case 'u':
-			case 'U':
-				if(len < SIZE_C(6))
-					return bijson_error_invalid_json_syntax;
-				uint16_t unichar;
-				_BIJSON_ERROR_RETURN(_bijson_parse_json_unichar(buffer_pos + SIZE_C(2), &unichar));
-				if((unichar & UINT16_C(0xFC00)) == UINT16_C(0xD800)) {
-					if(len < SIZE_C(12))
-						return bijson_error_invalid_json_syntax;
-					if(buffer_pos[SIZE_C(6)] != '\\')
-						return bijson_error_invalid_json_syntax;
-					uint8_t buffer_7 = buffer_pos[SIZE_C(7)];
-					if(buffer_7 != 'u' && buffer_7 != 'U')
-						return bijson_error_invalid_json_syntax;
-					uint16_t unichar2;
-					_BIJSON_ERROR_RETURN(_bijson_parse_json_unichar(buffer_pos + SIZE_C(8), &unichar2));
-					if((unichar2 & UINT16_C(0xFC00)) != UINT16_C(0xDC00))
-						return bijson_error_invalid_json_syntax;
-
-					// combine unichar and unichar and append in UTF-8
-					_BIJSON_ERROR_RETURN(_bijson_parser_append_unichar(
-						parser,
-						(unichar << 10) | (unichar2 & UINT16_C(0x3FF))
-					));
-
-					parser->buffer_pos = buffer_pos + SIZE_C(12);
-				} else {
-					// append unichar in UTF-8
-					_BIJSON_ERROR_RETURN(_bijson_parser_append_unichar(parser, unichar));
-					parser->buffer_pos = buffer_pos + SIZE_C(6);
-				}
-				break;
-			default:
+		case '"':
+		case '\\':
+			_BIJSON_ERROR_RETURN(_bijson_buffer_append(&parser->spool, &buffer_1, sizeof buffer_1));
+			parser->buffer_pos = buffer_pos + SIZE_C(2);
+			break;
+		case 'b':
+			_BIJSON_ERROR_RETURN(_bijson_buffer_append(&parser->spool, "\b", 1));
+			parser->buffer_pos = buffer_pos + SIZE_C(2);
+			break;
+		case 'f':
+			_BIJSON_ERROR_RETURN(_bijson_buffer_append(&parser->spool, "\f", 1));
+			parser->buffer_pos = buffer_pos + SIZE_C(2);
+			break;
+		case 'n':
+			_BIJSON_ERROR_RETURN(_bijson_buffer_append(&parser->spool, "\n", 1));
+			parser->buffer_pos = buffer_pos + SIZE_C(2);
+			break;
+		case 'r':
+			_BIJSON_ERROR_RETURN(_bijson_buffer_append(&parser->spool, "\r", 1));
+			parser->buffer_pos = buffer_pos + SIZE_C(2);
+			break;
+		case 't':
+			_BIJSON_ERROR_RETURN(_bijson_buffer_append(&parser->spool, "\t", 1));
+			parser->buffer_pos = buffer_pos + SIZE_C(2);
+			break;
+		case 'u':
+		case 'U':
+			if(len < SIZE_C(6))
 				return bijson_error_invalid_json_syntax;
+			uint16_t unichar;
+			_BIJSON_ERROR_RETURN(_bijson_parse_json_unichar(buffer_pos + SIZE_C(2), &unichar));
+			if((unichar & UINT16_C(0xFC00)) == UINT16_C(0xD800)) {
+				if(len < SIZE_C(12))
+					return bijson_error_invalid_json_syntax;
+				if(buffer_pos[SIZE_C(6)] != '\\')
+					return bijson_error_invalid_json_syntax;
+				uint8_t buffer_7 = buffer_pos[SIZE_C(7)];
+				if(buffer_7 != 'u' && buffer_7 != 'U')
+					return bijson_error_invalid_json_syntax;
+				uint16_t unichar2;
+				_BIJSON_ERROR_RETURN(_bijson_parse_json_unichar(buffer_pos + SIZE_C(8), &unichar2));
+				if((unichar2 & UINT16_C(0xFC00)) != UINT16_C(0xDC00))
+					return bijson_error_invalid_json_syntax;
+
+				// combine unichar and unichar and append in UTF-8
+				_BIJSON_ERROR_RETURN(_bijson_parser_append_unichar(
+					parser,
+					(unichar << 10) | (unichar2 & UINT16_C(0x3FF))
+				));
+
+				parser->buffer_pos = buffer_pos + SIZE_C(12);
+			} else {
+				// append unichar in UTF-8
+				_BIJSON_ERROR_RETURN(_bijson_parser_append_unichar(parser, unichar));
+				parser->buffer_pos = buffer_pos + SIZE_C(6);
+			}
+			break;
+		default:
+			return bijson_error_invalid_json_syntax;
 	}
 
+	return NULL;
+}
+
+static inline bijson_error_t _bijson_check_control_chars(const uint8_t *buffer_pos, const uint8_t *buffer_end) {
+	while(buffer_pos != buffer_end)
+		if(!(*buffer_pos++ & UINT8_C(0xE0)))
+			return bijson_error_invalid_json_syntax;
 	return NULL;
 }
 
@@ -153,6 +160,7 @@ static bijson_error_t _bijson_parse_json_string(_bijson_json_parser_t *parser, b
 	const uint8_t *next_escape = memchr(buffer_pos, '\\', next_quote - buffer_pos);
 	if(!next_escape) {
 		// short-circuit common case
+		_BIJSON_ERROR_RETURN(_bijson_check_control_chars(buffer_pos, next_quote));
 		parser->buffer_pos = next_quote + SIZE_C(1);
 		if(is_object_key)
 			return bijson_writer_add_key(parser->writer, (const char *)buffer_pos, next_quote - buffer_pos);
@@ -161,6 +169,7 @@ static bijson_error_t _bijson_parse_json_string(_bijson_json_parser_t *parser, b
 	}
 
 	for(;;) {
+		_BIJSON_ERROR_RETURN(_bijson_check_control_chars(buffer_pos, next_escape));
 		_BIJSON_ERROR_RETURN(_bijson_buffer_append(&parser->spool, buffer_pos, next_escape - buffer_pos));
 		parser->buffer_pos = next_escape;
 		_BIJSON_ERROR_RETURN(_bijson_parse_json_string_escape(parser));
@@ -173,6 +182,7 @@ static bijson_error_t _bijson_parse_json_string(_bijson_json_parser_t *parser, b
 		next_escape = memchr(buffer_pos, '\\', next_quote - buffer_pos);
 		if(!next_escape) {
 			parser->buffer_pos = next_quote + SIZE_C(1);
+			_BIJSON_ERROR_RETURN(_bijson_check_control_chars(buffer_pos, next_quote));
 			_BIJSON_ERROR_RETURN(_bijson_buffer_append(&parser->spool, buffer_pos, next_quote - buffer_pos));
 			break;
 		}
@@ -212,7 +222,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 	for(;;) {
 		for(;;) {
 			_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
-			fprintf(stderr, "%zu '%c'\n", parser->buffer_end - parser->buffer_pos, *parser->buffer_pos);
+			// fprintf(stderr, "%zu '%c'\n", parser->buffer_end - parser->buffer_pos, *parser->buffer_pos);
 			switch(*parser->buffer_pos) {
 				case '[':
 					_BIJSON_ERROR_RETURN(bijson_writer_begin_array(parser->writer));

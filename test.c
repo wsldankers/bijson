@@ -35,7 +35,7 @@ int main(void) {
 	// // 	bijson_writer_add_string(writer, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64);
 	// bijson_writer_end_array(writer);
 
-	const char json[] = " [ \"hoi\" , \"iedereen\", { \"true\" : true , \"false\" : false , \"null\" : null } ] ";
+	const char json[] = " [ \"hoi\" , \"iedereen\\t\", { \"true\" : true , \"false\" : false , \"null\" : null } ] ";
 	fprintf(stderr, "'%s'\n", json);
 	bijson_error_t error = bijson_parse_json(writer, json, sizeof json - 1);
 	fprintf(stderr, "%s\n", error);
