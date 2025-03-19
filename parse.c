@@ -255,7 +255,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 				}
 				case 'f': {
 					const uint8_t *buffer_next = parser->buffer_pos + SIZE_C(5);
-					if(buffer_next >= buffer_end || memcmp(parser->buffer_pos, "false", SIZE_C(5)))
+					if(buffer_next > buffer_end || memcmp(parser->buffer_pos, "false", SIZE_C(5)))
 						return bijson_error_invalid_json_syntax;
 					_BIJSON_ERROR_RETURN(bijson_writer_add_false(parser->writer));
 					parser->buffer_pos = buffer_next;
@@ -263,7 +263,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 				}
 				case 'n': {
 					const uint8_t *buffer_next = parser->buffer_pos + SIZE_C(4);
-					if(buffer_next >= buffer_end || memcmp(parser->buffer_pos, "null", SIZE_C(4)))
+					if(buffer_next > buffer_end || memcmp(parser->buffer_pos, "null", SIZE_C(4)))
 						return bijson_error_invalid_json_syntax;
 					_BIJSON_ERROR_RETURN(bijson_writer_add_null(parser->writer));
 					parser->buffer_pos = buffer_next;
