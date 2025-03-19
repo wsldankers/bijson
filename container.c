@@ -28,6 +28,14 @@ static inline _bijson_spool_type_t _bijson_container_get_current_type(bijson_wri
 	return type;
 }
 
+bool bijson_writer_is_in_array(bijson_writer_t *writer) {
+	return _bijson_container_get_current_type(writer) == _bijson_spool_type_array;
+}
+
+bool bijson_writer_is_in_object(bijson_writer_t *writer) {
+	return _bijson_container_get_current_type(writer) == _bijson_spool_type_object;
+}
+
 static bijson_error_t _bijson_container_push(bijson_writer_t *writer, _bijson_spool_type_t type) {
 	if(writer->failed)
 		return bijson_error_writer_failed;

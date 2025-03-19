@@ -18,17 +18,17 @@
 
 #define _BIJSON_MAX_BUFFER_EXTENSION SIZE_C(16777216)
 
-bijson_error_t _bijson_buffer_init(_bijson_buffer_t *buffer) {
+void _bijson_buffer_init(_bijson_buffer_t *buffer) {
 	*buffer = _bijson_buffer_0;
-	buffer->_size = _BIJSON_SMALL_BUFFER;
-	buffer->_buffer = malloc(buffer->_size);
-	return buffer->_buffer ? NULL : bijson_error_system;
+	buffer->_size = sizeof buffer->_minibuffer;
+	buffer->_buffer = buffer->_minibuffer;
 }
 
 void _bijson_buffer_wipe(_bijson_buffer_t *buffer) {
 	int fd = buffer->_fd;
 	if(fd == -1) {
-		free(buffer->_buffer);
+		if(buffer->_buffer != buffer->_minibuffer)
+			free(buffer->_buffer);
 	} else {
 		close(fd);
 		munmap(buffer->_buffer, buffer->_size);
@@ -50,11 +50,16 @@ static bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size
 		size_t new_size = required < _BIJSON_MEDIUM_BUFFER
 			? _BIJSON_MEDIUM_BUFFER
 			: _BIJSON_LARGE_BUFFER;
-		void *new_buffer = realloc(buffer->_buffer, new_size);
+
+		void *new_buffer = buffer->_buffer == buffer->_minibuffer
+			? malloc(new_size)
+			: realloc(buffer->_buffer, new_size);
 		if(!new_buffer) {
 			IF_DEBUG(buffer->_failed = true);
 			return bijson_error_system;
 		}
+		if(buffer->_buffer == buffer->_minibuffer)
+			memcpy(new_buffer, buffer->_minibuffer, old_size);
 		buffer->_size = new_size;
 		buffer->_buffer = new_buffer;
 	} else {

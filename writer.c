@@ -35,8 +35,8 @@ bijson_error_t bijson_writer_alloc(bijson_writer_t **result) {
 		return bijson_error_system;
 
 	*writer = _bijson_writer_0;
-	_BIJSON_ERROR_CLEANUP_AND_RETURN(_bijson_buffer_init(&writer->spool), bijson_writer_free(writer));
-	_BIJSON_ERROR_CLEANUP_AND_RETURN(_bijson_buffer_init(&writer->stack), bijson_writer_free(writer));
+	_bijson_buffer_init(&writer->spool);
+	_bijson_buffer_init(&writer->stack);
 	*result = writer;
 	return NULL;
 }
