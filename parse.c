@@ -197,6 +197,62 @@ static bijson_error_t _bijson_parse_json_string(_bijson_json_parser_t *parser, b
 
 	return NULL;
 }
+static bijson_error_t _bijson_find_json_number_end(_bijson_json_parser_t *parser) {
+	const uint8_t *buffer_pos = parser->buffer_pos;
+	const uint8_t *buffer_end = parser->buffer_end;
+	assert(buffer_end - buffer_pos);
+	uint8_t c = *buffer_pos;
+	if(c == '-') {
+		if(++buffer_pos == buffer_end)
+			return bijson_error_invalid_json_syntax;
+		c = *buffer_pos;
+	}
+
+	if(c == '0') {
+		if(++buffer_pos == buffer_end)
+			return parser->buffer_pos = buffer_pos, NULL;
+		c = *buffer_pos;
+	} else while(c >= '0' && c <= '9') {
+		if(++buffer_pos == buffer_end)
+			return parser->buffer_pos = buffer_pos, NULL;
+		c = *buffer_pos;
+	}
+
+	if(c == '.') {
+		if(++buffer_pos == buffer_end)
+			return bijson_error_invalid_json_syntax;
+		c = *buffer_pos;
+		while(c >= '0' && c <= '9') {
+			if(++buffer_pos == buffer_end)
+				return parser->buffer_pos = buffer_pos, NULL;
+			c = *buffer_pos;
+		}
+	}
+
+	if(c == 'e' || c == 'E') {
+		if(++buffer_pos == buffer_end)
+			return bijson_error_invalid_json_syntax;
+		c = *buffer_pos;
+		if(c == '-' || c == '+') {
+			if(++buffer_pos == buffer_end)
+				return bijson_error_invalid_json_syntax;
+			c = *buffer_pos;
+		}
+		while(c >= '0' && c <= '9') {
+			if(++buffer_pos == buffer_end)
+				return parser->buffer_pos = buffer_pos, NULL;
+			c = *buffer_pos;
+		}
+	}
+
+	return parser->buffer_pos = buffer_pos, NULL;
+}
+
+static bijson_error_t _bijson_parse_json_number(_bijson_json_parser_t *parser) {
+	const uint8_t *buffer_pos = parser->buffer_pos;
+	_BIJSON_ERROR_RETURN(_bijson_find_json_number_end(parser));
+	return bijson_writer_add_decimal_from_string(parser->writer, (const char *)buffer_pos, parser->buffer_pos - buffer_pos);
+}
 
 static inline bool _bijson_is_json_ws(uint8_t c) {
 	return c == ' ' || c == '\t' || c == '\n' || c == '\r';
@@ -254,6 +310,20 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 					continue;
 				case '"':
 					_BIJSON_ERROR_RETURN(_bijson_parse_json_string(parser, false));
+					break;
+
+				case '-':
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					_BIJSON_ERROR_RETURN(_bijson_parse_json_number(parser));
 					break;
 				case 't': {
 					const uint8_t *buffer_next = parser->buffer_pos + SIZE_C(4);
@@ -324,7 +394,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 	}
 }
 
-bijson_error_t bijson_parse_json(bijson_writer_t *writer, const void *buffer, size_t len) {
+bijson_error_t bijson_parse_json(bijson_writer_t *writer, const void *buffer, size_t len, const void **parse_end) {
 	_bijson_json_parser_t parser = {
 		.writer = writer,
 		.buffer_pos = buffer,
@@ -335,6 +405,9 @@ bijson_error_t bijson_parse_json(bijson_writer_t *writer, const void *buffer, si
 	bijson_error_t error = _bijson_parse_json(&parser);
 
 	_bijson_buffer_wipe(&parser.spool);
+
+	if(parse_end)
+		*parse_end = parser.buffer_pos;
 
 	return error;
 }

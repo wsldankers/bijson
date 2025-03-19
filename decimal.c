@@ -209,29 +209,18 @@ static inline bijson_error_t _bijson_analyze_string(_bijson_string_analysis_t *r
 	if(result->mantissa_negative || c == '+')
 		string++;
 
-	result->significand_start = string;
-	result->significand_end = string;
-
 	while(string != string_end) {
 		c = *string;
-		if(!_bijson_is_ascii_digit(c))
-			break;
-		if(c != '0') {
-			result->significand_start = string;
+		if(c == '0') {
+			string++;
+		} else {
+			if(!_bijson_is_ascii_digit(c))
+				break;
+			if(!result->significand_start)
+				result->significand_start = string;
 			string++;
 			result->significand_end = string;
-
-			while(string != string_end) {
-				c = *string;
-				 if(!_bijson_is_ascii_digit(c))
-					break;
-				string++;
-				if(c != '0')
-					result->significand_end = string;
-			}
-			break;
 		}
-		string++;
 	}
 
 	result->decimal_point = string;
@@ -240,13 +229,23 @@ static inline bijson_error_t _bijson_analyze_string(_bijson_string_analysis_t *r
 		string++;
 		while(string != string_end) {
 			c = *string;
-			if(!_bijson_is_ascii_digit(c))
-				break;
-			string++;
-			if(c != '0')
+			if(c == '0') {
+				string++;
+			} else {
+				if(!_bijson_is_ascii_digit(c))
+					break;
+				if(!result->significand_start)
+					result->significand_start = string;
+				string++;
 				result->significand_end = string;
+			}
 		}
 	}
+
+	if(!result->significand_start)
+		result->significand_start = string;
+	if(!result->significand_end)
+		result->significand_end = string;
 
 	result->exponent_start = string;
 	result->exponent_end = string_end;
@@ -255,6 +254,13 @@ static inline bijson_error_t _bijson_analyze_string(_bijson_string_analysis_t *r
 		c = *string;
 		if(c == 'e' || c == 'E') {
 			string++;
+
+			if(string != string_end) {
+				c = *string;
+				result->exponent_negative = c == '-';
+				if(result->exponent_negative || c == '+')
+					string++;
+			}
 
 			while(string != string_end && *string == '0')
 				string++;
@@ -279,6 +285,14 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 
 	_bijson_string_analysis_t string_analysis;
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_analyze_string(&string_analysis, string, len));
+
+	// fprintf(stderr, "significand_start = %zu\n", string_analysis.significand_start - string);
+	// fprintf(stderr, "significand_end = %zu\n", string_analysis.significand_end - string);
+	// fprintf(stderr, "decimal_point = %zu\n", string_analysis.decimal_point - string);
+	// fprintf(stderr, "exponent_start = %zu\n", string_analysis.exponent_start - string);
+	// fprintf(stderr, "exponent_end = %zu\n", string_analysis.exponent_end - string);
+	// fprintf(stderr, "mantissa_negative = %d\n", string_analysis.mantissa_negative);
+	// fprintf(stderr, "exponent_negative = %d\n", string_analysis.exponent_negative);
 
 	bool shift_negative = string_analysis.decimal_point < string_analysis.significand_end;
 	size_t shift = shift_negative
@@ -370,7 +384,7 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 		));
 
 		output_parameters.total_size = SIZE_C(1) + output_parameters.mantissa_size;
-		if(output_parameters.exponent_size)
+		if(best_output_parameters.mantissa_size && output_parameters.exponent_size)
 			output_parameters.total_size +=
 				_bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size1(output_parameters.exponent_size))
 				 + output_parameters.exponent_size;
@@ -387,7 +401,7 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_spool_type_scalar, sizeof _bijson_spool_type_scalar));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &best_output_parameters.total_size, sizeof best_output_parameters.total_size));
-	uint8_t type = best_output_parameters.exponent_size
+	uint8_t type = best_output_parameters.mantissa_size && best_output_parameters.exponent_size
 		? UINT8_C(0x20)
 			| _bijson_optimal_storage_size1(best_output_parameters.exponent_size)
 			| (string_analysis.mantissa_negative << 2)
@@ -395,7 +409,7 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 		: UINT8_C(0x1A) | string_analysis.mantissa_negative;
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &type, sizeof type));
 
-	if(best_output_parameters.exponent_size) {
+	if(best_output_parameters.mantissa_size && best_output_parameters.exponent_size) {
 		size_t exponent_size_1 = best_output_parameters.exponent_size - 1;
 		_BIJSON_WRITER_ERROR_RETURN(_bijson_writer_write_compact_int(
 			_bijson_decimal_buffer_push_writer, &writer->spool,

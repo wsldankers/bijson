@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <err.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 
 #include <bijson/writer.h>
 #include <bijson/reader.h>
@@ -35,13 +38,33 @@ int main(void) {
 	// // 	bijson_writer_add_string(writer, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64);
 	// bijson_writer_end_array(writer);
 
-	const char json[] = " [ \"hoi\" , \"iedereen\\t\", { \"true\" : true , \"false\" : false , \"null\" : null } ] ";
-	fprintf(stderr, "'%s'\n", json);
-	bijson_error_t error = bijson_parse_json(writer, json, sizeof json - 1);
+	// const char json[] = " [ 42, -1e-1, 0.1, 0, 0.0, \"hoi\" , \"iedereen\\t\", { \"true\" : true , \"false\" : false , \"null\" : null } ] ";
+	// fprintf(stderr, "'%s'\n", json);
+	// const char *end;
+	// bijson_error_t error = bijson_parse_json(writer, json, sizeof json - 1, (const void **)&end);
+	// fprintf(stderr, "%s\n", error);
+	// fprintf(stderr, "%zu\n", end - json);
+
+	int fd;
+
+	fd = open("/tmp/records.json", O_RDONLY|O_NOCTTY|O_CLOEXEC);
+	if(fd == -1)
+		err(2, "open(/tmp/records.json)");
+	struct stat st;
+	if(fstat(fd, &st) == -1)
+		err(2, "stat");
+	const void *json = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+	if(json == MAP_FAILED)
+		err(2, "mmap");
+	close(fd);
+	const void *end;
+	bijson_error_t error = bijson_parse_json(writer, json, st.st_size, &end);
 	fprintf(stderr, "%s\n", error);
+	fprintf(stderr, "%zu\n", end - json);
 
-
-	int fd = open("/tmp/test.bijson", O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
+	fd = open("/tmp/test.bijson", O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
+	if(fd == -1)
+		err(2, "open(/tmp/test.bijson)");
 	bijson_writer_write_to_fd(writer, fd);
 	close(fd);
 
