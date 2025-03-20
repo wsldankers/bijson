@@ -10,7 +10,6 @@
 typedef struct _bijson_json_parser {
 	bijson_writer_t *writer;
 	_bijson_buffer_t spool;
-	_bijson_buffer_t stack;
 	const uint8_t *buffer_pos;
 	const uint8_t *buffer_end;
 } _bijson_json_parser_t;
@@ -192,9 +191,10 @@ static bijson_error_t _bijson_parse_json_string(_bijson_json_parser_t *parser, b
 	size_t spool_len = parser->spool.used - spool_used;
 	const char *spool_buffer = _bijson_buffer_access(&parser->spool, spool_used, spool_len);
 	if(is_object_key)
-		return bijson_writer_add_key(parser->writer, spool_buffer, spool_len);
+		_BIJSON_ERROR_RETURN(bijson_writer_add_key(parser->writer, spool_buffer, spool_len));
 	else
-		return bijson_writer_add_string(parser->writer, spool_buffer, spool_len);
+		_BIJSON_ERROR_RETURN(bijson_writer_add_string(parser->writer, spool_buffer, spool_len));
+	_bijson_buffer_pop(&parser->spool, NULL, spool_len);
 
 	return NULL;
 }
