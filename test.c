@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <fcntl.h>
 #include <err.h>
 #include <sys/stat.h>
@@ -11,7 +12,12 @@
 
 int main(void) {
 	bijson_writer_t *writer = NULL;
+	bijson_t bijson = {};
+	int fd;
+	struct stat st;
+
 	bijson_writer_alloc(&writer);
+
 	// bijson_writer_begin_array(writer);
 	// bijson_writer_begin_object(writer);
 	// bijson_writer_add_key(writer, "foo", 3);
@@ -47,14 +53,15 @@ int main(void) {
 	// fputs(" ^\n", stderr);
 	// fprintf(stderr, "%s\n", error);
 
-	int fd;
+	// bijson_writer_write_to_malloc(writer, (void **)&bijson.buffer, &bijson.size);
 
 	fd = open("/tmp/records.json", O_RDONLY|O_NOCTTY|O_CLOEXEC);
 	if(fd == -1)
 		err(2, "open(/tmp/records.json)");
-	struct stat st;
 	if(fstat(fd, &st) == -1)
 		err(2, "stat");
+	if(st.st_size > SIZE_MAX)
+		errx(2, "/tmp/records.json too large");
 	const void *json = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
 	if(json == MAP_FAILED)
 		err(2, "mmap");
@@ -70,14 +77,26 @@ int main(void) {
 	bijson_writer_write_to_fd(writer, fd);
 	close(fd);
 
-	bijson_t bijson = {};
-	bijson_writer_write_to_malloc(writer, (void **)&bijson.buffer, &bijson.size);
-
 	bijson_writer_free(writer);
 
-	// bijson_to_json_FILE(&bijson, stdout);
-	bijson_to_json_fd(&bijson, STDOUT_FILENO);
-	putchar('\n');
+	fd = open("/tmp/test.bijson", O_RDONLY|O_NOCTTY|O_CLOEXEC);
+	if(fd == -1)
+		err(2, "open(/tmp/test.bijson)");
+	if(fstat(fd, &st) == -1)
+		err(2, "stat");
+	if(st.st_size > SIZE_MAX)
+		errx(2, "/tmp/test.bijson too large");
+	bijson.buffer = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+	if(bijson.buffer == MAP_FAILED)
+		err(2, "mmap");
+	bijson.size = st.st_size;
+	close(fd);
+
+	fd = open("/tmp/test.json", O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
+	if(fd == -1)
+		err(2, "open(/tmp/test.json)");
+	bijson_to_json_fd(&bijson, fd);
+	close(fd);
 
 	return 0;
 }

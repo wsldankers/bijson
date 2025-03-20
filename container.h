@@ -10,7 +10,7 @@ extern bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, _bijso
 
 static inline _bijson_spool_type_t _bijson_container_get_current_type(bijson_writer_t *writer) {
 	if(!writer->current_container)
-		return _bijson_spool_type_scalar;
+		return _bijson_spool_type_none;
 	_bijson_spool_type_t type;
 	_bijson_buffer_read(&writer->spool, writer->current_container - sizeof type, &type, sizeof type);
 	return type;
