@@ -24,8 +24,8 @@ typedef struct _bijson_buffer {
 #define _bijson_buffer_0 ((struct _bijson_buffer){._fd = -1})
 
 static inline const size_t _bijson_buffer_offset(_bijson_buffer_t *buffer, const char *pointer) {
-	if(buffer->_failed || !buffer->_finalized)
-		return SIZE_MAX;
+	assert(!buffer->_failed);
+	assert(buffer->_finalized);
 	return pointer - (const char *)buffer->_buffer;
 }
 

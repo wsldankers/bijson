@@ -362,7 +362,7 @@ bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, _bijson_write
 
 	uint8_t count_width = _bijson_optimal_storage_size(container_count_1);
 	uint8_t item_offsets_width = _bijson_optimal_storage_size(items_output_size);
-	uint8_t final_type = UINT8_C(0x30) | count_width | (item_offsets_width << 4);
+	uint8_t final_type = UINT8_C(0x30) | count_width | (item_offsets_width << 2);
 
 	_BIJSON_ERROR_RETURN(write(write_data, &final_type, sizeof final_type));
 	_BIJSON_ERROR_RETURN(_bijson_writer_write_compact_int(write, write_data, container_count_1, count_width));

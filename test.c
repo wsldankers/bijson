@@ -38,31 +38,31 @@ int main(void) {
 	// // 	bijson_writer_add_string(writer, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64);
 	// bijson_writer_end_array(writer);
 
-	const char json[] = " [ 42, -1e-1, 0.1, 0, 0.0, \"hoi\" , \"iedereen\\t\", { \"true\" : true , \"false\" : false , \"null\" : null }, [0, 0.0, 0e0, 0e1, 0.0e0, 0.0e1], [[]], {} ] ";
-	size_t end;
-	bijson_error_t error = bijson_parse_json(writer, json, sizeof json - 1, &end);
-	fprintf(stderr, "'%s'\n", json);
-	for(size_t u = 0; u < end; u++)
-		fputc(' ', stderr);
-	fputs(" ^\n", stderr);
-	fprintf(stderr, "%s\n", error);
+	// const char json[] = " [ 42, -1e-1, 0.1, 0, 0.0, \"hoi\" , \"iedereen\\t\", { \"true\" : true , \"false\" : false , \"null\" : null }, [0, 0.0, 0e0, 0e1, 0.0e0, 0.0e1], [[]], {} ] ";
+	// size_t end;
+	// bijson_error_t error = bijson_parse_json(writer, json, sizeof json - 1, &end);
+	// fprintf(stderr, "'%s'\n", json);
+	// for(size_t u = 0; u < end; u++)
+	// 	fputc(' ', stderr);
+	// fputs(" ^\n", stderr);
+	// fprintf(stderr, "%s\n", error);
 
 	int fd;
 
-	// fd = open("/tmp/records.json", O_RDONLY|O_NOCTTY|O_CLOEXEC);
-	// if(fd == -1)
-	// 	err(2, "open(/tmp/records.json)");
-	// struct stat st;
-	// if(fstat(fd, &st) == -1)
-	// 	err(2, "stat");
-	// const void *json = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
-	// if(json == MAP_FAILED)
-	// 	err(2, "mmap");
-	// close(fd);
-	// const void *end;
-	// bijson_error_t error = bijson_parse_json(writer, json, st.st_size, &end);
-	// fprintf(stderr, "%s\n", error);
-	// fprintf(stderr, "%zu\n", end - json);
+	fd = open("/tmp/records.json", O_RDONLY|O_NOCTTY|O_CLOEXEC);
+	if(fd == -1)
+		err(2, "open(/tmp/records.json)");
+	struct stat st;
+	if(fstat(fd, &st) == -1)
+		err(2, "stat");
+	const void *json = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+	if(json == MAP_FAILED)
+		err(2, "mmap");
+	close(fd);
+	size_t end;
+	bijson_error_t error = bijson_parse_json(writer, json, st.st_size, &end);
+	fprintf(stderr, "%s\n", error ?: "success");
+	fprintf(stderr, "%zu\n", end);
 
 	fd = open("/tmp/test.bijson", O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
 	if(fd == -1)

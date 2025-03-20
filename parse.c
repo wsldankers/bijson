@@ -2,6 +2,7 @@
 
 #include <bijson/writer.h>
 
+#include "bijson/common.h"
 #include "buffer.h"
 #include "common.h"
 #include "container.h"
@@ -46,12 +47,12 @@ static bijson_error_t _bijson_parser_append_unichar(_bijson_json_parser_t *parse
 		utf8[1] = UINT8_C(0x80) | (uint8_t)(unichar & UINT32_C(0x3F));
 	} else if(unichar <= UINT32_C(0xFFFF)) {
 		len = 3;
-		utf8[0] = UINT8_C(0xC0) | (uint8_t)(unichar >> 12);
+		utf8[0] = UINT8_C(0xE0) | (uint8_t)(unichar >> 12);
 		utf8[1] = UINT8_C(0x80) | (uint8_t)((unichar >> 6) & UINT32_C(0x3F));
 		utf8[2] = UINT8_C(0x80) | (uint8_t)(unichar & UINT32_C(0x3F));
-	} else if(unichar <= UINT32_C(0x1FFFFF)) {
+	} else if(unichar <= UINT32_C(0x10FFFF)) {
 		len = 4;
-		utf8[0] = UINT8_C(0xC0) | (uint8_t)(unichar >> 18);
+		utf8[0] = UINT8_C(0xF0) | (uint8_t)(unichar >> 18);
 		utf8[1] = UINT8_C(0x80) | (uint8_t)((unichar >> 12) & UINT32_C(0x3F));
 		utf8[2] = UINT8_C(0x80) | (uint8_t)((unichar >> 6) & UINT32_C(0x3F));
 		utf8[3] = UINT8_C(0x80) | (uint8_t)(unichar & UINT32_C(0x3F));
@@ -197,6 +198,7 @@ static bijson_error_t _bijson_parse_json_string(_bijson_json_parser_t *parser, b
 
 	return NULL;
 }
+
 static bijson_error_t _bijson_find_json_number_end(_bijson_json_parser_t *parser) {
 	const uint8_t *buffer_pos = parser->buffer_pos;
 	const uint8_t *buffer_end = parser->buffer_end;
@@ -275,8 +277,8 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 	uint8_t c;
 	const uint8_t *buffer_end = parser->buffer_end;
 
-	// Parse a value:
 	for(;;) {
+		// Parse a value:
 		for(;;) {
 			_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
 			// fprintf(stderr, "%zu '%c'\n", parser->buffer_end - parser->buffer_pos, *parser->buffer_pos);
