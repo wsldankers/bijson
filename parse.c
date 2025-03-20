@@ -275,6 +275,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 	uint8_t c;
 	const uint8_t *buffer_end = parser->buffer_end;
 
+	// Parse a value:
 	for(;;) {
 		for(;;) {
 			_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
@@ -286,28 +287,35 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 					_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
 					c = *parser->buffer_pos;
 					if(c == ']') {
+						// This array is empty, so we parsed a complete value and that means we're done:
 						parser->buffer_pos++;
 						_BIJSON_ERROR_RETURN(bijson_writer_end_array(parser->writer));
 						break;
+					} else {
+						// go back and parse a value (which will be the first item in our array):
+						continue;
 					}
-					continue;
 				case '{':
 					_BIJSON_ERROR_RETURN(bijson_writer_begin_object(parser->writer));
 					parser->buffer_pos++;
 					_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
 					c = *parser->buffer_pos;
 					if(c == '}') {
+						// This object is empty, so we parsed a complete value and that means we're done:
 						parser->buffer_pos++;
 						_BIJSON_ERROR_RETURN(bijson_writer_end_object(parser->writer));
 						break;
+					} else {
+						// The object is not empty so parse the key for our first value:
+						if(c != '"')
+							return bijson_error_invalid_json_syntax;
+						_BIJSON_ERROR_RETURN(_bijson_parse_json_string(parser, true));
+						_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
+						if(*parser->buffer_pos++ != ':')
+							return bijson_error_invalid_json_syntax;
+						// go back and parse a value (which will be the first item in our object):
+						continue;
 					}
-					if(c != '"')
-						return bijson_error_invalid_json_syntax;
-					_BIJSON_ERROR_RETURN(_bijson_parse_json_string(parser, true));
-					_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
-					if(*parser->buffer_pos++ != ':')
-						return bijson_error_invalid_json_syntax;
-					continue;
 				case '"':
 					_BIJSON_ERROR_RETURN(_bijson_parse_json_string(parser, false));
 					break;
@@ -355,6 +363,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 			break;
 		}
 
+		// Parse any close tags or object/array continuations:
 		for(;;) {
 			_bijson_spool_type_t type = _bijson_container_get_current_type(parser->writer);
 			if(type == _bijson_spool_type_array) {
@@ -363,38 +372,43 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 				if(c == ']') {
 					parser->buffer_pos++;
 					_BIJSON_ERROR_RETURN(bijson_writer_end_array(parser->writer));
-					continue;
+				} else {
+					if(c != ',')
+						return bijson_error_invalid_json_syntax;
+					parser->buffer_pos++;
+					// Leave this for-loop and go back to parsing a new value:
+					break;
 				}
-				if(c != ',')
-					return bijson_error_invalid_json_syntax;
-				parser->buffer_pos++;
 			} else if(type == _bijson_spool_type_object) {
 				_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
 				c = *parser->buffer_pos;
 				if(c == '}') {
 					parser->buffer_pos++;
 					_BIJSON_ERROR_RETURN(bijson_writer_end_object(parser->writer));
-					continue;
+				} else {
+					if(c != ',')
+						return bijson_error_invalid_json_syntax;
+					parser->buffer_pos++;
+					_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
+					if(*parser->buffer_pos != '"')
+						return bijson_error_invalid_json_syntax;
+					_BIJSON_ERROR_RETURN(_bijson_parse_json_string(parser, true));
+					_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
+					if(*parser->buffer_pos++ != ':')
+						return bijson_error_invalid_json_syntax;
+					// Leave this for-loop and go back to parsing a new value:
+					break;
 				}
-				if(c != ',')
-					return bijson_error_invalid_json_syntax;
-				parser->buffer_pos++;
-				_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
-				if(*parser->buffer_pos != '"')
-					return bijson_error_invalid_json_syntax;
-				_BIJSON_ERROR_RETURN(_bijson_parse_json_string(parser, true));
-				_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
-				if(*parser->buffer_pos++ != ':')
-					return bijson_error_invalid_json_syntax;
 			} else {
+				// No open arrays or objects and we parsed a complete value.
+				// That means we're done.
 				return NULL;
 			}
-			break;
 		}
 	}
 }
 
-bijson_error_t bijson_parse_json(bijson_writer_t *writer, const void *buffer, size_t len, const void **parse_end) {
+bijson_error_t bijson_parse_json(bijson_writer_t *writer, const void *buffer, size_t len, size_t *parse_end) {
 	_bijson_json_parser_t parser = {
 		.writer = writer,
 		.buffer_pos = buffer,
@@ -407,7 +421,7 @@ bijson_error_t bijson_parse_json(bijson_writer_t *writer, const void *buffer, si
 	_bijson_buffer_wipe(&parser.spool);
 
 	if(parse_end)
-		*parse_end = parser.buffer_pos;
+		*parse_end = parser.buffer_pos - (const uint8_t *)buffer;
 
 	return error;
 }
