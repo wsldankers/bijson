@@ -20,7 +20,7 @@ static inline bijson_error_t _bijson_check_bijson(const bijson_t *bijson) {
 static inline uint64_t _bijson_read_minimal_int(const uint8_t *buffer, size_t nbytes) {
 	uint64_t r = 0;
 	for(size_t u = 0; u < nbytes; u++)
-		r |= buffer[u] << (u * SIZE_C(8));
+		r |= (uint64_t)buffer[u] << (u * SIZE_C(8));
 	return r;
 }
 
@@ -190,6 +190,9 @@ typedef struct _bijson_object_analysis {
 
 static inline bijson_error_t _bijson_object_analyze_count(const bijson_t *bijson, _bijson_object_analysis_t *analysis) {
 	_BIJSON_ERROR_RETURN(_bijson_check_bijson(bijson));
+
+	IF_DEBUG(memset(analysis, 'A', sizeof *analysis));
+
 	const uint8_t *buffer = bijson->buffer;
 	const uint8_t *buffer_end = buffer + bijson->size;
 
