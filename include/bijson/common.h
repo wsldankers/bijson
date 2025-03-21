@@ -23,6 +23,7 @@ extern const char bijson_error_value_before_key[];
 extern const char bijson_error_writer_failed[];
 extern const char bijson_error_unmatched_end[];
 extern const char bijson_error_bad_root[];
+extern const char bijson_error_out_of_virtual_memory[];
 
 typedef bijson_error_t (*bijson_output_callback_t)(
 	void *output_callback_data,

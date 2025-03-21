@@ -6,10 +6,10 @@
 
 #include <bijson/writer.h>
 
+#include "buffer.h"
 #include "common.h"
 #include "container.h"
 #include "format.h"
-#include "buffer.h"
 #include "writer.h"
 
 // Arrays and objects share the same container struct
@@ -22,16 +22,29 @@ typedef struct _bijson_container {
 static const _bijson_container_t _bijson_container_0 = {0};
 
 bool bijson_writer_is_in_array(bijson_writer_t *writer) {
-	return _bijson_container_get_current_type(writer) == _bijson_spool_type_array;
+	return writer->current_type == _BIJSON_WRITER_TYPE_ARRAY;
 }
 
 bool bijson_writer_is_in_object(bijson_writer_t *writer) {
-	return _bijson_container_get_current_type(writer) == _bijson_spool_type_object;
+	return writer->current_type == _BIJSON_WRITER_TYPE_OBJECT;
+}
+
+void _bijson_container_restore_current_type(bijson_writer_t *writer) {
+	if(!writer->current_container)
+		writer->current_type = _BIJSON_WRITER_TYPE_NONE;
+	_bijson_spool_type_t type;
+	_bijson_buffer_read(&writer->spool, writer->current_container - sizeof type, &type, sizeof type);
+	assert(type == _bijson_spool_type_object || type == _bijson_spool_type_array);
+	if(type == _bijson_spool_type_object)
+		writer->current_type = _BIJSON_WRITER_TYPE_OBJECT;
+	else if(type == _bijson_spool_type_array)
+		writer->current_type = _BIJSON_WRITER_TYPE_ARRAY;
 }
 
 bijson_error_t bijson_writer_begin_object(bijson_writer_t *writer) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
+	_BIJSON_ERROR_RETURN(_bijson_writer_check_accepts_value(writer));
 	size_t current_container = writer->current_container;
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_spool_type_object, sizeof _bijson_spool_type_object));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->stack, &writer->last_key, sizeof writer->last_key));
@@ -44,6 +57,7 @@ bijson_error_t bijson_writer_begin_object(bijson_writer_t *writer) {
 bijson_error_t bijson_writer_begin_array(bijson_writer_t *writer) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
+	_BIJSON_ERROR_RETURN(_bijson_writer_check_accepts_value(writer));
 	size_t current_container = writer->current_container;
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_spool_type_array, sizeof _bijson_spool_type_array));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->stack, &current_container, sizeof current_container));
@@ -51,7 +65,7 @@ bijson_error_t bijson_writer_begin_array(bijson_writer_t *writer) {
 	return _bijson_buffer_append(&writer->spool, &_bijson_container_0, sizeof _bijson_container_0);
 }
 
-static bijson_error_t _bijson_container_check_last_key(bijson_writer_t *writer) {
+static inline bijson_error_t _bijson_container_check_last_key(bijson_writer_t *writer) {
 	// Check if there's exactly one item between the previous key and where we are now.
 	size_t last_key = writer->last_key;
 	size_t spool_used = writer->spool.used;
@@ -72,27 +86,86 @@ static bijson_error_t _bijson_container_check_last_key(bijson_writer_t *writer) 
 		if(last_value + last_value_spool_size != spool_used)
 			return bijson_error_value_before_key;
 	}
-	writer->last_key = spool_used;
 	return NULL;
 }
 
 bijson_error_t bijson_writer_add_key(bijson_writer_t *writer, const char *key, size_t len) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
-	if(_bijson_container_get_current_type(writer) != _bijson_spool_type_object)
+	if(writer->current_type != _BIJSON_WRITER_TYPE_OBJECT)
 		return bijson_error_unmatched_end;
 
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_container_check_last_key(writer));
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_check_valid_utf8(key, len));
+	_BIJSON_ERROR_RETURN(_bijson_container_check_last_key(writer));
+	_BIJSON_ERROR_RETURN(_bijson_check_valid_utf8(key, len));
+	writer->last_key = writer->spool.used;
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &len, sizeof len));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, key, len));
+	return NULL;
+}
+
+bijson_error_t bijson_writer_begin_key(bijson_writer_t *writer) {
+	if(writer->failed)
+		return bijson_error_writer_failed;
+	if(writer->current_type != _BIJSON_WRITER_TYPE_OBJECT)
+		return bijson_error_unmatched_end;
+
+	_BIJSON_ERROR_RETURN(_bijson_container_check_last_key(writer));
+	size_t len = 0;
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &len, sizeof len));
+	writer->current_type = _BIJSON_WRITER_TYPE_KEY;
+	return NULL;
+}
+
+bijson_error_t bijson_writer_append_key(bijson_writer_t *writer, const char *key, size_t len) {
+	if(writer->failed)
+		return bijson_error_writer_failed;
+	if(writer->current_type != _BIJSON_WRITER_TYPE_KEY)
+		return bijson_error_unmatched_end;
+
+	bijson_error_t error = _bijson_container_check_last_key(writer);
+	if(!error)
+		return bijson_error_unmatched_end;
+	if(error != bijson_error_key_before_value)
+		return error;
+
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &len, sizeof len));
+
+	size_t last_key = writer->last_key;
+	size_t total_len = writer->spool.used - last_key - sizeof total_len;
+	_bijson_buffer_write(&writer->spool, last_key, &total_len, sizeof total_len);
+
+	return NULL;
+}
+
+bijson_error_t bijson_writer_end_key(bijson_writer_t *writer) {
+	if(writer->failed)
+		return bijson_error_writer_failed;
+	if(writer->current_type != _BIJSON_WRITER_TYPE_KEY)
+		return bijson_error_unmatched_end;
+
+	bijson_error_t error = _bijson_container_check_last_key(writer);
+	if(!error)
+		return bijson_error_unmatched_end;
+	if(error != bijson_error_key_before_value)
+		return error;
+
+	size_t last_key = writer->last_key;
+	size_t total_len = writer->spool.used - last_key - sizeof total_len;
+
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_check_valid_utf8(
+		_bijson_buffer_access(&writer->spool, last_key + sizeof total_len, total_len),
+		total_len
+	));
+
+	writer->current_type = _BIJSON_WRITER_TYPE_OBJECT;
+
 	return NULL;
 }
 
 bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
-	if(_bijson_container_get_current_type(writer) != _bijson_spool_type_object)
+	if(writer->current_type != _BIJSON_WRITER_TYPE_OBJECT)
 		return bijson_error_unmatched_end;
 
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_container_check_last_key(writer));
@@ -153,6 +226,7 @@ bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 
 	_bijson_buffer_pop(&writer->stack, &writer->current_container, sizeof writer->current_container);
 	_bijson_buffer_pop(&writer->stack, &writer->last_key, sizeof writer->last_key);
+	_bijson_container_restore_current_type(writer);
 
 	return NULL;
 }
@@ -161,10 +235,8 @@ bijson_error_t bijson_writer_end_array(bijson_writer_t *writer) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
 
-	if(_bijson_container_get_current_type(writer) != _bijson_spool_type_array) {
-		writer->failed = true;
+	if(writer->current_type != _BIJSON_WRITER_TYPE_ARRAY)
 		return bijson_error_unmatched_end;
-	}
 
 	size_t spool_used = writer->spool.used;
 	size_t current_container = writer->current_container;
@@ -201,6 +273,7 @@ bijson_error_t bijson_writer_end_array(bijson_writer_t *writer) {
 	_bijson_buffer_write(&writer->spool, current_container, &container, sizeof container);
 
 	_bijson_buffer_pop(&writer->stack, &writer->current_container, sizeof writer->current_container);
+	_bijson_container_restore_current_type(writer);
 
 	return NULL;
 }

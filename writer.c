@@ -16,8 +16,6 @@
 const _bijson_spool_type_t _bijson_spool_type_scalar = UINT8_C(0);
 const _bijson_spool_type_t _bijson_spool_type_array = UINT8_C(1);
 const _bijson_spool_type_t _bijson_spool_type_object = UINT8_C(2);
-const _bijson_spool_type_t _bijson_spool_type_none = UINT8_C(3);
-// const _bijson_spool_type_t _bijson_spool_type_extern = UINT8_C(4);
 
 #define _bijson_writer_0 ((bijson_writer_t){.spool = _bijson_buffer_0, .stack = _bijson_buffer_0,})
 
@@ -108,7 +106,7 @@ static bijson_error_t _bijson_writer_write(
 	if(writer->failed)
 		return bijson_error_writer_failed;
 
-	if(writer->current_container)
+	if(writer->stack.used)
 		return bijson_error_unmatched_end;
 
 	size_t spool_used = writer->spool.used;

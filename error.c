@@ -18,3 +18,4 @@ const char bijson_error_value_before_key[] = "attempt to write a value when a ke
 const char bijson_error_writer_failed[] = "attempt to operate a writer that has already failed";
 const char bijson_error_unmatched_end[] = "begin and end commands do not match";
 const char bijson_error_bad_root[] = "there must be one single root element";
+const char bijson_error_out_of_virtual_memory[] = "out of virtual memory";

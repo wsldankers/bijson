@@ -21,8 +21,13 @@ extern bijson_error_t bijson_writer_begin_array(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_end_array(bijson_writer_t *writer);
 
 extern bijson_error_t bijson_writer_begin_object(bijson_writer_t *writer);
-extern bijson_error_t bijson_writer_add_key(bijson_writer_t *writer, const char *key, size_t len);
 extern bijson_error_t bijson_writer_end_object(bijson_writer_t *writer);
+
+extern bijson_error_t bijson_writer_add_key(bijson_writer_t *writer, const char *key, size_t len);
+
+extern bijson_error_t bijson_writer_begin_key(bijson_writer_t *writer);
+extern bijson_error_t bijson_writer_append_key(bijson_writer_t *writer, const char *key, size_t len);
+extern bijson_error_t bijson_writer_end_key(bijson_writer_t *writer);
 
 extern bool bijson_writer_is_in_array(bijson_writer_t *writer);
 extern bool bijson_writer_is_in_object(bijson_writer_t *writer);
@@ -33,3 +38,7 @@ extern bijson_error_t bijson_writer_add_string(bijson_writer_t *writer, const ch
 extern bijson_error_t bijson_writer_add_null(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_add_false(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_add_true(bijson_writer_t *writer);
+
+extern bijson_error_t bijson_writer_begin_string(bijson_writer_t *writer);
+extern bijson_error_t bijson_writer_append_string(bijson_writer_t *writer, const char *key, size_t len);
+extern bijson_error_t bijson_writer_end_string(bijson_writer_t *writer);

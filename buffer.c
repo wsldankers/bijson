@@ -39,6 +39,11 @@ void _bijson_buffer_wipe(_bijson_buffer_t *buffer) {
 static bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t required) {
 	assert(!buffer->_failed);
 
+	size_t used = buffer->used;
+	if(SIZE_MAX - required < used)
+		return bijson_error_out_of_virtual_memory;
+	required += used;
+
 	size_t old_size = buffer->_size;
 	if(required <= old_size)
 		return NULL;
@@ -149,8 +154,8 @@ const char *_bijson_buffer_finalize(_bijson_buffer_t *buffer) {
 
 bijson_error_t _bijson_buffer_push(_bijson_buffer_t *buffer, const void *data, size_t len, void *result) {
 	size_t old_used = buffer->used;
+	_BIJSON_ERROR_RETURN(_bijson_buffer_ensure_space(buffer, len));
 	size_t new_used = old_used + len;
-	_BIJSON_ERROR_RETURN(_bijson_buffer_ensure_space(buffer, new_used));
 	if(data)
 		memcpy(buffer->_buffer + old_used, data, len);
 #ifndef NDEBUG
@@ -165,8 +170,8 @@ bijson_error_t _bijson_buffer_push(_bijson_buffer_t *buffer, const void *data, s
 
 bijson_error_t _bijson_buffer_append(_bijson_buffer_t *buffer, const void *data, size_t len) {
 	size_t old_used = buffer->used;
+	_BIJSON_ERROR_RETURN(_bijson_buffer_ensure_space(buffer, len));
 	size_t new_used = old_used + len;
-	_BIJSON_ERROR_RETURN(_bijson_buffer_ensure_space(buffer, new_used));
 	if(data)
 		memcpy(buffer->_buffer + old_used, data, len);
 	else

@@ -6,11 +6,20 @@
 #include "buffer.h"
 #include "common.h"
 
+// These values actually end up on the spool:
 typedef uint8_t _bijson_spool_type_t;
 extern const _bijson_spool_type_t _bijson_spool_type_scalar;
 extern const _bijson_spool_type_t _bijson_spool_type_object;
 extern const _bijson_spool_type_t _bijson_spool_type_array;
-extern const _bijson_spool_type_t _bijson_spool_type_none;
+
+// These values are for use in writer->current_type
+typedef enum _bijson_writer_type {
+	_BIJSON_WRITER_TYPE_NONE,
+	_BIJSON_WRITER_TYPE_SCALAR,
+	_BIJSON_WRITER_TYPE_OBJECT,
+	_BIJSON_WRITER_TYPE_ARRAY,
+	_BIJSON_WRITER_TYPE_KEY,
+} _bijson_writer_type_t;
 
 // Use in public functions:
 #define _BIJSON_WRITER_ERROR_RETURN(x) _BIJSON_ERROR_CLEANUP_AND_RETURN(x, writer->failed = true)
@@ -27,6 +36,7 @@ typedef struct bijson_writer {
 	_bijson_buffer_t stack;
 	size_t current_container;
 	size_t last_key;
+	_bijson_writer_type_t current_type;
 	bool failed;
 } bijson_writer_t;
 
