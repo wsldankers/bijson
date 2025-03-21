@@ -24,7 +24,7 @@ static inline uint64_t _bijson_read_minimal_int(const uint8_t *buffer, size_t nb
 	return r;
 }
 
-static const unsigned char hex[16] = "0123456789ABCDEF";
+static const unsigned char _bijson_hex[16] = "0123456789ABCDEF";
 
 static bijson_error_t _bijson_raw_string_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	const uint8_t *string = bijson->buffer;
@@ -71,8 +71,8 @@ static bijson_error_t _bijson_raw_string_to_json(const bijson_t *bijson, bijson_
 			escape[1] = plain_escape;
 			_BIJSON_ERROR_RETURN(callback(callback_data, escape, sizeof escape));
 		} else {
-			unicode_escape[4] = hex[c >> 4];
-			unicode_escape[5] = hex[c & UINT8_C(0xF)];
+			unicode_escape[4] = _bijson_hex[c >> 4];
+			unicode_escape[5] = _bijson_hex[c & UINT8_C(0xF)];
 			_BIJSON_ERROR_RETURN(callback(callback_data, unicode_escape, sizeof unicode_escape));
 		}
 	}
@@ -212,8 +212,9 @@ static inline bijson_error_t _bijson_object_analyze_count(const bijson_t *bijson
 		return bijson_error_file_format_error;
 	size_t count_1 = (size_t)raw_count;
 
-	analysis->key_index = key_index;
 	analysis->count = count_1 + SIZE_C(1);
+	analysis->count_1 = count_1;
+	analysis->key_index = key_index;
 
 	return NULL;
 }

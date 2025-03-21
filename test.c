@@ -51,7 +51,8 @@ int main(void) {
 	// for(size_t u = 0; u < end; u++)
 	// 	fputc(' ', stderr);
 	// fputs(" ^\n", stderr);
-	// fprintf(stderr, "%s\n", error);
+	// if(error)
+	// 	errx(2, "parse_json: %s (%zu)\n", error, end);
 
 	// bijson_writer_write_to_malloc(writer, (void **)&bijson.buffer, &bijson.size);
 
@@ -71,17 +72,15 @@ int main(void) {
 	close(fd);
 	size_t end;
 	bijson_error_t error = bijson_parse_json(writer, json, st.st_size, &end);
-	if(error) {
-		fprintf(stderr, "%s\n", error);
-		fprintf(stderr, "%zu\n", end);
-	}
+	if(error)
+		errx(2, "parse_json: %s (%zu)", error, end);
 
-	fprintf(stderr, "writing /tmp/test.bijson\n");
+	fprintf(stderr, "writing /dev/shm/test.bijson\n");
 	fflush(stderr);
 
-	fd = open("/tmp/test.bijson", O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
+	fd = open("/dev/shm/test.bijson", O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
 	if(fd == -1)
-		err(2, "open(/tmp/test.bijson)");
+		err(2, "open(/dev/shm/test.bijson)");
 	bijson_writer_write_to_fd(writer, fd);
 	close(fd);
 
@@ -90,29 +89,32 @@ int main(void) {
 
 	bijson_writer_free(writer);
 
-	fprintf(stderr, "opening /tmp/test.bijson\n");
+	fprintf(stderr, "opening /dev/shm/test.bijson\n");
 	fflush(stderr);
 
-	fd = open("/tmp/test.bijson", O_RDONLY|O_NOCTTY|O_CLOEXEC);
+	fd = open("/dev/shm/test.bijson", O_RDONLY|O_NOCTTY|O_CLOEXEC);
 	if(fd == -1)
-		err(2, "open(/tmp/test.bijson)");
+		err(2, "open(/dev/shm/test.bijson)");
 	if(fstat(fd, &st) == -1)
 		err(2, "stat");
 	if(st.st_size > SIZE_MAX)
-		errx(2, "/tmp/test.bijson too large");
+		errx(2, "/dev/shm/test.bijson too large");
 	bijson.buffer = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
 	if(bijson.buffer == MAP_FAILED)
 		err(2, "mmap");
 	bijson.size = st.st_size;
 	close(fd);
 
-	fprintf(stderr, "writing /tmp/test.json\n");
+	fprintf(stderr, "writing /dev/shm/test.json\n");
 	fflush(stderr);
 
-	fd = open("/tmp/test.json", O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
+	fd = open("/dev/shm/test.json", O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
 	if(fd == -1)
-		err(2, "open(/tmp/test.json)");
-	bijson_to_json_fd(&bijson, fd);
+		err(2, "open(/dev/shm/test.json)");
+	error = bijson_to_json_fd(&bijson, fd);
+	if(error)
+		errx(2, "to_json: %s", error);
+
 	close(fd);
 
 	fprintf(stderr, "done\n");
