@@ -60,6 +60,19 @@ extern bijson_error_t bijson_analyzed_object_get_index(
 	size_t *key_size_result,
 	bijson_t *value_result
 );
+extern bijson_error_t bijson_analyzed_object_get_key(
+	const bijson_object_analysis_t *analysis,
+	const char *key,
+	size_t len,
+	bijson_t *result
+);
+extern bijson_error_t bijson_object_get_key(
+	const bijson_t *bijson,
+	const char *key,
+	size_t len,
+	bijson_t *result
+);
+
 extern bijson_error_t bijson_analyzed_object_count(
 	const bijson_object_analysis_t *analysis,
 	size_t *result

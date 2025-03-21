@@ -10,6 +10,8 @@
 #include <bijson/writer.h>
 #include <bijson/reader.h>
 
+#include "common.h"
+
 #define C(x) do { bijson_error_t error = (x); if(error == bijson_error_system) err(2, "%s:%d: %s", __FILE__, __LINE__, #x); else if(error) errx(1, "%s:%d: %s: %s", __FILE__, __LINE__, #x, error); } while(0)
 
 
@@ -19,6 +21,7 @@ int main(void) {
 	struct stat st;
 	bijson_error_t error __attribute__((unused));
 
+/*
 	bijson_writer_t *writer = NULL;
 	bijson_writer_alloc(&writer);
 
@@ -89,6 +92,7 @@ int main(void) {
 	fflush(stderr);
 
 	bijson_writer_free(writer);
+*/
 
 	fprintf(stderr, "opening /dev/shm/test.bijson\n");
 	fflush(stderr);
@@ -106,6 +110,46 @@ int main(void) {
 	bijson.size = st.st_size;
 	close(fd);
 	// fprintf(stderr, "opened test.bijson at address %p\n", bijson.buffer);
+
+	fprintf(stderr, "checking keys at root level\n");
+	fflush(stderr);
+
+
+	bijson_object_analysis_t analysis;
+	C(bijson_object_analyze(&bijson, &analysis));
+
+	bijson_t value;
+	error = bijson_analyzed_object_get_key(&analysis, "foo", 3, &value);
+	if(error != bijson_error_key_not_found)
+		C(error);
+	error = bijson_analyzed_object_get_key(&analysis, "bar", 3, &value);
+	if(error != bijson_error_key_not_found)
+		C(error);
+	error = bijson_analyzed_object_get_key(&analysis, "baz", 3, &value);
+	if(error != bijson_error_key_not_found)
+		C(error);
+	error = bijson_analyzed_object_get_key(&analysis, "quux", 4, &value);
+	if(error != bijson_error_key_not_found)
+		C(error);
+	error = bijson_analyzed_object_get_key(&analysis, "xyzzy", 5, &value);
+	if(error != bijson_error_key_not_found)
+		C(error);
+
+	size_t count;
+	C(bijson_analyzed_object_count(&analysis, &count));
+	fprintf(stderr, "count: %zu\n", count);
+	for(size_t u = SIZE_C(0); u < count; u++) {
+		const void *key;
+		size_t len;
+		bijson_t value;
+		C(bijson_analyzed_object_get_index(&analysis, u, &key, &len, &value));
+		bijson_t check;
+		C(bijson_analyzed_object_get_key(&analysis, key, len, &check));
+		if(value.buffer != check.buffer) {
+			fprintf(stderr, "sad :(\n");
+			break;
+		}
+	}
 
 	fprintf(stderr, "writing /dev/shm/test.json\n");
 	fflush(stderr);

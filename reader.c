@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <xxhash.h>
 
 #include <bijson/reader.h>
 
@@ -407,6 +408,178 @@ bijson_error_t bijson_analyzed_object_get_index(
 		key_size_result,
 		value_result
 	);
+}
+
+#ifdef __SIZEOF_INT128__
+typedef __uint128_t _bijson_hash_t;
+#define _BIJSON_HASH_MAX (~(__uint128_t)0)
+#define _BIJSON_HASH_C(x) ((__uint128_t)(UINT64_C(x)))
+static inline _bijson_hash_t _bijson_integer_hash(XXH128_hash_t *xxhash) {
+	return ((__uint128_t)xxhash->high64 << 64) | (__uint128_t)xxhash->low64;
+}
+#else
+typedef uint64_t _bijson_hash_t;
+#define _BIJSON_HASH_MAX UINT64_MAX
+#define _BIJSON_HASH_C(x) (UINT64_C(x))
+static inline _bijson_hash_t _bijson_integer_hash(XXH128_hash_t *xxhash) {
+	return xxhash->high64;
+}
+#endif
+
+typedef struct _bijson_get_key_entry {
+	XXH128_hash_t xxhash;
+	_bijson_hash_t hash;
+	size_t index;
+	const void *key;
+	size_t len;
+	bijson_t value;
+} _bijson_get_key_entry_t;
+
+static inline int _bijson_get_key_entry_cmp(const _bijson_get_key_entry_t *a, const _bijson_get_key_entry_t *b) {
+	int c = XXH128_cmp(&a->xxhash, &b->xxhash);
+	if(c)
+		return c;
+	return a->len < b->len
+		? -1
+		: a->len == b->len
+			?  memcmp(a->key, b->key, a->len)
+			: 1;
+}
+
+static inline bijson_error_t _bijson_get_key_entry_get(const _bijson_object_analysis_t *analysis, _bijson_get_key_entry_t *entry) {
+	_BIJSON_ERROR_RETURN(_bijson_analyzed_object_get_index(analysis, entry->index, &entry->key, &entry->len, &entry->value));
+	entry->xxhash = XXH3_128bits(entry->key, entry->len);
+	entry->hash = _bijson_integer_hash(&entry->xxhash);
+	return NULL;
+}
+
+static inline uint64_t _bijson_guess(_bijson_get_key_entry_t *lower, _bijson_get_key_entry_t *upper, _bijson_get_key_entry_t *target) {
+    _bijson_hash_t ret, num, prec, div, half;
+    num = upper->index - lower->index;
+    prec = _BIJSON_HASH_MAX / num;
+    div = _BIJSON_HASH_MAX / prec + _BIJSON_HASH_C(1);
+    half = (num / prec) >> 1;
+    ret = lower->index + ((target->hash - lower->hash) / div) * num / ((upper->hash - lower->hash) / div + _BIJSON_HASH_C(1)) + half;
+    if(ret >= upper->index)
+        ret = upper->index - SIZE_C(1);
+    if(ret < lower->index)
+        ret = lower->index;
+    return ret;
+}
+
+static size_t _bijson_2log64(uint64_t x) {
+	assert(x > UINT64_C(1));
+	x--;
+#ifdef HAVE_BUILTIN_CLZLL
+	return SIZE_C(63) - __builtin_clzll(x);
+#else
+	size_t result = SIZE_C(1);
+	if(x & UINT64_C(0xFFFFFFFF00000000)) {
+		result += SIZE_C(32);
+		x >>= 32;
+	}
+	if(x & UINT64_C(0xFFFF0000)) {
+		result += SIZE_C(16);
+		x >>= 16;
+	}
+	if(x & UINT64_C(0xFF00)) {
+		result += SIZE_C(8);
+		x >>= 8;
+	}
+	if(x & UINT64_C(0xF0)) {
+		result += SIZE_C(4);
+		x >>= 4;
+	}
+	if(x & UINT64_C(0xC)) {
+		result += SIZE_C(2);
+		x >>= 2;
+	}
+	if(x & UINT64_C(0x2)) {
+		result += SIZE_C(1);
+	}
+	return result;
+#endif
+}
+
+static inline bijson_error_t _bijson_analyzed_object_get_key(
+	const _bijson_object_analysis_t *analysis,
+	const char *key,
+	size_t len,
+	bijson_t *result
+) {
+	static size_t record_attempts = SIZE_C(0);
+
+	if(!analysis->count)
+		return bijson_error_key_not_found;
+
+	if(analysis->count == SIZE_C(1)) {
+		bijson_t value;
+		const void *candidate_key;
+		size_t candidate_len;
+		_BIJSON_ERROR_RETURN(_bijson_analyzed_object_get_index(analysis, SIZE_C(0), &candidate_key, &candidate_len, &value));
+		if(candidate_len == len && !memcmp(key, candidate_key, len)) {
+			*result = value;
+			return NULL;
+		}
+		return bijson_error_key_not_found;
+	}
+
+	_bijson_get_key_entry_t target = {
+		.xxhash = XXH3_128bits(key, len),
+		.key = key,
+		.len = len,
+	};
+	target.hash = _bijson_integer_hash(&target.xxhash);
+
+	size_t max_attempts = _bijson_2log64(analysis->count);
+	_bijson_get_key_entry_t lower = {};
+	_bijson_get_key_entry_t upper = {.index = analysis->count, .hash = _BIJSON_HASH_MAX};
+
+	for(size_t attempt = SIZE_C(0); lower.index != upper.index; attempt++) {
+		if(attempt > record_attempts) {
+			record_attempts = attempt;
+			fprintf(stderr, "record_attempts: %zu (max_attempts: %zu)\n", record_attempts, max_attempts);
+		}
+
+		_bijson_get_key_entry_t guess = {
+			.index = attempt < max_attempts
+				? _bijson_guess(&lower, &upper, &target)
+				: lower.index + ((upper.index - lower.index) >> 2)
+		};
+		_BIJSON_ERROR_RETURN(_bijson_get_key_entry_get(analysis, &guess));
+		int c = _bijson_get_key_entry_cmp(&guess, &target);
+		if(c == 0) {
+			*result = guess.value;
+			return NULL;
+		} else if(c < 0) {
+			lower = guess;
+			lower.index++;
+		} else {
+			upper = guess;
+		}
+	}
+
+	return bijson_error_key_not_found;
+}
+
+bijson_error_t bijson_analyzed_object_get_key(
+	const bijson_object_analysis_t *analysis,
+	const char *key,
+	size_t len,
+	bijson_t *result
+) {
+	return _bijson_analyzed_object_get_key((const _bijson_object_analysis_t *)analysis, key, len, result);
+}
+
+bijson_error_t bijson_object_get_key(
+	const bijson_t *bijson,
+	const char *key,
+	size_t len,
+	bijson_t *result
+) {
+	_bijson_object_analysis_t analysis;
+	_BIJSON_ERROR_RETURN(_bijson_object_analyze(bijson, &analysis));
+	return _bijson_analyzed_object_get_key(&analysis, key, len, result);
 }
 
 bijson_error_t bijson_object_analyze(const bijson_t *bijson, bijson_object_analysis_t *result) {
