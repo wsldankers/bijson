@@ -552,10 +552,11 @@ static inline bijson_error_t _bijson_analyzed_object_get_key(
 			*result = guess.value;
 			return NULL;
 		} else if(c < 0) {
-			lower = guess;
-			lower.index++;
+			lower.hash = guess.hash;
+			lower.index = guess.index + SIZE_C(1);
 		} else {
-			upper = guess;
+			upper.hash = guess.hash;
+			upper.index = guess.index;
 		}
 	}
 
