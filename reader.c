@@ -507,7 +507,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key(
 	size_t len,
 	bijson_t *result
 ) {
-	static size_t record_attempts = SIZE_C(0);
+	// static size_t record_attempts = SIZE_C(0);
 
 	if(!analysis->count)
 		return bijson_error_key_not_found;
@@ -536,10 +536,10 @@ static inline bijson_error_t _bijson_analyzed_object_get_key(
 	_bijson_get_key_entry_t upper = {.index = analysis->count, .hash = _BIJSON_HASH_MAX};
 
 	for(size_t attempt = SIZE_C(0); lower.index != upper.index; attempt++) {
-		if(attempt > record_attempts) {
-			record_attempts = attempt;
-			fprintf(stderr, "record_attempts: %zu (max_attempts: %zu)\n", record_attempts, max_attempts);
-		}
+		// if(attempt > record_attempts) {
+		// 	record_attempts = attempt;
+		// 	fprintf(stderr, "record_attempts: %zu (max_attempts: %zu)\n", record_attempts, max_attempts);
+		// }
 
 		_bijson_get_key_entry_t guess = {
 			.index = attempt < max_attempts
