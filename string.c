@@ -18,7 +18,7 @@ bijson_error_t bijson_writer_add_string(bijson_writer_t *writer, const char *str
 bijson_error_t bijson_writer_begin_string(bijson_writer_t *writer) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_spool_type_object, sizeof _bijson_spool_type_scalar));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_spool_type_scalar, sizeof _bijson_spool_type_scalar));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->stack, &writer->current_container, sizeof writer->current_container));
 	writer->current_container = writer->spool.used;
 	size_t size = SIZE_C(1);

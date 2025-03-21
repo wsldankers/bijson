@@ -44,7 +44,7 @@ int main(void) {
 	// // 	bijson_writer_add_string(writer, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64);
 	// bijson_writer_end_array(writer);
 
-	// const char json[] = " [ 42, -1e-1, 0.1, 0, 0.0, \"hoi\" , \"iedereen\\t\", { \"true\" : true , \"false\" : false , \"null\" : null }, [0, 0.0, 0e0, 0e1, 0.0e0, 0.0e1], [[]], {} ] ";
+	// const char json[] = " [ 42, -1e-1, 0.1, 0, 0.0, \"hoi\" , \"iedereen\\t\", { \"x\\by\": null }, { \"true\" : true , \"false\" : false , \"null\" : null }, [0, 0.0, 0e0, 0e1, 0.0e0, 0.0e1], [[]], {} ] ";
 	// size_t end;
 	// bijson_error_t error = bijson_parse_json(writer, json, sizeof json - 1, &end);
 	// fprintf(stderr, "'%s'\n", json);
@@ -54,6 +54,9 @@ int main(void) {
 	// fprintf(stderr, "%s\n", error);
 
 	// bijson_writer_write_to_malloc(writer, (void **)&bijson.buffer, &bijson.size);
+
+	fprintf(stderr, "parsing /tmp/records.json\n");
+	fflush(stderr);
 
 	fd = open("/tmp/records.json", O_RDONLY|O_NOCTTY|O_CLOEXEC);
 	if(fd == -1)
@@ -68,8 +71,13 @@ int main(void) {
 	close(fd);
 	size_t end;
 	bijson_error_t error = bijson_parse_json(writer, json, st.st_size, &end);
-	fprintf(stderr, "%s\n", error ?: "success");
-	fprintf(stderr, "%zu\n", end);
+	if(error) {
+		fprintf(stderr, "%s\n", error);
+		fprintf(stderr, "%zu\n", end);
+	}
+
+	fprintf(stderr, "writing /tmp/test.bijson\n");
+	fflush(stderr);
 
 	fd = open("/tmp/test.bijson", O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
 	if(fd == -1)
@@ -77,7 +85,13 @@ int main(void) {
 	bijson_writer_write_to_fd(writer, fd);
 	close(fd);
 
+	fprintf(stderr, "freeing writer object\n");
+	fflush(stderr);
+
 	bijson_writer_free(writer);
+
+	fprintf(stderr, "opening /tmp/test.bijson\n");
+	fflush(stderr);
 
 	fd = open("/tmp/test.bijson", O_RDONLY|O_NOCTTY|O_CLOEXEC);
 	if(fd == -1)
@@ -92,11 +106,17 @@ int main(void) {
 	bijson.size = st.st_size;
 	close(fd);
 
+	fprintf(stderr, "writing /tmp/test.json\n");
+	fflush(stderr);
+
 	fd = open("/tmp/test.json", O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
 	if(fd == -1)
 		err(2, "open(/tmp/test.json)");
 	bijson_to_json_fd(&bijson, fd);
 	close(fd);
+
+	fprintf(stderr, "done\n");
+	fflush(stderr);
 
 	return 0;
 }

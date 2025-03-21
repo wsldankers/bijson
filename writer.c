@@ -17,7 +17,7 @@ const _bijson_spool_type_t _bijson_spool_type_scalar = UINT8_C(0);
 const _bijson_spool_type_t _bijson_spool_type_array = UINT8_C(1);
 const _bijson_spool_type_t _bijson_spool_type_object = UINT8_C(2);
 
-#define _bijson_writer_0 ((bijson_writer_t){.spool = _bijson_buffer_0, .stack = _bijson_buffer_0,})
+#define _bijson_writer_0 ((bijson_writer_t){.spool = _bijson_buffer_0, .stack = _bijson_buffer_0})
 
 void bijson_writer_free(bijson_writer_t *writer) {
 	if(writer) {

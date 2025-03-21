@@ -1,7 +1,6 @@
 #include <stdbool.h>
 
 #include "common.h"
-#include "error.h"
 #include "string.h"
 #include "writer.h"
 

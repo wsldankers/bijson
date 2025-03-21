@@ -19,8 +19,8 @@ static inline bool _bijson_writer_accepts_value(bijson_writer_t *writer) {
 // Check whether the writer is ready to accept a new value:
 static inline bijson_error_t _bijson_writer_check_accepts_value(bijson_writer_t *writer) {
 	return _bijson_writer_accepts_value(writer)
-		? bijson_error_unmatched_end
-		: NULL;
+		? NULL
+		: bijson_error_unmatched_end;
 }
 
 extern void _bijson_container_restore_current_type(bijson_writer_t *writer);

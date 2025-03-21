@@ -16,7 +16,7 @@
 #define _BIJSON_MEDIUM_BUFFER SIZE_C(65536)
 #define _BIJSON_LARGE_BUFFER SIZE_C(1048576)
 
-#define _BIJSON_MAX_BUFFER_EXTENSION SIZE_C(16777216)
+#define _BIJSON_MAX_BUFFER_EXTENSION SIZE_C(134217728)
 
 void _bijson_buffer_init(_bijson_buffer_t *buffer) {
 	*buffer = _bijson_buffer_0;
@@ -114,7 +114,8 @@ static bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size
 
 		if(was_malloced) {
 			memcpy(new_buffer, buffer->_buffer, buffer->used);
-			free(buffer->_buffer);
+			if(buffer->_buffer != buffer->_minibuffer)
+				free(buffer->_buffer);
 		}
 
 		buffer->_fd = fd;
