@@ -19,3 +19,4 @@ const char bijson_error_writer_failed[] = "attempt to operate a writer that has 
 const char bijson_error_unmatched_end[] = "begin and end commands do not match";
 const char bijson_error_bad_root[] = "there must be one single root element";
 const char bijson_error_out_of_virtual_memory[] = "out of virtual memory";
+const char bijson_error_type_mismatch[] = "wrong type for operation";
