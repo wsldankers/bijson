@@ -27,7 +27,7 @@ static inline uint64_t _bijson_read_minimal_int(const uint8_t *buffer, size_t nb
 
 static const unsigned char _bijson_hex[16] = "0123456789ABCDEF";
 
-static bijson_error_t _bijson_raw_string_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
+static inline bijson_error_t _bijson_raw_string_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	const uint8_t *string = bijson->buffer;
 	size_t len = bijson->size;
 	const uint8_t *previously_written = string;
@@ -82,7 +82,7 @@ static bijson_error_t _bijson_raw_string_to_json(const bijson_t *bijson, bijson_
 	return callback(callback_data, "\"", 1);
 }
 
-static bijson_error_t _bijson_string_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *userdata) {
+static inline bijson_error_t _bijson_string_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *userdata) {
 	bijson_t raw_string = { .buffer = bijson->buffer + SIZE_C(1), .size = bijson->size - SIZE_C(1) };
 	_BIJSON_ERROR_RETURN(_bijson_check_valid_utf8((const char *)raw_string.buffer, raw_string.size));
 	return _bijson_raw_string_to_json(&raw_string, callback, userdata);
@@ -115,7 +115,7 @@ static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson
 	return NULL;
 }
 
-static bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
+static inline bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	const uint8_t *buffer = bijson->buffer;
 	const uint8_t *buffer_end = buffer + bijson->size;
 
@@ -158,7 +158,7 @@ static bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bijson_out
 	return _bijson_decimal_part_to_json(&exponent, callback, callback_data);
 }
 
-static bijson_error_t _bijson_decimal_integer_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
+static inline bijson_error_t _bijson_decimal_integer_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	const uint8_t *buffer = bijson->buffer;
 	size_t size = bijson->size;
 
@@ -442,7 +442,7 @@ static inline int _bijson_get_key_entry_cmp(const _bijson_get_key_entry_t *a, co
 	return a->len < b->len
 		? -1
 		: a->len == b->len
-			?  memcmp(a->key, b->key, a->len)
+			? memcmp(a->key, b->key, a->len)
 			: 1;
 }
 
@@ -453,7 +453,7 @@ static inline bijson_error_t _bijson_get_key_entry_get(const _bijson_object_anal
 	return NULL;
 }
 
-static inline uint64_t _bijson_guess(_bijson_get_key_entry_t *lower, _bijson_get_key_entry_t *upper, _bijson_get_key_entry_t *target) {
+static inline uint64_t _bijson_get_key_guess(_bijson_get_key_entry_t *lower, _bijson_get_key_entry_t *upper, _bijson_get_key_entry_t *target) {
     _bijson_hash_t ret, num, prec, div, half;
     num = upper->index - lower->index;
     prec = _BIJSON_HASH_MAX / num;
@@ -467,7 +467,7 @@ static inline uint64_t _bijson_guess(_bijson_get_key_entry_t *lower, _bijson_get
     return ret;
 }
 
-static size_t _bijson_2log64(uint64_t x) {
+static inline size_t _bijson_2log64(uint64_t x) {
 	assert(x > UINT64_C(1));
 	x--;
 #ifdef HAVE_BUILTIN_CLZLL
@@ -543,7 +543,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key(
 
 		_bijson_get_key_entry_t guess = {
 			.index = attempt < max_attempts
-				? _bijson_guess(&lower, &upper, &target)
+				? _bijson_get_key_guess(&lower, &upper, &target)
 				: lower.index + ((upper.index - lower.index) >> 2)
 		};
 		_BIJSON_ERROR_RETURN(_bijson_get_key_entry_get(analysis, &guess));
@@ -732,7 +732,7 @@ bijson_error_t bijson_array_analyze(const bijson_t *bijson, bijson_array_analysi
 	return _bijson_array_analyze(bijson, (_bijson_array_analysis_t *)result);
 }
 
-static bijson_error_t _bijson_object_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
+static inline bijson_error_t _bijson_object_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	_bijson_object_analysis_t analysis;
 	_BIJSON_ERROR_RETURN(_bijson_object_analyze(bijson, &analysis));
 
@@ -752,7 +752,7 @@ static bijson_error_t _bijson_object_to_json(const bijson_t *bijson, bijson_outp
 	return callback(callback_data, "}", 1);
 }
 
-static bijson_error_t _bijson_array_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
+static inline bijson_error_t _bijson_array_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	_bijson_array_analysis_t analysis;
 	_BIJSON_ERROR_RETURN(_bijson_array_analyze(bijson, &analysis));
 
