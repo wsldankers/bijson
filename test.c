@@ -11,6 +11,7 @@
 #include <bijson/reader.h>
 
 #include "common.h"
+#include "writer.h"
 
 #define C(x) do { bijson_error_t error = (x); if(error == bijson_error_system) err(2, "%s:%d: %s", __FILE__, __LINE__, #x); else if(error) errx(1, "%s:%d: %s: %s", __FILE__, __LINE__, #x, error); } while(0)
 
@@ -93,6 +94,7 @@ int main(void) {
 	fprintf(stderr, "freeing writer object\n");
 	fflush(stderr);
 
+	fprintf(stderr, "spool was %zu bytes, stack was %zu bytes.\n", writer->spool._size, writer->stack._size);
 	bijson_writer_free(writer);
 
 	fprintf(stderr, "opening %s\n", output_bijson_filename);
@@ -138,7 +140,7 @@ int main(void) {
 
 	size_t count;
 	C(bijson_analyzed_object_count(&analysis, &count));
-	fprintf(stderr, "count: %zu\n", count);
+	fprintf(stderr, "all %zu accounted for\n", count);
 	for(size_t u = SIZE_C(0); u < count; u++) {
 		const void *key;
 		size_t len;
