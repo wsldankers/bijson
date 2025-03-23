@@ -23,7 +23,27 @@ int main(void) {
 	bijson_error_t error __attribute__((unused));
 
 	bijson_writer_t *writer = NULL;
-	bijson_writer_alloc(&writer);
+
+	C(bijson_writer_alloc(&writer));
+
+	C(bijson_writer_begin_array(writer));
+	C(bijson_writer_add_string(writer, "foo", 3));
+	C(bijson_writer_add_bytes(writer, NULL, 0));
+	C(bijson_writer_end_array(writer));
+
+	const char output_smol_bijson_filename[] = "/tmp/smol.bijson";
+	fprintf(stderr, "writing %s\n", output_smol_bijson_filename);
+	fflush(stderr);
+
+	fd = open(output_smol_bijson_filename, O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
+	if(fd == -1)
+		err(2, "open(%s)", output_smol_bijson_filename);
+	C(bijson_writer_write_to_fd(writer, fd));
+	close(fd);
+
+	bijson_writer_free(writer);
+
+	C(bijson_writer_alloc(&writer));
 
 	// C(bijson_writer_begin_array(writer));
 	// C(bijson_writer_begin_object(writer));
@@ -49,7 +69,7 @@ int main(void) {
 	// C(bijson_writer_add_string(writer, "あ", 3);
 	// // for(uint32_t u = 0; u < UINT32_C(10000000); u++)
 	// // 	C(bijson_writer_add_string(writer, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64);
-	// C(bijson_writer_end_array(writer);
+	// C(bijson_writer_end_array(writer));
 
 	// const char json[] = " [ 42, -1e-1, 0.1, 0, 0.0, \"hoi\" , \"iedereen\\t\", { \"x\\by\": null }, { \"true\" : true , \"false\" : false , \"null\" : null }, [0, 0.0, 0e0, 0e1, 0.0e0, 0.0e1], [[]], {} ] ";
 	// size_t end;
@@ -92,9 +112,9 @@ int main(void) {
 	close(fd);
 
 	fprintf(stderr, "freeing writer object\n");
+	fprintf(stderr, "spool was %zu bytes, stack was %zu bytes.\n", writer->spool._size, writer->stack._size);
 	fflush(stderr);
 
-	fprintf(stderr, "spool was %zu bytes, stack was %zu bytes.\n", writer->spool._size, writer->stack._size);
 	bijson_writer_free(writer);
 
 	fprintf(stderr, "opening %s\n", output_bijson_filename);
