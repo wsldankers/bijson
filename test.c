@@ -21,7 +21,6 @@ int main(void) {
 	struct stat st;
 	bijson_error_t error __attribute__((unused));
 
-/*
 	bijson_writer_t *writer = NULL;
 	bijson_writer_alloc(&writer);
 
@@ -92,7 +91,6 @@ int main(void) {
 	fflush(stderr);
 
 	bijson_writer_free(writer);
-*/
 
 	fprintf(stderr, "opening /dev/shm/test.bijson\n");
 	fflush(stderr);
