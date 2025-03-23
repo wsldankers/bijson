@@ -20,13 +20,30 @@ typedef struct _bijson_buffer_write_to_fd_state {
 
 static const char _bijson_nul_bytes[4096];
 
+// Must be a power of two. 
+#define _BIJSON_WRITE_TO_FD_MAX_BUFFER SIZE_C(1048576)
+
 static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, const void *data, size_t len) {
 	_bijson_buffer_write_to_fd_state_t state = *(_bijson_buffer_write_to_fd_state_t *)write_data;
 	if(data) {
-		if(state.fill + len <= state.size) {
+		size_t required = state.fill + len;
+		if(required <= state.size) {
 			memcpy(state.buffer + state.fill, data, len);
-			((_bijson_buffer_write_to_fd_state_t *)write_data)->fill = state.fill + len;
+			((_bijson_buffer_write_to_fd_state_t *)write_data)->fill = required;
 		} else {
+			if(required <= _BIJSON_WRITE_TO_FD_MAX_BUFFER) {
+				size_t new_size = state.size;
+				while(new_size < required)
+					new_size <<= 1;
+				void *new_buffer = realloc(state.buffer, new_size);
+				if(new_buffer) {
+					memcpy(new_buffer + state.fill, data, len);
+					((_bijson_buffer_write_to_fd_state_t *)write_data)->buffer = new_buffer;
+					((_bijson_buffer_write_to_fd_state_t *)write_data)->size = new_size;
+					((_bijson_buffer_write_to_fd_state_t *)write_data)->fill = required;
+					return NULL;
+				}
+			}
 			if(state.fill) {
 				struct iovec vec[] = {
 					{state.buffer, state.fill},
@@ -103,7 +120,7 @@ static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, c
 }
 
 bijson_error_t _bijson_io_write_to_fd(bijson_output_action_callback_t action_callback, void *action_callback_data, int fd) {
-	_bijson_buffer_write_to_fd_state_t state = {.fd = fd, .size = SIZE_C(1048576)};
+	_bijson_buffer_write_to_fd_state_t state = {.fd = fd, .size = SIZE_C(4096)};
 	state.buffer = malloc(state.size);
 	if(!state.buffer)
 		return bijson_error_system;

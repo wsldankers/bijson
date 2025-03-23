@@ -61,29 +61,32 @@ int main(void) {
 
 	// bijson_writer_write_to_malloc(writer, (void **)&bijson.buffer, &bijson.size);
 
-	fprintf(stderr, "parsing /tmp/records.json\n");
+	const char input_json_filename[] = "/tmp/records.json";
+	fprintf(stderr, "parsing %s\n", input_json_filename);
 	fflush(stderr);
 
-	fd = open("/tmp/records.json", O_RDONLY|O_NOCTTY|O_CLOEXEC);
+	fd = open(input_json_filename, O_RDONLY|O_NOCTTY|O_CLOEXEC);
 	if(fd == -1)
-		err(2, "open(/tmp/records.json)");
+		err(2, "open(%s)", input_json_filename);
 	if(fstat(fd, &st) == -1)
 		err(2, "stat");
 	if(st.st_size > SIZE_MAX)
-		errx(2, "/tmp/records.json too large");
-	const void *json = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+		errx(2, "%s too large", input_json_filename);
+	void *json = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
 	if(json == MAP_FAILED)
 		err(2, "mmap");
 	close(fd);
 	size_t end;
 	C(bijson_parse_json(writer, json, st.st_size, &end));
+	munmap(json, st.st_size);
 
-	fprintf(stderr, "writing /dev/shm/test.bijson\n");
+	const char output_bijson_filename[] = "/dev/shm/test.bijson";
+	fprintf(stderr, "writing %s\n", output_bijson_filename);
 	fflush(stderr);
 
-	fd = open("/dev/shm/test.bijson", O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
+	fd = open(output_bijson_filename, O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
 	if(fd == -1)
-		err(2, "open(/dev/shm/test.bijson)");
+		err(2, "open(%s)", output_bijson_filename);
 	C(bijson_writer_write_to_fd(writer, fd));
 	close(fd);
 
@@ -92,16 +95,16 @@ int main(void) {
 
 	bijson_writer_free(writer);
 
-	fprintf(stderr, "opening /dev/shm/test.bijson\n");
+	fprintf(stderr, "opening %s\n", output_bijson_filename);
 	fflush(stderr);
 
-	fd = open("/dev/shm/test.bijson", O_RDONLY|O_NOCTTY|O_CLOEXEC);
+	fd = open(output_bijson_filename, O_RDONLY|O_NOCTTY|O_CLOEXEC);
 	if(fd == -1)
-		err(2, "open(/dev/shm/test.bijson)");
+		err(2, "open(%s)", output_bijson_filename);
 	if(fstat(fd, &st) == -1)
 		err(2, "stat");
 	if(st.st_size > SIZE_MAX)
-		errx(2, "/dev/shm/test.bijson too large");
+		errx(2, "%s too large", output_bijson_filename);
 	bijson.buffer = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
 	if(bijson.buffer == MAP_FAILED)
 		err(2, "mmap");
@@ -149,12 +152,13 @@ int main(void) {
 		}
 	}
 
-	fprintf(stderr, "writing /dev/shm/test.json\n");
+	const char output_json_filename[] = "/dev/shm/test.json";
+	fprintf(stderr, "writing %s\n", output_json_filename);
 	fflush(stderr);
 
-	fd = open("/dev/shm/test.json", O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
+	fd = open(output_json_filename, O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
 	if(fd == -1)
-		err(2, "open(/dev/shm/test.json)");
+		err(2, "open(%s)", output_json_filename);
 	C(bijson_to_json_fd(&bijson, fd));
 
 	close(fd);
