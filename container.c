@@ -304,10 +304,11 @@ static int _bijson_writer_object_object_item_cmp(const void *a, const void *b) {
 	int c = XXH128_cmp(&a_hash, &b_hash);
 	if(c)
 		return c;
-	c = a_size < b_size ? -1 : a_size != b_size;
-	if(c)
-		return c;
-	return memcmp(a_item, b_item, a_size);
+	return a_size < b_size
+		? -1
+		: a_size == b_size
+			? memcmp(a_item, b_item, a_size)
+			: 1;
 }
 
 bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, const char *spool) {
@@ -319,7 +320,7 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writ
 		return write(write_data, "\x40", 1);
 
 	const char *spool_end = spool + container.spool_size - sizeof container.spool_size;
-	const char **object_items = _bijson_buffer_access(&writer->stack, writer->stack.used, SIZE_C(0));
+	size_t stack_used = writer->stack.used;
 
 	size_t count = 0;
 	size_t keys_output_size = 0;
@@ -328,7 +329,7 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writ
 	// Build the array for sorting by going through the memory buffer and
 	// compute the largest value offset that we'll actually store
 	const char *object_item = spool;
-	while(object_item < spool_end) {
+	while(object_item != spool_end) {
 		_BIJSON_ERROR_RETURN(_bijson_buffer_append(&writer->stack, &object_item, sizeof object_item));
 		size_t key_spool_size;
 		memcpy(&key_spool_size, object_item, sizeof key_spool_size);
@@ -344,6 +345,9 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writ
 		count++;
 	}
 
+	const char **object_items;
+	size_t object_items_size = count * sizeof *object_items;
+	object_items = _bijson_buffer_access(&writer->stack, stack_used, object_items_size);
 	qsort(object_items, count, sizeof *object_items, _bijson_writer_object_object_item_cmp);
 
 	// Now that we know the order, subtract the size of the last item from
@@ -409,7 +413,7 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writ
 		_BIJSON_ERROR_RETURN(_bijson_writer_write_value(writer, write, write_data, object_item));
 	}
 
-	_bijson_buffer_pop(&writer->stack, NULL, count * sizeof *object_items);
+	_bijson_buffer_pop(&writer->stack, NULL, object_items_size);
 	return NULL;
 }
 
@@ -423,12 +427,11 @@ bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, _bijson_write
 
 	const char *spool_end = spool + container.spool_size - sizeof container.spool_size;
 
-	size_t count;
+	size_t count_1 = 0;
 	size_t items_output_size = 0;
 
 	const char *item = spool;
 	for(;;) {
-		count++;
 		const char *this_item = item;
 		item += sizeof(_bijson_spool_type_t);
 		size_t item_spool_size;
@@ -438,9 +441,9 @@ bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, _bijson_write
 		if(item == spool_end)
 			break;
 		items_output_size += _bijson_writer_size_value(writer, _bijson_buffer_offset(&writer->spool, this_item));
+		count_1++;
 	}
 
-	size_t count_1 = count - SIZE_C(1);
 	items_output_size -= count_1;
 
 	uint8_t count_width = _bijson_optimal_storage_size(count_1);
@@ -462,6 +465,8 @@ bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, _bijson_write
 		item += item_spool_size;
 		_BIJSON_ERROR_RETURN(_bijson_writer_write_compact_int(write, write_data, item_output_offset, item_offsets_width));
 	}
+
+	size_t count = count_1 + SIZE_C(1);
 
 	// Write the element values
 	item = spool;

@@ -23,7 +23,7 @@ static const char _bijson_nul_bytes[4096];
 static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, const void *data, size_t len) {
 	_bijson_buffer_write_to_fd_state_t state = *(_bijson_buffer_write_to_fd_state_t *)write_data;
 	if(data) {
-		if(state.fill + len < state.size) {
+		if(state.fill + len <= state.size) {
 			memcpy(state.buffer + state.fill, data, len);
 			((_bijson_buffer_write_to_fd_state_t *)write_data)->fill = state.fill + len;
 		} else {
@@ -103,7 +103,7 @@ static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, c
 }
 
 bijson_error_t _bijson_io_write_to_fd(bijson_output_action_callback_t action_callback, void *action_callback_data, int fd) {
-	_bijson_buffer_write_to_fd_state_t state = {.fd = fd, .size = SIZE_C(65536)};
+	_bijson_buffer_write_to_fd_state_t state = {.fd = fd, .size = SIZE_C(1048576)};
 	state.buffer = malloc(state.size);
 	if(!state.buffer)
 		return bijson_error_system;
