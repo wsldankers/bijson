@@ -8,21 +8,21 @@
 
 // These values actually end up on the spool:
 typedef enum _bijson_spool_type_t {
-	_BIJSON_SPOOL_TYPE_SCALAR,
-	_BIJSON_SPOOL_TYPE_OBJECT,
-	_BIJSON_SPOOL_TYPE_ARRAY,
+	_bijson_spool_type_scalar,
+	_bijson_spool_type_object,
+	_bijson_spool_type_array,
 } _bijson_spool_type_t;
 
 // These values are for use in writer->expect.
 // The first three values are valid for writer->expect_after_value.
 typedef enum _bijson_writer_expect {
-	_BIJSON_WRITER_EXPECT_NONE,
-	_BIJSON_WRITER_EXPECT_KEY,
-	_BIJSON_WRITER_EXPECT_VALUE,
-	_BIJSON_WRITER_EXPECT_MORE_KEY,
-	_BIJSON_WRITER_EXPECT_MORE_STRING,
-	_BIJSON_WRITER_EXPECT_MORE_BYTES,
-	_BIJSON_WRITER_EXPECT_MORE_DECIMAL_STRING,
+	_bijson_writer_expect_none,
+	_bijson_writer_expect_key,
+	_bijson_writer_expect_value,
+	_bijson_writer_expect_more_key,
+	_bijson_writer_expect_more_string,
+	_bijson_writer_expect_more_bytes,
+	_bijson_writer_expect_more_decimal_string,
 } _bijson_writer_expect_t;
 
 // Use in public functions:
@@ -48,9 +48,9 @@ typedef struct bijson_writer {
 
 // Check whether the writer is ready to accept a new value:
 static inline bijson_error_t _bijson_writer_check_expect_value(bijson_writer_t *writer) {
-	return writer->expect == _BIJSON_WRITER_EXPECT_VALUE
+	return writer->expect == _bijson_writer_expect_value
 		? NULL
-		: writer->expect == _BIJSON_WRITER_EXPECT_KEY
+		: writer->expect == _bijson_writer_expect_key
 			? bijson_error_key_expected
 			: bijson_error_unmatched_end;
 }

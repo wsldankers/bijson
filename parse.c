@@ -373,7 +373,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 		// Parse any close tags or object/array continuations:
 		for(;;) {
 			_bijson_writer_expect_t expect = parser->writer->expect_after_value;
-			if(expect == _BIJSON_WRITER_EXPECT_VALUE) {
+			if(expect == _bijson_writer_expect_value) {
 				_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
 				c = *parser->buffer_pos++;
 				if(c == ']') {
@@ -384,7 +384,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 					// Leave this for-loop and go back to parsing a new value:
 					break;
 				}
-			} else if(expect == _BIJSON_WRITER_EXPECT_KEY) {
+			} else if(expect == _bijson_writer_expect_key) {
 				_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
 				c = *parser->buffer_pos++;
 				if(c == '}') {
@@ -405,7 +405,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 			} else {
 				// No open arrays or objects and we parsed a complete value.
 				// That means we're done.
-				assert(expect == _BIJSON_WRITER_EXPECT_NONE);
+				assert(expect == _bijson_writer_expect_none);
 				return NULL;
 			}
 		}

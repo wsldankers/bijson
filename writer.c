@@ -15,8 +15,8 @@
 #define _bijson_writer_0 ((bijson_writer_t){ \
 	.spool = _bijson_buffer_0, \
 	.stack = _bijson_buffer_0, \
-	.expect = _BIJSON_WRITER_EXPECT_VALUE, \
-	.expect_after_value = _BIJSON_WRITER_EXPECT_NONE, \
+	.expect = _bijson_writer_expect_value, \
+	.expect_after_value = _bijson_writer_expect_none, \
 })
 
 void bijson_writer_free(bijson_writer_t *writer) {
@@ -43,11 +43,11 @@ bijson_error_t bijson_writer_alloc(bijson_writer_t **result) {
 
 size_t _bijson_writer_size_value(bijson_writer_t *writer, size_t spool_offset) {
 	_bijson_spool_type_t spool_type = _bijson_buffer_read_byte(&writer->spool, spool_offset++);
-	if(spool_type == _BIJSON_SPOOL_TYPE_SCALAR) {
+	if(spool_type == _bijson_spool_type_scalar) {
 		return _bijson_buffer_read_size(&writer->spool, spool_offset);
 	} else {
-		assert(spool_type == _BIJSON_SPOOL_TYPE_OBJECT
-			|| spool_type == _BIJSON_SPOOL_TYPE_ARRAY);
+		assert(spool_type == _bijson_spool_type_object
+			|| spool_type == _bijson_spool_type_array);
 		return _bijson_buffer_read_size(&writer->spool, spool_offset + sizeof(size_t));
 	}
 }
@@ -78,16 +78,16 @@ bijson_error_t _bijson_writer_write_value(
 ) {
 	_bijson_spool_type_t spool_type = *(const byte *)spool++;
 	switch(spool_type) {
-		case _BIJSON_SPOOL_TYPE_SCALAR:
+		case _bijson_spool_type_scalar:
 			return _bijson_writer_write_scalar(writer, write, write_data, spool);
-		case _BIJSON_SPOOL_TYPE_OBJECT:
+		case _bijson_spool_type_object:
 			return _bijson_writer_write_object(writer, write, write_data, spool);
-		case _BIJSON_SPOOL_TYPE_ARRAY:
+		case _bijson_spool_type_array:
 			return _bijson_writer_write_array(writer, write, write_data, spool);
 		default:
-			assert(spool_type == _BIJSON_SPOOL_TYPE_SCALAR
-				|| spool_type == _BIJSON_SPOOL_TYPE_OBJECT
-				|| spool_type == _BIJSON_SPOOL_TYPE_ARRAY);
+			assert(spool_type == _bijson_spool_type_scalar
+				|| spool_type == _bijson_spool_type_object
+				|| spool_type == _bijson_spool_type_array);
 			abort();
 	}
 }
