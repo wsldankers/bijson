@@ -7,10 +7,11 @@
 #include "common.h"
 
 // These values actually end up on the spool:
-typedef byte _bijson_spool_type_t;
-extern const _bijson_spool_type_t _bijson_spool_type_scalar;
-extern const _bijson_spool_type_t _bijson_spool_type_object;
-extern const _bijson_spool_type_t _bijson_spool_type_array;
+typedef enum _bijson_spool_type_t {
+	_BIJSON_SPOOL_TYPE_SCALAR,
+	_BIJSON_SPOOL_TYPE_OBJECT,
+	_BIJSON_SPOOL_TYPE_ARRAY,
+} _bijson_spool_type_t;
 
 // These values are for use in writer->expect.
 // The first three values are valid for writer->expect_after_value.

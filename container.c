@@ -32,11 +32,11 @@ bool bijson_writer_expect_key(bijson_writer_t *writer) {
 void _bijson_container_restore_expect(bijson_writer_t *writer) {
 	size_t current_container = writer->current_container;
 	if(current_container) {
-		_bijson_spool_type_t type = _bijson_buffer_read_byte(&writer->spool, current_container - sizeof type);
-		assert(type == _bijson_spool_type_object || type == _bijson_spool_type_array);
-		if(type == _bijson_spool_type_object)
+		_bijson_spool_type_t type = _bijson_buffer_read_byte(&writer->spool, current_container - SIZE_C(1));
+		assert(type == _BIJSON_SPOOL_TYPE_OBJECT || type == _BIJSON_SPOOL_TYPE_ARRAY);
+		if(type == _BIJSON_SPOOL_TYPE_OBJECT)
 			writer->expect = writer->expect_after_value = _BIJSON_WRITER_EXPECT_KEY;
-		else if(type == _bijson_spool_type_array)
+		else if(type == _BIJSON_SPOOL_TYPE_ARRAY)
 			writer->expect = writer->expect_after_value = _BIJSON_WRITER_EXPECT_VALUE;
 	} else {
 		writer->expect = writer->expect_after_value = _BIJSON_WRITER_EXPECT_NONE;
@@ -48,7 +48,7 @@ bijson_error_t bijson_writer_begin_object(bijson_writer_t *writer) {
 		return bijson_error_writer_failed;
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
 	writer->expect = writer->expect_after_value = _BIJSON_WRITER_EXPECT_KEY;
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _bijson_spool_type_object));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _BIJSON_SPOOL_TYPE_OBJECT));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->stack, writer->current_container));
 	writer->current_container = writer->spool.used;
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_container_0, sizeof _bijson_container_0));
@@ -60,7 +60,7 @@ bijson_error_t bijson_writer_begin_array(bijson_writer_t *writer) {
 		return bijson_error_writer_failed;
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
 	writer->expect = writer->expect_after_value = _BIJSON_WRITER_EXPECT_VALUE;
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _bijson_spool_type_array));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _BIJSON_SPOOL_TYPE_ARRAY));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->stack, writer->current_container));
 	writer->current_container = writer->spool.used;
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_container_0, sizeof _bijson_container_0));
@@ -161,7 +161,7 @@ bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 		object_item_offset += key_spool_size;
 		values_output_size += _bijson_writer_size_value(writer, object_item_offset);
 
-		object_item_offset += sizeof(_bijson_spool_type_t);
+		object_item_offset++;
 		size_t value_spool_size = _bijson_buffer_read_size(&writer->spool, object_item_offset);
 		object_item_offset += sizeof value_spool_size;
 		object_item_offset += value_spool_size;
@@ -215,7 +215,7 @@ bijson_error_t bijson_writer_end_array(bijson_writer_t *writer) {
 	while(item_offset < spool_used) {
 		last_item_output_size = _bijson_writer_size_value(writer, item_offset);
 		items_output_size += last_item_output_size;
-		item_offset += sizeof(_bijson_spool_type_t);
+		item_offset++;
 		size_t item_spool_size = _bijson_buffer_read_size(&writer->spool, item_offset);
 		item_offset += sizeof item_spool_size;
 		item_offset += item_spool_size;
@@ -238,10 +238,6 @@ bijson_error_t bijson_writer_end_array(bijson_writer_t *writer) {
 	_bijson_container_restore_expect(writer);
 
 	return NULL;
-}
-
-size_t _bijson_writer_size_container(bijson_writer_t *writer, size_t spool_offset) {
-	return _bijson_buffer_read_size(&writer->spool, spool_offset + sizeof _bijson_container_0.spool_size);
 }
 
 static int _bijson_writer_object_object_item_cmp(const void *a, const void *b) {
@@ -290,7 +286,7 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writ
 		object_item += sizeof key_spool_size;
 		object_item += key_spool_size;
 		values_output_size += _bijson_writer_size_value(writer, _bijson_buffer_offset(&writer->spool, object_item));
-		object_item += sizeof(_bijson_spool_type_t);
+		object_item++;
 		size_t value_spool_size;
 		memcpy(&value_spool_size, object_item, sizeof value_spool_size);
 		object_item += sizeof value_spool_size;
@@ -386,7 +382,7 @@ bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, _bijson_write
 	const byte *item = spool;
 	for(;;) {
 		const byte *this_item = item;
-		item += sizeof(_bijson_spool_type_t);
+		item++;
 		size_t item_spool_size;
 		memcpy(&item_spool_size, item, sizeof item_spool_size);
 		item += sizeof item_spool_size;
@@ -411,7 +407,7 @@ bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, _bijson_write
 	size_t item_output_offset = 0;
 	for(size_t z = 0; z < count_1; z++) {
 		item_output_offset += _bijson_writer_size_value(writer, _bijson_buffer_offset(&writer->spool, item)) - SIZE_C(1);
-		item += sizeof(_bijson_spool_type_t);
+		item++;
 		size_t item_spool_size;
 		memcpy(&item_spool_size, item, sizeof item_spool_size);
 		item += sizeof item_spool_size;
@@ -425,7 +421,7 @@ bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, _bijson_write
 	item = spool;
 	for(size_t z = 0; z < count; z++) {
 		_BIJSON_ERROR_RETURN(_bijson_writer_write_value(writer, write, write_data, item));
-		item += sizeof(_bijson_spool_type_t);
+		item++;
 		size_t item_spool_size;
 		memcpy(&item_spool_size, item, sizeof item_spool_size);
 		item += sizeof item_spool_size;

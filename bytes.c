@@ -10,7 +10,7 @@ bijson_error_t bijson_writer_add_bytes(bijson_writer_t *writer, const void *byte
 		return bijson_error_writer_failed;
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
 
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _bijson_spool_type_scalar));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _BIJSON_SPOOL_TYPE_SCALAR));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->spool, len + SIZE_C(1)));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, BYTE_C(0x09)));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, bytes, len));
@@ -24,7 +24,7 @@ bijson_error_t bijson_writer_begin_bytes(bijson_writer_t *writer) {
 		return bijson_error_writer_failed;
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
 
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _bijson_spool_type_scalar));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _BIJSON_SPOOL_TYPE_SCALAR));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->stack, writer->spool.used));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->spool, SIZE_C(0)));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, BYTE_C(0x09)));

@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "common.h"
+
 static inline byte _bijson_optimal_storage_size(uint64_t len) {
 	if(len > UINT64_C(65535))
 		return len > UINT64_C(4294967295) ? BYTE_C(3) : BYTE_C(2);

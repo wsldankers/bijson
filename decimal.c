@@ -300,7 +300,7 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 
 	if(string_analysis.significand_start == string_analysis.significand_end) {
 		// The number is 0 so don't waste any time optimizing it:
-		_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _bijson_spool_type_scalar));
+		_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _BIJSON_SPOOL_TYPE_SCALAR));
 		_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->spool, SIZE_C(1)));
 		_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, BYTE_C(0x1A) | string_analysis.mantissa_negative));
 		writer->expect = writer->expect_after_value;
@@ -413,7 +413,7 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 			best_output_parameters = output_parameters;
 	}
 
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _bijson_spool_type_scalar));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _BIJSON_SPOOL_TYPE_SCALAR));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->spool, best_output_parameters.total_size));
 #ifndef NDEBUG
 	size_t spool_used = writer->spool.used;

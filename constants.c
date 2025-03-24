@@ -10,7 +10,7 @@ static inline bijson_error_t _bijson_writer_add_constant(bijson_writer_t *writer
 	if(writer->failed)
 		return bijson_error_writer_failed;
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _bijson_spool_type_scalar));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _BIJSON_SPOOL_TYPE_SCALAR));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->spool, SIZE_C(1)));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, type));
 	writer->expect = writer->expect_after_value;

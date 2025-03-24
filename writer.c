@@ -12,11 +12,6 @@
 #include "writer.h"
 #include "io.h"
 
-// If you change these, also update the arrays below.
-const _bijson_spool_type_t _bijson_spool_type_scalar = BYTE_C(0);
-const _bijson_spool_type_t _bijson_spool_type_array = BYTE_C(1);
-const _bijson_spool_type_t _bijson_spool_type_object = BYTE_C(2);
-
 #define _bijson_writer_0 ((bijson_writer_t){ \
 	.spool = _bijson_buffer_0, \
 	.stack = _bijson_buffer_0, \
@@ -46,23 +41,15 @@ bijson_error_t bijson_writer_alloc(bijson_writer_t **result) {
 	return NULL;
 }
 
-typedef size_t (*_bijson_writer_size_type_func_t)(bijson_writer_t *writer, size_t spool_offset);
-
-static size_t _bijson_writer_size_scalar(bijson_writer_t *writer, size_t spool_offset) {
-	return _bijson_buffer_read_size(&writer->spool, spool_offset);
-}
-
-static _bijson_writer_size_type_func_t _bijson_writer_typesizers[] = {
-	_bijson_writer_size_scalar,
-	_bijson_writer_size_container,
-	_bijson_writer_size_container,
-};
-
 size_t _bijson_writer_size_value(bijson_writer_t *writer, size_t spool_offset) {
-	_bijson_spool_type_t spool_type = _bijson_buffer_read_byte(&writer->spool, spool_offset);
-	assert(spool_type < orz(_bijson_writer_typesizers));
-	_bijson_writer_size_type_func_t typesizer = _bijson_writer_typesizers[spool_type];
-	return typesizer(writer, spool_offset + sizeof spool_type);
+	_bijson_spool_type_t spool_type = _bijson_buffer_read_byte(&writer->spool, spool_offset++);
+	if(spool_type == _BIJSON_SPOOL_TYPE_SCALAR) {
+		return _bijson_buffer_read_size(&writer->spool, spool_offset);
+	} else {
+		assert(spool_type == _BIJSON_SPOOL_TYPE_OBJECT
+			|| spool_type == _BIJSON_SPOOL_TYPE_ARRAY);
+		return _bijson_buffer_read_size(&writer->spool, spool_offset + sizeof(size_t));
+	}
 }
 
 typedef bijson_error_t (*_bijson_writer_write_type_func_t)(
@@ -83,21 +70,26 @@ static bijson_error_t _bijson_writer_write_scalar(
 	return write(write_data, spool + sizeof spool_size, spool_size);
 }
 
-static _bijson_writer_write_type_func_t _bijson_writer_typewriters[] = {
-	_bijson_writer_write_scalar,
-	_bijson_writer_write_array,
-	_bijson_writer_write_object,
-};
-
 bijson_error_t _bijson_writer_write_value(
 	bijson_writer_t *writer,
 	_bijson_writer_write_func_t write,
 	void *write_data,
 	const byte *spool
 ) {
-	_bijson_spool_type_t spool_type = *(const _bijson_spool_type_t *)spool;
-	_bijson_writer_write_type_func_t typewriter = _bijson_writer_typewriters[spool_type];
-	return typewriter(writer, write, write_data, spool + sizeof spool_type);
+	_bijson_spool_type_t spool_type = *(const byte *)spool++;
+	switch(spool_type) {
+		case _BIJSON_SPOOL_TYPE_SCALAR:
+			return _bijson_writer_write_scalar(writer, write, write_data, spool);
+		case _BIJSON_SPOOL_TYPE_OBJECT:
+			return _bijson_writer_write_object(writer, write, write_data, spool);
+		case _BIJSON_SPOOL_TYPE_ARRAY:
+			return _bijson_writer_write_array(writer, write, write_data, spool);
+		default:
+			assert(spool_type == _BIJSON_SPOOL_TYPE_SCALAR
+				|| spool_type == _BIJSON_SPOOL_TYPE_OBJECT
+				|| spool_type == _BIJSON_SPOOL_TYPE_ARRAY);
+			abort();
+	}
 }
 
 static bijson_error_t _bijson_writer_write(
@@ -117,8 +109,8 @@ static bijson_error_t _bijson_writer_write(
 
 	size_t root_spool_size = _bijson_buffer_read_size(
 		&writer->spool,
-		sizeof(_bijson_spool_type_t)
-	) + sizeof(_bijson_spool_type_t) + sizeof root_spool_size;
+		SIZE_C(1)
+	) + SIZE_C(1) + sizeof root_spool_size;
 	if(root_spool_size != spool_used)
 		return bijson_error_bad_root;
 
