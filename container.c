@@ -49,9 +49,8 @@ bijson_error_t bijson_writer_begin_object(bijson_writer_t *writer) {
 		return bijson_error_writer_failed;
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
 	writer->expect = writer->expect_after_value = _BIJSON_WRITER_EXPECT_KEY;
-	size_t current_container = writer->current_container;
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_spool_type_object, sizeof _bijson_spool_type_object));
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->stack, &current_container, sizeof current_container));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _bijson_spool_type_object));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->stack, writer->current_container));
 	writer->current_container = writer->spool.used;
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_container_0, sizeof _bijson_container_0));
 	return NULL;
@@ -62,9 +61,8 @@ bijson_error_t bijson_writer_begin_array(bijson_writer_t *writer) {
 		return bijson_error_writer_failed;
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
 	writer->expect = writer->expect_after_value = _BIJSON_WRITER_EXPECT_VALUE;
-	size_t current_container = writer->current_container;
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_spool_type_array, sizeof _bijson_spool_type_array));
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->stack, &current_container, sizeof current_container));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _bijson_spool_type_array));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->stack, writer->current_container));
 	writer->current_container = writer->spool.used;
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_container_0, sizeof _bijson_container_0));
 	return NULL;
@@ -79,7 +77,7 @@ bijson_error_t bijson_writer_add_key(bijson_writer_t *writer, const char *key, s
 			: bijson_error_unmatched_end;
 
 	_BIJSON_ERROR_RETURN(_bijson_check_valid_utf8((const byte *)key, len));
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &len, sizeof len));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->spool, len));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, key, len));
 
 	writer->expect = _BIJSON_WRITER_EXPECT_VALUE;
@@ -94,9 +92,9 @@ bijson_error_t bijson_writer_begin_key(bijson_writer_t *writer) {
 			? bijson_error_value_expected
 			: bijson_error_unmatched_end;
 
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->stack, &writer->spool.used, sizeof writer->spool.used));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->stack, writer->spool.used));
 
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, NULL, sizeof(size_t)));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->spool, SIZE_C(0)));
 
 	writer->expect = _BIJSON_WRITER_EXPECT_MORE_KEY;
 	return NULL;

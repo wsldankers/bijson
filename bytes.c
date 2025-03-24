@@ -26,7 +26,7 @@ bijson_error_t bijson_writer_begin_bytes(bijson_writer_t *writer) {
 
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, _bijson_spool_type_scalar));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->stack, writer->spool.used));
-	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, NULL, sizeof(size_t)));
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_size(&writer->spool, SIZE_C(0)));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append_byte(&writer->spool, BYTE_C(0x09)));
 
 	writer->expect = _BIJSON_WRITER_EXPECT_MORE_BYTES;

@@ -58,9 +58,11 @@ bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t requ
 	bool was_malloced = fd == -1;
 
 	if(was_malloced && required <= _BIJSON_LARGE_BUFFER) {
-		size_t new_size = required < _BIJSON_MEDIUM_BUFFER
-			? _BIJSON_MEDIUM_BUFFER
-			: _BIJSON_LARGE_BUFFER;
+		size_t new_size = required <= _BIJSON_SMALL_BUFFER
+			? _BIJSON_SMALL_BUFFER
+			: required <= _BIJSON_MEDIUM_BUFFER
+				? _BIJSON_MEDIUM_BUFFER
+				: _BIJSON_LARGE_BUFFER;
 
 		void *new_buffer = buffer->_buffer == buffer->_minibuffer
 			? malloc(new_size)
