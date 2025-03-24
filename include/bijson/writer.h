@@ -11,6 +11,9 @@ typedef struct bijson_writer bijson_writer_t;
 extern void bijson_writer_free(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_alloc(bijson_writer_t **result);
 
+extern bool bijson_writer_expects_value(bijson_writer_t *writer);
+extern bool bijson_writer_expects_key(bijson_writer_t *writer);
+
 extern bijson_error_t bijson_parse_json(bijson_writer_t *writer, const void *buffer, size_t len, size_t *parse_end);
 
 extern bijson_error_t bijson_writer_write_to_fd(bijson_writer_t *writer, int fd);
@@ -28,9 +31,6 @@ extern bijson_error_t bijson_writer_add_key(bijson_writer_t *writer, const char 
 extern bijson_error_t bijson_writer_begin_key(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_append_key(bijson_writer_t *writer, const char *key, size_t len);
 extern bijson_error_t bijson_writer_end_key(bijson_writer_t *writer);
-
-extern bool bijson_writer_is_in_array(bijson_writer_t *writer);
-extern bool bijson_writer_is_in_object(bijson_writer_t *writer);
 
 extern bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *string, size_t len);
 extern bijson_error_t bijson_writer_add_bytes(bijson_writer_t *writer, const void *bytes, size_t len);
