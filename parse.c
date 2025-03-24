@@ -372,30 +372,26 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 
 		// Parse any close tags or object/array continuations:
 		for(;;) {
-			_bijson_writer_type_t type = parser->writer->current_type;
-			if(type == _BIJSON_WRITER_TYPE_ARRAY) {
+			_bijson_writer_expect_t expect = parser->writer->expect_after_value;
+			if(expect == _BIJSON_WRITER_EXPECT_VALUE) {
 				_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
-				c = *parser->buffer_pos;
+				c = *parser->buffer_pos++;
 				if(c == ']') {
-					parser->buffer_pos++;
 					_BIJSON_ERROR_RETURN(bijson_writer_end_array(parser->writer));
 				} else {
 					if(c != ',')
 						return bijson_error_invalid_json_syntax;
-					parser->buffer_pos++;
 					// Leave this for-loop and go back to parsing a new value:
 					break;
 				}
-			} else if(type == _BIJSON_WRITER_TYPE_OBJECT) {
+			} else if(expect == _BIJSON_WRITER_EXPECT_KEY) {
 				_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
-				c = *parser->buffer_pos;
+				c = *parser->buffer_pos++;
 				if(c == '}') {
-					parser->buffer_pos++;
 					_BIJSON_ERROR_RETURN(bijson_writer_end_object(parser->writer));
 				} else {
 					if(c != ',')
 						return bijson_error_invalid_json_syntax;
-					parser->buffer_pos++;
 					_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
 					if(*parser->buffer_pos != '"')
 						return bijson_error_invalid_json_syntax;
@@ -409,7 +405,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 			} else {
 				// No open arrays or objects and we parsed a complete value.
 				// That means we're done.
-				assert(type == _BIJSON_WRITER_TYPE_NONE);
+				assert(expect == _BIJSON_WRITER_EXPECT_NONE);
 				return NULL;
 			}
 		}

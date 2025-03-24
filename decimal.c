@@ -279,6 +279,9 @@ static bijson_error_t _bijson_decimal_buffer_push_writer(void *spool, const void
 }
 
 bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *string, size_t len) {
+	if(writer->failed)
+		return bijson_error_writer_failed;
+	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
 	if(!len)
 		return bijson_error_parameter_is_zero;
 
@@ -300,6 +303,7 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 		_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &size, sizeof size));
 		uint8_t type = UINT8_C(0x1A) | string_analysis.mantissa_negative;
 		_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &type, sizeof type));
+		writer->expect = writer->expect_after_value;
 		return NULL;
 	}
 
@@ -464,5 +468,6 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 
 	assert(writer->spool.used - spool_used == best_output_parameters.total_size);
 
+	writer->expect = writer->expect_after_value;
 	return NULL;
 }

@@ -12,14 +12,16 @@ extern const _bijson_spool_type_t _bijson_spool_type_scalar;
 extern const _bijson_spool_type_t _bijson_spool_type_object;
 extern const _bijson_spool_type_t _bijson_spool_type_array;
 
-// These values are for use in writer->current_type
-typedef enum _bijson_writer_type {
-	_BIJSON_WRITER_TYPE_NONE,
-	_BIJSON_WRITER_TYPE_SCALAR,
-	_BIJSON_WRITER_TYPE_OBJECT,
-	_BIJSON_WRITER_TYPE_ARRAY,
-	_BIJSON_WRITER_TYPE_KEY,
-} _bijson_writer_type_t;
+// These values are for use in writer->expect.
+// The first three values are valid for writer->expect_after_value.
+typedef enum _bijson_writer_expect {
+	_BIJSON_WRITER_EXPECT_NONE,
+	_BIJSON_WRITER_EXPECT_KEY,
+	_BIJSON_WRITER_EXPECT_VALUE,
+	_BIJSON_WRITER_EXPECT_MORE_KEY,
+	_BIJSON_WRITER_EXPECT_MORE_STRING,
+	_BIJSON_WRITER_EXPECT_MORE_BYTES,
+} _bijson_writer_expect_t;
 
 // Use in public functions:
 #define _BIJSON_WRITER_ERROR_RETURN(x) _BIJSON_ERROR_CLEANUP_AND_RETURN(x, writer->failed = true)
@@ -35,10 +37,21 @@ typedef struct bijson_writer {
 	// computations.
 	_bijson_buffer_t stack;
 	size_t current_container;
-	size_t last_key;
-	_bijson_writer_type_t current_type;
+	_bijson_writer_expect_t expect;
+	// What to put into `expect` after writing a value.
+	// Doubles as a way to see if we're inside an array or object (or neither).
+	_bijson_writer_expect_t expect_after_value;
 	bool failed;
 } bijson_writer_t;
+
+// Check whether the writer is ready to accept a new value:
+static inline bijson_error_t _bijson_writer_check_expect_value(bijson_writer_t *writer) {
+	return writer->expect == _BIJSON_WRITER_EXPECT_VALUE
+		? NULL
+		: writer->expect == _BIJSON_WRITER_EXPECT_KEY
+			? bijson_error_key_expected
+			: bijson_error_unmatched_end;
+}
 
 // If data == NULL: write a zeroed region of length len (or seek, if appropriate).
 typedef bijson_error_t (*_bijson_writer_write_func_t)(void *write_data, const void *data, size_t len);
