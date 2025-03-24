@@ -49,9 +49,7 @@ bijson_error_t bijson_writer_alloc(bijson_writer_t **result) {
 typedef size_t (*_bijson_writer_size_type_func_t)(bijson_writer_t *writer, size_t spool_offset);
 
 static size_t _bijson_writer_size_scalar(bijson_writer_t *writer, size_t spool_offset) {
-	size_t spool_size;
-	_bijson_buffer_read(&writer->spool, spool_offset, &spool_size, sizeof spool_size);
-	return spool_size;
+	return _bijson_buffer_read_size(&writer->spool, spool_offset);
 }
 
 static _bijson_writer_size_type_func_t _bijson_writer_typesizers[] = {
@@ -61,8 +59,7 @@ static _bijson_writer_size_type_func_t _bijson_writer_typesizers[] = {
 };
 
 size_t _bijson_writer_size_value(bijson_writer_t *writer, size_t spool_offset) {
-	_bijson_spool_type_t spool_type;
-	_bijson_buffer_read(&writer->spool, spool_offset, &spool_type, sizeof spool_type);
+	_bijson_spool_type_t spool_type = _bijson_buffer_read_byte(&writer->spool, spool_offset);
 	assert(spool_type < orz(_bijson_writer_typesizers));
 	_bijson_writer_size_type_func_t typesizer = _bijson_writer_typesizers[spool_type];
 	return typesizer(writer, spool_offset + sizeof spool_type);
@@ -118,14 +115,10 @@ static bijson_error_t _bijson_writer_write(
 	if(!spool_used)
 		return bijson_error_bad_root;
 
-	size_t root_spool_size;
-	_bijson_buffer_read(
+	size_t root_spool_size = _bijson_buffer_read_size(
 		&writer->spool,
-		sizeof(_bijson_spool_type_t),
-		&root_spool_size,
-		sizeof root_spool_size
-	);
-	root_spool_size += sizeof(_bijson_spool_type_t) + sizeof root_spool_size;
+		sizeof(_bijson_spool_type_t)
+	) + sizeof(_bijson_spool_type_t) + sizeof root_spool_size;
 	if(root_spool_size != spool_used)
 		return bijson_error_bad_root;
 

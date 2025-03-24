@@ -53,7 +53,7 @@ static inline byte _bijson_buffer_read_byte(_bijson_buffer_t *buffer, size_t off
 	return byte;
 }
 
-static inline byte _bijson_buffer_read_size(_bijson_buffer_t *buffer, size_t offset) {
+static inline size_t _bijson_buffer_read_size(_bijson_buffer_t *buffer, size_t offset) {
 	size_t size;
 	_bijson_buffer_read(buffer, offset, &size, sizeof size);
 	return size;
@@ -74,30 +74,6 @@ static inline void _bijson_buffer_write_byte(_bijson_buffer_t *buffer, size_t of
 
 static inline void _bijson_buffer_write_size(_bijson_buffer_t *buffer, size_t offset, size_t size) {
 	_bijson_buffer_write(buffer, offset, &size, sizeof size);
-}
-
-static inline bijson_error_t _bijson_buffer_push(_bijson_buffer_t *buffer, const void *data, size_t len, void *result) {
-	size_t old_used = buffer->used;
-	_BIJSON_ERROR_RETURN(_bijson_buffer_ensure_space(buffer, len));
-	size_t new_used = old_used + len;
-	if(data)
-		memcpy((byte *)buffer->_buffer + old_used, data, len);
-#ifndef NDEBUG
-	else
-		memset((byte *)buffer->_buffer + old_used, 'A', len);
-#endif
-	buffer->used = new_used;
-	if(result)
-		*(void **)result = buffer->_buffer + old_used;
-	return NULL;
-}
-
-static inline bijson_error_t _bijson_buffer_push_byte(_bijson_buffer_t *buffer, byte byte, void *result) {
-	return _bijson_buffer_push(buffer, &byte, sizeof byte, result);
-}
-
-static inline bijson_error_t _bijson_buffer_push_size(_bijson_buffer_t *buffer, size_t size, void *result) {
-	return _bijson_buffer_push(buffer, &size, sizeof size, result);
 }
 
 static inline bijson_error_t _bijson_buffer_append(_bijson_buffer_t *buffer, const void *data, size_t len) {

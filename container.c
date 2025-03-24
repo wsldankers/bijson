@@ -32,8 +32,7 @@ bool bijson_writer_expect_key(bijson_writer_t *writer) {
 void _bijson_container_restore_expect(bijson_writer_t *writer) {
 	size_t current_container = writer->current_container;
 	if(current_container) {
-		_bijson_spool_type_t type;
-		_bijson_buffer_read(&writer->spool, current_container - sizeof type, &type, sizeof type);
+		_bijson_spool_type_t type = _bijson_buffer_read_byte(&writer->spool, current_container - sizeof type);
 		assert(type == _bijson_spool_type_object || type == _bijson_spool_type_array);
 		if(type == _bijson_spool_type_object)
 			writer->expect = writer->expect_after_value = _BIJSON_WRITER_EXPECT_KEY;
@@ -115,11 +114,10 @@ bijson_error_t bijson_writer_end_key(bijson_writer_t *writer) {
 	if(writer->expect != _BIJSON_WRITER_EXPECT_MORE_KEY)
 		return bijson_error_unmatched_end;
 
-	size_t spool_used;
-	_bijson_buffer_pop(&writer->stack, &spool_used, sizeof spool_used);
+	size_t spool_used = _bijson_buffer_pop_size(&writer->stack);
 
 	size_t total_len = writer->spool.used - spool_used - sizeof total_len;
-	_bijson_buffer_write(&writer->spool, spool_used, &total_len, sizeof total_len);
+	_bijson_buffer_write_size(&writer->spool, spool_used, total_len);
 
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_check_valid_utf8(
 		_bijson_buffer_access(&writer->spool, spool_used + sizeof total_len, total_len),
@@ -152,8 +150,7 @@ bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 
 	size_t object_item_offset = spool_offset;
 	while(object_item_offset < spool_used) {
-		size_t key_spool_size;
-		_bijson_buffer_read(&writer->spool, object_item_offset, &key_spool_size, sizeof key_spool_size);
+		size_t key_spool_size = _bijson_buffer_read_size(&writer->spool, object_item_offset);
 
 		keys_output_size += key_spool_size;
 		object_item_offset += sizeof key_spool_size;
@@ -165,8 +162,7 @@ bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 		values_output_size += _bijson_writer_size_value(writer, object_item_offset);
 
 		object_item_offset += sizeof(_bijson_spool_type_t);
-		size_t value_spool_size;
-		_bijson_buffer_read(&writer->spool, object_item_offset, &value_spool_size, sizeof value_spool_size);
+		size_t value_spool_size = _bijson_buffer_read_size(&writer->spool, object_item_offset);
 		object_item_offset += sizeof value_spool_size;
 		object_item_offset += value_spool_size;
 
@@ -191,7 +187,7 @@ bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 
 	_bijson_buffer_write(&writer->spool, current_container, &container, sizeof container);
 
-	_bijson_buffer_pop(&writer->stack, &writer->current_container, sizeof writer->current_container);
+	writer->current_container = _bijson_buffer_pop_size(&writer->stack);
 	_bijson_container_restore_expect(writer);
 
 	return NULL;
@@ -220,8 +216,7 @@ bijson_error_t bijson_writer_end_array(bijson_writer_t *writer) {
 		last_item_output_size = _bijson_writer_size_value(writer, item_offset);
 		items_output_size += last_item_output_size;
 		item_offset += sizeof(_bijson_spool_type_t);
-		size_t item_spool_size;
-		_bijson_buffer_read(&writer->spool, item_offset, &item_spool_size, sizeof item_spool_size);
+		size_t item_spool_size = _bijson_buffer_read_size(&writer->spool, item_offset);
 		item_offset += sizeof item_spool_size;
 		item_offset += item_spool_size;
 		count++;
@@ -239,16 +234,14 @@ bijson_error_t bijson_writer_end_array(bijson_writer_t *writer) {
 
 	_bijson_buffer_write(&writer->spool, current_container, &container, sizeof container);
 
-	_bijson_buffer_pop(&writer->stack, &writer->current_container, sizeof writer->current_container);
+	writer->current_container = _bijson_buffer_pop_size(&writer->stack);
 	_bijson_container_restore_expect(writer);
 
 	return NULL;
 }
 
 size_t _bijson_writer_size_container(bijson_writer_t *writer, size_t spool_offset) {
-	size_t output_size;
-	_bijson_buffer_read(&writer->spool, spool_offset + sizeof _bijson_container_0.spool_size, &output_size, sizeof output_size);
-	return output_size;
+	return _bijson_buffer_read_size(&writer->spool, spool_offset + sizeof _bijson_container_0.spool_size);
 }
 
 static int _bijson_writer_object_object_item_cmp(const void *a, const void *b) {
