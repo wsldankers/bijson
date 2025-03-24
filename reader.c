@@ -18,27 +18,27 @@ static inline bijson_error_t _bijson_check_bijson(const bijson_t *bijson) {
 	return NULL;
 }
 
-static inline uint64_t _bijson_read_minimal_int(const uint8_t *buffer, size_t nbytes) {
+static inline uint64_t _bijson_read_minimal_int(const byte *buffer, size_t nbytes) {
 	uint64_t r = 0;
 	for(size_t u = 0; u < nbytes; u++)
 		r |= (uint64_t)buffer[u] << (u * SIZE_C(8));
 	return r;
 }
 
-static const unsigned char _bijson_hex[16] = "0123456789ABCDEF";
+static const byte _bijson_hex[16] = "0123456789ABCDEF";
 
 static inline bijson_error_t _bijson_raw_string_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
-	const uint8_t *string = bijson->buffer;
+	const byte *string = bijson->buffer;
 	size_t len = bijson->size;
-	const uint8_t *previously_written = string;
-	uint8_t escape[2] = "\\x";
-	uint8_t unicode_escape[6] = "\\u00XX";
+	const byte *previously_written = string;
+	byte escape[2] = "\\x";
+	byte unicode_escape[6] = "\\u00XX";
 	_BIJSON_ERROR_RETURN(callback(callback_data, "\"", 1));
-	const uint8_t *string_end = string + len;
+	const byte *string_end = string + len;
 	while(string < string_end) {
-		const uint8_t *string_pos = string;
-		uint8_t c = *string++;
-		uint8_t plain_escape = 0;
+		const byte *string_pos = string;
+		byte c = *string++;
+		byte plain_escape = 0;
 		switch(c) {
 			case '"':
 				plain_escape = '"';
@@ -62,7 +62,7 @@ static inline bijson_error_t _bijson_raw_string_to_json(const bijson_t *bijson, 
 				plain_escape = 't';
 				break;
 			default:
-				if(c >= UINT8_C(32))
+				if(c >= BYTE_C(32))
 					continue;
 		}
 		if(string_pos > previously_written)
@@ -73,7 +73,7 @@ static inline bijson_error_t _bijson_raw_string_to_json(const bijson_t *bijson, 
 			_BIJSON_ERROR_RETURN(callback(callback_data, escape, sizeof escape));
 		} else {
 			unicode_escape[4] = _bijson_hex[c >> 4];
-			unicode_escape[5] = _bijson_hex[c & UINT8_C(0xF)];
+			unicode_escape[5] = _bijson_hex[c & BYTE_C(0xF)];
 			_BIJSON_ERROR_RETURN(callback(callback_data, unicode_escape, sizeof unicode_escape));
 		}
 	}
@@ -84,17 +84,17 @@ static inline bijson_error_t _bijson_raw_string_to_json(const bijson_t *bijson, 
 
 static inline bijson_error_t _bijson_string_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *userdata) {
 	bijson_t raw_string = { .buffer = bijson->buffer + SIZE_C(1), .size = bijson->size - SIZE_C(1) };
-	_BIJSON_ERROR_RETURN(_bijson_check_valid_utf8((const char *)raw_string.buffer, raw_string.size));
+	_BIJSON_ERROR_RETURN(_bijson_check_valid_utf8(raw_string.buffer, raw_string.size));
 	return _bijson_raw_string_to_json(&raw_string, callback, userdata);
 }
 
 static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
-	const uint8_t *buffer = bijson->buffer;
+	const byte *buffer = bijson->buffer;
 	size_t size = bijson->size;
 
 	size_t last_word_size = ((size - SIZE_C(1)) & SIZE_C(0x7)) + SIZE_C(1);
 
-	const uint8_t *last_word_start = buffer + size - last_word_size;
+	const byte *last_word_start = buffer + size - last_word_size;
 	uint64_t last_word = _bijson_read_minimal_int(last_word_start, last_word_size);
 	if(last_word > UINT64_C(9999999999999999998))
 		return bijson_error_file_format_error;
@@ -103,7 +103,7 @@ static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson
 	char word_chars[20];
 	_BIJSON_ERROR_RETURN(callback(callback_data, word_chars, sprintf(word_chars, "%"PRIu64, last_word)));
 
-	const uint8_t *word_start = last_word_start;
+	const byte *word_start = last_word_start;
 	while(word_start > buffer) {
 		word_start -= sizeof(uint64_t);
 		uint64_t word = _bijson_read_minimal_int(word_start, sizeof(uint64_t));
@@ -116,17 +116,17 @@ static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson
 }
 
 static inline bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
-	const uint8_t *buffer = bijson->buffer;
-	const uint8_t *buffer_end = buffer + bijson->size;
+	const byte *buffer = bijson->buffer;
+	const byte *buffer_end = buffer + bijson->size;
 
-	uint8_t type = *buffer;
+	byte type = *buffer;
 
-	const uint8_t *exponent_size_location = buffer + SIZE_C(1);
+	const byte *exponent_size_location = buffer + SIZE_C(1);
 	if(exponent_size_location == buffer_end)
 		return bijson_error_file_format_error;
 
-	size_t exponent_size_size = SIZE_C(1) << (type & UINT8_C(0x3));
-	const uint8_t *exponent_start = exponent_size_location + exponent_size_size;
+	size_t exponent_size_size = SIZE_C(1) << (type & BYTE_C(0x3));
+	const byte *exponent_start = exponent_size_location + exponent_size_size;
 	if(exponent_start + SIZE_C(1) > buffer_end)
 		return bijson_error_file_format_error;
 	uint64_t raw_exponent_size = _bijson_read_minimal_int(exponent_size_location, exponent_size_size);
@@ -136,10 +136,10 @@ static inline bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bij
 	if(exponent_size > buffer_end - exponent_start - SIZE_C(1))
 		return bijson_error_file_format_error;
 
-	if(type & UINT8_C(0x4))
+	if(type & BYTE_C(0x4))
 		_BIJSON_ERROR_RETURN(callback(callback_data, "-", SIZE_C(1)));
 
-	const uint8_t *significand_start = exponent_start + exponent_size;
+	const byte *significand_start = exponent_start + exponent_size;
 	bijson_t significand = {
 		significand_start,
 		buffer_end - significand_start,
@@ -148,7 +148,7 @@ static inline bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bij
 
 	_BIJSON_ERROR_RETURN(callback(callback_data, "e", SIZE_C(1)));
 
-	if(type & UINT8_C(0x8))
+	if(type & BYTE_C(0x8))
 		_BIJSON_ERROR_RETURN(callback(callback_data, "-", SIZE_C(1)));
 
 	bijson_t exponent = {
@@ -159,11 +159,11 @@ static inline bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bij
 }
 
 static inline bijson_error_t _bijson_decimal_integer_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
-	const uint8_t *buffer = bijson->buffer;
+	const byte *buffer = bijson->buffer;
 	size_t size = bijson->size;
 
-	uint8_t type = *buffer;
-	if(type & UINT8_C(0x1))
+	byte type = *buffer;
+	if(type & BYTE_C(0x1))
 		_BIJSON_ERROR_RETURN(callback(callback_data, "-", SIZE_C(1)));
 
 	if(size == SIZE_C(1))
@@ -179,13 +179,13 @@ static inline bijson_error_t _bijson_decimal_integer_to_json(const bijson_t *bij
 typedef struct _bijson_object_analysis {
 	size_t count;
 	size_t count_1;
-	const uint8_t *key_index;
+	const byte *key_index;
 	size_t key_index_item_size;
 	size_t last_key_end_offset;
-	const uint8_t *key_data_start;
-	const uint8_t *value_index;
+	const byte *key_data_start;
+	const byte *value_index;
 	size_t value_index_item_size;
-	const uint8_t *value_data_start;
+	const byte *value_data_start;
 	size_t value_data_size;
 } _bijson_object_analysis_t;
 
@@ -194,21 +194,21 @@ static inline bijson_error_t _bijson_object_analyze_count(const bijson_t *bijson
 
 	IF_DEBUG(memset(analysis, 'A', sizeof *analysis));
 
-	const uint8_t *buffer = bijson->buffer;
-	const uint8_t *buffer_end = buffer + bijson->size;
+	const byte *buffer = bijson->buffer;
+	const byte *buffer_end = buffer + bijson->size;
 
-	uint8_t type = *buffer;
-	if((type & UINT8_C(0xC0)) != UINT8_C(0x40))
+	byte type = *buffer;
+	if((type & BYTE_C(0xC0)) != BYTE_C(0x40))
 		return bijson_error_type_mismatch;
 
-	const uint8_t *count_location = buffer + SIZE_C(1);
+	const byte *count_location = buffer + SIZE_C(1);
 	if(count_location == buffer_end) {
 		analysis->count = SIZE_C(0);
 		return NULL;
 	}
 
-	size_t count_size = SIZE_C(1) << (type & UINT8_C(0x3));
-	const uint8_t *key_index = count_location + count_size;
+	size_t count_size = SIZE_C(1) << (type & BYTE_C(0x3));
+	const byte *key_index = count_location + count_size;
 	if(key_index > buffer_end)
 		return bijson_error_file_format_error;
 	uint64_t raw_count = _bijson_read_minimal_int(count_location, count_size);
@@ -244,15 +244,15 @@ static inline bijson_error_t _bijson_object_analyze(const bijson_t *bijson, _bij
 	if(!analysis->count)
 		return NULL;
 
-	const uint8_t *buffer = bijson->buffer;
-	const uint8_t *buffer_end = buffer + bijson->size;
-	uint8_t type = *buffer;
+	const byte *buffer = bijson->buffer;
+	const byte *buffer_end = buffer + bijson->size;
+	byte type = *buffer;
 
 	size_t count = analysis->count;
 	size_t count_1 = analysis->count_1;
 	size_t index_and_data_size = buffer_end - analysis->key_index;
-	size_t key_index_item_size = SIZE_C(1) << ((type >> 2) & UINT8_C(0x3));
-	size_t value_index_item_size = SIZE_C(1) << ((type >> 4) & UINT8_C(0x3));
+	size_t key_index_item_size = SIZE_C(1) << ((type >> 2) & BYTE_C(0x3));
+	size_t value_index_item_size = SIZE_C(1) << ((type >> 4) & BYTE_C(0x3));
 	// We need at least one key_index_item, one value_index_item, and one
 	// type byte for each item, but the first item does not have a value
 	// index entry, so fake that.
@@ -261,8 +261,8 @@ static inline bijson_error_t _bijson_object_analyze(const bijson_t *bijson, _bij
 	)
 		return bijson_error_file_format_error;
 
-	const uint8_t *value_index = analysis->key_index + count * key_index_item_size;
-	const uint8_t *key_data_start = value_index + count_1 * value_index_item_size;
+	const byte *value_index = analysis->key_index + count * key_index_item_size;
+	const byte *key_data_start = value_index + count_1 * value_index_item_size;
 
 	uint64_t raw_last_key_end_offset =
 		_bijson_read_minimal_int(analysis->key_index + key_index_item_size * count_1, key_index_item_size);
@@ -273,7 +273,7 @@ static inline bijson_error_t _bijson_object_analyze(const bijson_t *bijson, _bij
 	if(last_key_end_offset > buffer_end - key_data_start - count)
 		return bijson_error_file_format_error;
 
-	const uint8_t *value_data_start = key_data_start + last_key_end_offset;
+	const byte *value_data_start = key_data_start + last_key_end_offset;
 
 	analysis->key_index_item_size = key_index_item_size;
 	analysis->last_key_end_offset = last_key_end_offset;
@@ -297,7 +297,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_index(
 	if(index >= count)
 		return bijson_error_index_out_of_range;
 
-	const uint8_t *key_index = analysis->key_index;
+	const byte *key_index = analysis->key_index;
 	size_t key_index_item_size = analysis->key_index_item_size;
 	size_t last_key_end_offset = analysis->last_key_end_offset;
 
@@ -323,7 +323,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_index(
 	if(key_start_offset > key_end_offset)
 		return bijson_error_file_format_error;
 
-	const uint8_t *value_index = analysis->value_index;
+	const byte *value_index = analysis->value_index;
 	size_t value_index_item_size = analysis->value_index_item_size;
 	size_t value_data_size = analysis->value_data_size;
 
@@ -358,11 +358,11 @@ static inline bijson_error_t _bijson_analyzed_object_get_index(
 	if(value_start_offset >= value_end_offset)
 		return bijson_error_file_format_error;
 
-	const uint8_t *key_buffer = analysis->key_data_start + key_start_offset;
+	const byte *key_buffer = analysis->key_data_start + key_start_offset;
 	size_t key_size = key_end_offset - key_start_offset;
 
 	// We could return an UTF-8 error but it's the file that's at fault here:
-	bijson_error_t error = _bijson_check_valid_utf8((const char *)key_buffer, key_size);
+	bijson_error_t error = _bijson_check_valid_utf8(key_buffer, key_size);
 	if(error == bijson_error_invalid_utf8)
 		return bijson_error_file_format_error;
 	else if(error)
@@ -593,8 +593,8 @@ typedef struct _bijson_array_analysis {
 	size_t count_1;
 	size_t index_item_size;
 	size_t highest_valid_offset;
-	const uint8_t *item_index;
-	const uint8_t *item_data_start;
+	const byte *item_index;
+	const byte *item_data_start;
 } _bijson_array_analysis_t;
 
 static inline bijson_error_t _bijson_array_analyze_count(const bijson_t *bijson, _bijson_array_analysis_t *analysis) {
@@ -604,21 +604,21 @@ static inline bijson_error_t _bijson_array_analyze_count(const bijson_t *bijson,
 
 	IF_DEBUG(memset(analysis, 'A', sizeof *analysis));
 
-	const uint8_t *buffer = bijson->buffer;
-	const uint8_t *buffer_end = buffer + bijson->size;
+	const byte *buffer = bijson->buffer;
+	const byte *buffer_end = buffer + bijson->size;
 
-	uint8_t type = *buffer;
-	if((type & UINT8_C(0xF0)) != UINT8_C(0x30))
+	byte type = *buffer;
+	if((type & BYTE_C(0xF0)) != BYTE_C(0x30))
 		return bijson_error_type_mismatch;
 
-	const uint8_t *count_location = buffer + SIZE_C(1);
+	const byte *count_location = buffer + SIZE_C(1);
 	if(count_location == buffer_end) {
 		analysis->count = SIZE_C(0);
 		return NULL;
 	}
 
-	size_t count_size = SIZE_C(1) << (type & UINT8_C(0x3));
-	const uint8_t *item_index = count_location + count_size;
+	size_t count_size = SIZE_C(1) << (type & BYTE_C(0x3));
+	const byte *item_index = count_location + count_size;
 	if(item_index > buffer_end)
 		return bijson_error_file_format_error;
 	uint64_t raw_count = _bijson_read_minimal_int(count_location, count_size);
@@ -654,22 +654,22 @@ static inline bijson_error_t _bijson_array_analyze(const bijson_t *bijson, _bijs
 	if(!analysis->count)
 		return NULL;
 
-	const uint8_t *buffer = bijson->buffer;
-	const uint8_t *buffer_end = buffer + bijson->size;
+	const byte *buffer = bijson->buffer;
+	const byte *buffer_end = buffer + bijson->size;
 
-	uint8_t type = *buffer;
+	byte type = *buffer;
 
-	const uint8_t *item_index = analysis->item_index;
+	const byte *item_index = analysis->item_index;
 	size_t index_and_data_size = buffer_end - item_index;
 
-	size_t index_item_size = SIZE_C(1) << ((type >> 2) & UINT8_C(0x3));
+	size_t index_item_size = SIZE_C(1) << ((type >> 2) & BYTE_C(0x3));
 	// We need at least one index_item and one type byte for each item,
 	// but the first item does not have an index entry, so fake that.
 	size_t count = analysis->count;
 	if(count > (index_and_data_size + index_item_size) / (index_item_size + SIZE_C(1)))
 		return bijson_error_file_format_error;
 
-	const uint8_t *item_data_start = item_index + (count - SIZE_C(1)) * index_item_size;
+	const byte *item_data_start = item_index + (count - SIZE_C(1)) * index_item_size;
 	size_t item_data_size = buffer_end - item_data_start;
 
 	analysis->index_item_size = index_item_size;
@@ -772,42 +772,42 @@ static inline bijson_error_t _bijson_array_to_json(const bijson_t *bijson, bijso
 
 bijson_error_t bijson_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	_BIJSON_ERROR_RETURN(_bijson_check_bijson(bijson));
-	const uint8_t *buffer = bijson->buffer;
+	const byte *buffer = bijson->buffer;
 
-	const uint8_t type = *buffer;
+	const byte type = *buffer;
 
-	switch(type & UINT8_C(0xF0)) {
-		case UINT8_C(0x00):
+	switch(type & BYTE_C(0xF0)) {
+		case BYTE_C(0x00):
 			switch(type) {
-				case UINT8_C(0x00):
+				case BYTE_C(0x00):
 					return bijson_error_file_format_error;
-				case UINT8_C(0x01):
-				case UINT8_C(0x05): // undefined
+				case BYTE_C(0x01):
+				case BYTE_C(0x05): // undefined
 					return callback(callback_data, "null", 4);
-				case UINT8_C(0x02):
+				case BYTE_C(0x02):
 					return callback(callback_data, "false", 5);
-				case UINT8_C(0x03):
+				case BYTE_C(0x03):
 					return callback(callback_data, "true", 4);
-				case UINT8_C(0x08):
+				case BYTE_C(0x08):
 					return _bijson_string_to_json(bijson, callback, callback_data);
 			}
 			break;
-		case UINT8_C(0x10):
-			switch(type & UINT8_C(0xFE)) {
-				case UINT8_C(0x1A):
+		case BYTE_C(0x10):
+			switch(type & BYTE_C(0xFE)) {
+				case BYTE_C(0x1A):
 					return _bijson_decimal_integer_to_json(bijson, callback, callback_data);
 			}
 			break;
-		case UINT8_C(0x20):
+		case BYTE_C(0x20):
 			return _bijson_decimal_to_json(bijson, callback, callback_data);
 			break;
-		case UINT8_C(0x30):
+		case BYTE_C(0x30):
 			return _bijson_array_to_json(bijson, callback, callback_data);
 			break;
-		case UINT8_C(0x40):
-		case UINT8_C(0x50):
-		case UINT8_C(0x60):
-		case UINT8_C(0x70):
+		case BYTE_C(0x40):
+		case BYTE_C(0x50):
+		case BYTE_C(0x60):
+		case BYTE_C(0x70):
 			return _bijson_object_to_json(bijson, callback, callback_data);
 			break;
 	}

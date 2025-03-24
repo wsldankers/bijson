@@ -13,9 +13,9 @@
 #include "io.h"
 
 // If you change these, also update the arrays below.
-const _bijson_spool_type_t _bijson_spool_type_scalar = UINT8_C(0);
-const _bijson_spool_type_t _bijson_spool_type_array = UINT8_C(1);
-const _bijson_spool_type_t _bijson_spool_type_object = UINT8_C(2);
+const _bijson_spool_type_t _bijson_spool_type_scalar = BYTE_C(0);
+const _bijson_spool_type_t _bijson_spool_type_array = BYTE_C(1);
+const _bijson_spool_type_t _bijson_spool_type_object = BYTE_C(2);
 
 #define _bijson_writer_0 ((bijson_writer_t){ \
 	.spool = _bijson_buffer_0, \
@@ -72,14 +72,14 @@ typedef bijson_error_t (*_bijson_writer_write_type_func_t)(
 	bijson_writer_t *writer,
 	_bijson_writer_write_func_t write,
 	void *write_data,
-	const char *spool
+	const byte *spool
 );
 
 static bijson_error_t _bijson_writer_write_scalar(
 	bijson_writer_t *writer,
 	_bijson_writer_write_func_t write,
 	void *write_data,
-	const char *spool
+	const byte *spool
 ) {
 	size_t spool_size;
 	memcpy(&spool_size, spool, sizeof spool_size);
@@ -96,7 +96,7 @@ bijson_error_t _bijson_writer_write_value(
 	bijson_writer_t *writer,
 	_bijson_writer_write_func_t write,
 	void *write_data,
-	const char *spool
+	const byte *spool
 ) {
 	_bijson_spool_type_t spool_type = *(const _bijson_spool_type_t *)spool;
 	_bijson_writer_write_type_func_t typewriter = _bijson_writer_typewriters[spool_type];
@@ -129,7 +129,7 @@ static bijson_error_t _bijson_writer_write(
 	if(root_spool_size != spool_used)
 		return bijson_error_bad_root;
 
-	const char *spool = _bijson_buffer_finalize(&writer->spool);
+	const byte *spool = _bijson_buffer_finalize(&writer->spool);
 	return _bijson_writer_write_value(writer, write, write_data, spool);
 }
 

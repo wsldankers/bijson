@@ -36,7 +36,13 @@ void _bijson_buffer_wipe(_bijson_buffer_t *buffer) {
 	IF_DEBUG(memset(buffer, 'A', sizeof *buffer));
 }
 
-static bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t required) {
+const byte *_bijson_buffer_finalize(_bijson_buffer_t *buffer) {
+	assert(!buffer->_failed);
+	IF_DEBUG(buffer->_finalized = true);
+	return buffer->_buffer;
+}
+
+bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t required) {
 	assert(!buffer->_failed);
 
 	size_t used = buffer->used;
@@ -124,67 +130,4 @@ static bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size
 	}
 
 	return NULL;
-}
-
-void *_bijson_buffer_access(_bijson_buffer_t *buffer, size_t offset, size_t len) {
-	assert(!buffer->_failed);
-	assert(offset + len <= buffer->used);
-	return buffer->_buffer + offset;
-}
-
-void _bijson_buffer_read(_bijson_buffer_t *buffer, size_t offset, void *data, size_t len) {
-	assert(data);
-	const void *offset_buffer = _bijson_buffer_access(buffer, offset, len);
-	memcpy(data, offset_buffer, len);
-}
-
-void _bijson_buffer_write(_bijson_buffer_t *buffer, size_t offset, const void *data, size_t len) {
-	assert(!buffer->_failed && !buffer->_finalized);
-	assert(offset + len <= buffer->used);
-	if(data)
-		memcpy(buffer->_buffer + offset, data, len);
-	else
-		memset(buffer->_buffer + offset, '\0', len);
-}
-
-const char *_bijson_buffer_finalize(_bijson_buffer_t *buffer) {
-	assert(!buffer->_failed);
-	IF_DEBUG(buffer->_finalized = true);
-	return buffer->_buffer;
-}
-
-bijson_error_t _bijson_buffer_push(_bijson_buffer_t *buffer, const void *data, size_t len, void *result) {
-	size_t old_used = buffer->used;
-	_BIJSON_ERROR_RETURN(_bijson_buffer_ensure_space(buffer, len));
-	size_t new_used = old_used + len;
-	if(data)
-		memcpy(buffer->_buffer + old_used, data, len);
-#ifndef NDEBUG
-	else
-		memset(buffer->_buffer + old_used, 'A', len);
-#endif
-	buffer->used = new_used;
-	if(result)
-		*(void **)result = buffer->_buffer + old_used;
-	return NULL;
-}
-
-bijson_error_t _bijson_buffer_append(_bijson_buffer_t *buffer, const void *data, size_t len) {
-	size_t old_used = buffer->used;
-	_BIJSON_ERROR_RETURN(_bijson_buffer_ensure_space(buffer, len));
-	size_t new_used = old_used + len;
-	if(data)
-		memcpy(buffer->_buffer + old_used, data, len);
-	else
-		memset(buffer->_buffer + old_used, '\0', len);
-	buffer->used = new_used;
-	return NULL;
-}
-
-void _bijson_buffer_pop(_bijson_buffer_t *buffer, void *data, size_t len) {
-	assert(!buffer->_failed && !buffer->_finalized);
-	size_t new_used = buffer->used - len;
-	if(data)
-		_bijson_buffer_read(buffer, new_used, data, len);
-	buffer->used = new_used;
 }

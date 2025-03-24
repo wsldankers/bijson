@@ -20,7 +20,7 @@ typedef struct _bijson_buffer_write_to_fd_state {
 
 static const char _bijson_nul_bytes[4096];
 
-// Must be a power of two. 
+// Must be a power of two.
 #define _BIJSON_WRITE_TO_FD_MAX_BUFFER SIZE_C(1048576)
 
 static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, const void *data, size_t len) {
@@ -125,7 +125,7 @@ bijson_error_t _bijson_io_write_to_fd(bijson_output_action_callback_t action_cal
 	if(!state.buffer)
 		return bijson_error_system;
 	bijson_error_t error = action_callback(action_callback_data, _bijson_io_write_to_fd_output_callback, &state);
-	unsigned char *buffer = state.buffer;
+	byte *buffer = state.buffer;
 	while(state.fill) {
 		if(state.nonblocking) {
 			struct pollfd poll_fd = {state.fd, POLLOUT};

@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include <bijson/common.h>
 
@@ -20,12 +21,15 @@
 #define IF_DEBUG(x) do { x; } while(false)
 #endif
 
+typedef uint8_t byte;
+#define BYTE_C(x) UINT8_C(x)
+
 #define orz(x) (sizeof (x) / sizeof *(x))
 
 #define _BIJSON_ERROR_CLEANUP_AND_RETURN(x, cleanup) do { bijson_error_t _error = (x); if(__builtin_expect((bool)_error, 0)) { cleanup; return _error; } } while(false)
 #define _BIJSON_ERROR_RETURN(x) _BIJSON_ERROR_CLEANUP_AND_RETURN((x), do {} while(false))
 
-extern bijson_error_t _bijson_check_valid_utf8(const char *string, size_t len);
+extern bijson_error_t _bijson_check_valid_utf8(const byte *string, size_t len);
 
 static inline size_t _bijson_size_min(size_t a, size_t b) {
 	return a < b ? a : b;

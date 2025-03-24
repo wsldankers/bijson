@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <bijson/writer.h>
+
 #include "common.h"
 #include "format.h"
 #include "writer.h"
@@ -301,7 +303,7 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 		_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_spool_type_scalar, sizeof _bijson_spool_type_scalar));
 		size_t size = SIZE_C(1);
 		_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &size, sizeof size));
-		uint8_t type = UINT8_C(0x1A) | string_analysis.mantissa_negative;
+		byte type = BYTE_C(0x1A) | string_analysis.mantissa_negative;
 		_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &type, sizeof type));
 		writer->expect = writer->expect_after_value;
 		return NULL;
@@ -418,12 +420,12 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 #ifndef NDEBUG
 	size_t spool_used = writer->spool.used;
 #endif
-	uint8_t type = best_output_parameters.exponent_size
-		? UINT8_C(0x20)
+	byte type = best_output_parameters.exponent_size
+		? BYTE_C(0x20)
 			| _bijson_optimal_storage_size1(best_output_parameters.exponent_size)
 			| (string_analysis.mantissa_negative << 2)
 			| (best_output_parameters.exponent_negative << 3)
-		: UINT8_C(0x1A) | string_analysis.mantissa_negative;
+		: BYTE_C(0x1A) | string_analysis.mantissa_negative;
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &type, sizeof type));
 
 	if(best_output_parameters.exponent_size) {
@@ -467,6 +469,51 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 	));
 
 	assert(writer->spool.used - spool_used == best_output_parameters.total_size);
+
+	writer->expect = writer->expect_after_value;
+	return NULL;
+}
+
+
+bijson_error_t bijson_writer_begin_decimal_from_string(bijson_writer_t *writer) {
+	if(writer->failed)
+		return bijson_error_writer_failed;
+	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
+
+	// Switch the role of the stack and spool:
+	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &writer->stack.used, sizeof writer->stack.used));
+
+	writer->expect = _BIJSON_WRITER_EXPECT_MORE_DECIMAL_STRING;
+	return NULL;
+}
+
+bijson_error_t bijson_writer_append_decimal_from_string(bijson_writer_t *writer, const char *string, size_t len) {
+	if(writer->failed)
+		return bijson_error_writer_failed;
+	if(writer->expect != _BIJSON_WRITER_EXPECT_MORE_DECIMAL_STRING)
+		return bijson_error_unmatched_end;
+
+	return _bijson_buffer_append(&writer->stack, string, len);
+}
+
+bijson_error_t bijson_writer_end_decimal_from_string(bijson_writer_t *writer) {
+	if(writer->failed)
+		return bijson_error_writer_failed;
+	if(writer->expect != _BIJSON_WRITER_EXPECT_MORE_DECIMAL_STRING)
+		return bijson_error_unmatched_end;
+
+	size_t spool_used;
+	_bijson_buffer_pop(&writer->spool, &spool_used, sizeof spool_used);
+
+	size_t string_len = writer->stack.used - spool_used;
+
+	_BIJSON_WRITER_ERROR_RETURN(bijson_writer_add_decimal_from_string(
+		writer,
+		_bijson_buffer_access(&writer->stack, spool_used, string_len),
+		string_len
+	));
+
+	_bijson_buffer_pop(&writer->stack, NULL, string_len);
 
 	writer->expect = writer->expect_after_value;
 	return NULL;

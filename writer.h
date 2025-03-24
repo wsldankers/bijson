@@ -7,7 +7,7 @@
 #include "common.h"
 
 // These values actually end up on the spool:
-typedef uint8_t _bijson_spool_type_t;
+typedef byte _bijson_spool_type_t;
 extern const _bijson_spool_type_t _bijson_spool_type_scalar;
 extern const _bijson_spool_type_t _bijson_spool_type_object;
 extern const _bijson_spool_type_t _bijson_spool_type_array;
@@ -21,6 +21,7 @@ typedef enum _bijson_writer_expect {
 	_BIJSON_WRITER_EXPECT_MORE_KEY,
 	_BIJSON_WRITER_EXPECT_MORE_STRING,
 	_BIJSON_WRITER_EXPECT_MORE_BYTES,
+	_BIJSON_WRITER_EXPECT_MORE_DECIMAL_STRING,
 } _bijson_writer_expect_t;
 
 // Use in public functions:
@@ -60,16 +61,16 @@ extern bijson_error_t _bijson_writer_bytecounter_writer(void *write_data, const 
 extern size_t _bijson_writer_size_value(bijson_writer_t *writer, size_t spool_offset);
 
 static inline bijson_error_t _bijson_writer_write_minimal_int(_bijson_writer_write_func_t write, void *write_data, uint64_t u, size_t nbytes) {
-	uint8_t buf[8];
+	byte buf[8];
 	for(size_t z = 0; z < nbytes; z++) {
-		buf[z] = u & UINT8_C(0xFF);
+		buf[z] = u & BYTE_C(0xFF);
 		u >>= 8;
 	}
 	return write(write_data, buf, nbytes);
 }
 
-static inline bijson_error_t _bijson_writer_write_compact_int(_bijson_writer_write_func_t write, void *write_data, uint64_t u, uint8_t width) {
+static inline bijson_error_t _bijson_writer_write_compact_int(_bijson_writer_write_func_t write, void *write_data, uint64_t u, byte width) {
 	return _bijson_writer_write_minimal_int(write, write_data, u, 1 << width);
 }
 
-extern bijson_error_t _bijson_writer_write_value(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, const char *spool);
+extern bijson_error_t _bijson_writer_write_value(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, const byte *spool);

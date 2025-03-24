@@ -8,7 +8,7 @@ bijson_error_t bijson_writer_add_string(bijson_writer_t *writer, const char *str
 	if(writer->failed)
 		return bijson_error_writer_failed;
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
-	_BIJSON_ERROR_RETURN(_bijson_check_valid_utf8(string, len));
+	_BIJSON_ERROR_RETURN(_bijson_check_valid_utf8((const byte *)string, len));
 
 	size_t size = len + SIZE_C(1);
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_append(&writer->spool, &_bijson_spool_type_scalar, sizeof _bijson_spool_type_scalar));

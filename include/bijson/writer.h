@@ -46,3 +46,7 @@ extern bijson_error_t bijson_writer_end_string(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_begin_bytes(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_append_bytes(bijson_writer_t *writer, const void *bytes, size_t len);
 extern bijson_error_t bijson_writer_end_bytes(bijson_writer_t *writer);
+
+extern bijson_error_t bijson_writer_begin_decimal_from_string(bijson_writer_t *writer);
+extern bijson_error_t bijson_writer_append_decimal_from_string(bijson_writer_t *writer, const char *string, size_t len);
+extern bijson_error_t bijson_writer_end_decimal_from_string(bijson_writer_t *writer);

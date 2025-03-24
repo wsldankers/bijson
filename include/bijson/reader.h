@@ -13,12 +13,12 @@ typedef struct bijson {
 
 typedef struct bijson_array_analysis {
 	// Opaque structure, do not access.
-	union { unsigned char *b; size_t l; } v[6];
+	size_t v[6];
 } bijson_array_analysis_t;
 
 typedef struct bijson_object_analysis {
 	// Opaque structure, do not access.
-	union { unsigned char *b; size_t l; } v[10];
+	size_t v[10];
 } bijson_object_analysis_t;
 
 extern bijson_error_t bijson_array_count(const bijson_t *bijson, size_t *result);

@@ -6,7 +6,7 @@
 #include "string.h"
 #include "writer.h"
 
-static inline bijson_error_t _bijson_writer_add_constant(bijson_writer_t *writer, uint8_t type) {
+static inline bijson_error_t _bijson_writer_add_constant(bijson_writer_t *writer, byte type) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
@@ -19,13 +19,13 @@ static inline bijson_error_t _bijson_writer_add_constant(bijson_writer_t *writer
 }
 
 bijson_error_t bijson_writer_add_null(bijson_writer_t *writer) {
-	return _bijson_writer_add_constant(writer, UINT8_C(0x01));
+	return _bijson_writer_add_constant(writer, BYTE_C(0x01));
 }
 
 bijson_error_t bijson_writer_add_false(bijson_writer_t *writer) {
-	return _bijson_writer_add_constant(writer, UINT8_C(0x02));
+	return _bijson_writer_add_constant(writer, BYTE_C(0x02));
 }
 
 bijson_error_t bijson_writer_add_true(bijson_writer_t *writer) {
-	return _bijson_writer_add_constant(writer, UINT8_C(0x03));
+	return _bijson_writer_add_constant(writer, BYTE_C(0x03));
 }
