@@ -49,12 +49,13 @@ bijson_error_t bijson_writer_end_string(bijson_writer_t *writer) {
 		return bijson_error_unmatched_end;
 
 	size_t spool_used = _bijson_buffer_pop_size(&writer->stack);
-	size_t total_len = writer->spool.used - spool_used - sizeof total_len;
-	_bijson_buffer_write_size(&writer->spool, spool_used, total_len);
+	size_t data_offset = spool_used + sizeof(size_t);
+	size_t data_len = writer->spool.used - data_offset;
+	_bijson_buffer_write_size(&writer->spool, spool_used, data_len);
 
-	size_t string_len = total_len - SIZE_C(1);
+	size_t string_len = data_len - SIZE_C(1);
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_check_valid_utf8(
-		_bijson_buffer_access(&writer->spool, spool_used + sizeof total_len + SIZE_C(1), string_len),
+		_bijson_buffer_access(&writer->spool, data_offset + SIZE_C(1), string_len),
 		string_len
 	));
 

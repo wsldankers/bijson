@@ -49,8 +49,8 @@ bijson_error_t bijson_writer_end_bytes(bijson_writer_t *writer) {
 		return bijson_error_unmatched_end;
 
 	size_t spool_used = _bijson_buffer_pop_size(&writer->stack);
-	size_t total_len = writer->spool.used - spool_used - sizeof total_len;
-	_bijson_buffer_write_size(&writer->spool, spool_used, total_len);
+	size_t data_len = writer->spool.used - spool_used - sizeof data_len;
+	_bijson_buffer_write_size(&writer->spool, spool_used, data_len);
 
 	writer->expect = writer->expect_after_value;
 	return NULL;
