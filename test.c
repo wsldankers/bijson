@@ -17,9 +17,9 @@
 
 
 int main(void) {
-	bijson_t bijson = {};
-	int fd;
-	struct stat st;
+	bijson_t bijson __attribute__((unused)) = {};
+	int fd __attribute__((unused));
+	struct stat st __attribute__((unused));
 	bijson_error_t error __attribute__((unused));
 
 	bijson_writer_t *writer = NULL;
@@ -27,7 +27,7 @@ int main(void) {
 	C(bijson_writer_alloc(&writer));
 
 	C(bijson_writer_begin_array(writer));
-	C(bijson_writer_add_string(writer, "foo", 3));
+	C(bijson_writer_add_null(writer));
 	C(bijson_writer_add_bytes(writer, NULL, 0));
 	C(bijson_writer_end_array(writer));
 
@@ -81,7 +81,7 @@ int main(void) {
 	// C(error);
 
 	// bijson_writer_write_to_malloc(writer, (void **)&bijson.buffer, &bijson.size);
-
+/*
 	const char input_json_filename[] = "/tmp/records.json";
 	fprintf(stderr, "parsing %s\n", input_json_filename);
 	fflush(stderr);
@@ -184,7 +184,7 @@ int main(void) {
 	C(bijson_to_json_fd(&bijson, fd));
 
 	close(fd);
-
+*/
 	fprintf(stderr, "done\n");
 	fflush(stderr);
 

@@ -281,6 +281,7 @@ static inline bijson_error_t _bijson_skip_json_ws(_bijson_json_parser_t *parser)
 static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 	byte c;
 	const byte *buffer_end = parser->buffer_end;
+	size_t nesting = 0;
 
 	for(;;) {
 		// Parse a value:
@@ -299,6 +300,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 						_BIJSON_ERROR_RETURN(bijson_writer_end_array(parser->writer));
 						break;
 					} else {
+						nesting++;
 						// go back and parse a value (which will be the first item in our array):
 						continue;
 					}
@@ -313,6 +315,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 						_BIJSON_ERROR_RETURN(bijson_writer_end_object(parser->writer));
 						break;
 					} else {
+						nesting++;
 						// The object is not empty so parse the key for our first value:
 						if(c != '"')
 							return bijson_error_invalid_json_syntax;
@@ -372,11 +375,17 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 
 		// Parse any close tags or object/array continuations:
 		for(;;) {
+			if(!nesting)
+				// No open arrays or objects and we parsed a complete value.
+				// That means we're done.
+				return NULL;
+
 			_bijson_writer_expect_t expect = parser->writer->expect_after_value;
 			if(expect == _bijson_writer_expect_value) {
 				_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
 				c = *parser->buffer_pos++;
 				if(c == ']') {
+					nesting--;
 					_BIJSON_ERROR_RETURN(bijson_writer_end_array(parser->writer));
 				} else {
 					if(c != ',')
@@ -388,6 +397,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 				_BIJSON_ERROR_RETURN(_bijson_skip_json_ws(parser));
 				c = *parser->buffer_pos++;
 				if(c == '}') {
+					nesting--;
 					_BIJSON_ERROR_RETURN(bijson_writer_end_object(parser->writer));
 				} else {
 					if(c != ',')
@@ -403,10 +413,9 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 					break;
 				}
 			} else {
-				// No open arrays or objects and we parsed a complete value.
-				// That means we're done.
-				assert(expect == _bijson_writer_expect_none);
-				return NULL;
+				assert(expect == _bijson_writer_expect_value
+					|| expect == _bijson_writer_expect_key);
+				abort();
 			}
 		}
 	}
