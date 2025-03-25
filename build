@@ -4,19 +4,18 @@ programs = test
 
 all: $(programs)
 
-.ONESHELL:
-
 src := $(dir $(firstword $(MAKEFILE_LIST)))
 
 XXHASH_CFLAGS := $(shell exec pkg-config --cflags libxxhash)
 XXHASH_LIBS := $(shell exec pkg-config --libs libxxhash)
 
-ifeq (,$(findstring s,$(MAKEFLAGS)))
-.SHELLFLAGS = -exc
-.SILENT:
-else
-.SHELLFLAGS = -ec
-endif
+#.ONESHELL:
+#ifeq (,$(findstring s,$(MAKEFLAGS)))
+#.SHELLFLAGS = -exc
+#.SILENT:
+#else
+#.SHELLFLAGS = -ec
+#endif
 
 CC = gcc
 OPTIMIZE = -O3
