@@ -41,3 +41,9 @@ extern bijson_error_t _bijson_io_write_bytecounter(
 	void *action_callback_data,
 	size_t *result_size
 );
+
+extern bijson_error_t _bijson_io_write_to_filename(
+	bijson_output_action_callback_t action_callback,
+	void *action_callback_data,
+	const char *filename
+);

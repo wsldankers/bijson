@@ -164,3 +164,8 @@ bijson_error_t bijson_writer_write_bytecounter(
 		result_size
 	);
 }
+
+bijson_error_t bijson_writer_write_to_filename(bijson_writer_t *writer, const char *filename) {
+	_bijson_writer_write_state_t state = {writer};
+	return _bijson_io_write_to_filename(_bijson_writer_write_callback, &state, filename);
+}

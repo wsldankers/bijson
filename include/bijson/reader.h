@@ -95,3 +95,4 @@ extern bijson_error_t bijson_to_json_bytecounter(
 	void **result_buffer,
     size_t *result_size
 );
+extern bijson_error_t bijson_to_json_filename(const bijson_t *bijson, const char *filename);

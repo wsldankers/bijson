@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
 #include <xxhash.h>
 
 #include <bijson/reader.h>
@@ -454,17 +455,11 @@ static inline bijson_error_t _bijson_get_key_entry_get(const _bijson_object_anal
 }
 
 static inline uint64_t _bijson_get_key_guess(_bijson_get_key_entry_t *lower, _bijson_get_key_entry_t *upper, _bijson_get_key_entry_t *target) {
-    _bijson_hash_t ret, num, prec, div, half;
-    num = upper->index - lower->index;
-    prec = _BIJSON_HASH_MAX / num;
-    div = _BIJSON_HASH_MAX / prec + _BIJSON_HASH_C(1);
-    half = (num / prec) >> 1;
-    ret = lower->index + ((target->hash - lower->hash) / div) * num / ((upper->hash - lower->hash) / div + _BIJSON_HASH_C(1)) + half;
-    if(ret >= upper->index)
-        ret = upper->index - SIZE_C(1);
-    if(ret < lower->index)
-        ret = lower->index;
-    return ret;
+	return lower->index + (size_t)floorl(
+		(long double)(upper->index - lower->index)
+		* (long double)(target->hash - lower->hash)
+		/ (long double)(upper->hash - lower->hash)
+	);
 }
 
 static inline size_t _bijson_2log64(uint64_t x) {
@@ -866,4 +861,9 @@ bijson_error_t bijson_to_json_bytecounter(
 		&state,
 		result_size
 	);
+}
+
+bijson_error_t bijson_to_json_filename(const bijson_t *bijson, const char *filename) {
+	_bijson_to_json_state_t state = {bijson};
+	return _bijson_io_write_to_filename(_bijson_to_json_callback, &state, filename);
 }

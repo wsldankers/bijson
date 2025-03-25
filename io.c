@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/uio.h>
 #include <poll.h>
 #include <errno.h>
@@ -256,4 +257,23 @@ bijson_error_t _bijson_io_write_bytecounter(
 		_bijson_io_write_to_malloc_output_callback,
 		result_size
 	);
+}
+
+bijson_error_t _bijson_io_write_to_filename(
+	bijson_output_action_callback_t action_callback,
+	void *action_callback_data,
+	const char *filename
+) {
+	int fd = open(filename, O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
+	if(fd == -1)
+		return bijson_error_system;
+
+	bijson_error_t error = _bijson_io_write_to_fd(action_callback, action_callback_data, fd);
+
+	if(!error && fsync(fd) == -1)
+		error = bijson_error_system;
+
+	close(fd);
+
+	return error;
 }

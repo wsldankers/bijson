@@ -35,7 +35,7 @@ INCLUDE = -I$(src)include
 
 CFLAGS = $(STANDARD) $(OPTIMIZE) $(SPECIALIZE) $(INCLUDE) $(BASIC) $(EXTRA_CFLAGS) $(XXHASH_CFLAGS)
 LDFLAGS = -pipe $(OPTIMIZE) $(LTO) $(STRIP)
-LIBS = $(XXHASH_LIBS)
+LIBS = $(XXHASH_LIBS) -lm
 
 
 test_EXTRA_OBJECTS = writer.o reader.o buffer.o common.o container.o format.o string.o decimal.o bytes.o constants.o io.o error.o parse.o

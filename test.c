@@ -44,13 +44,11 @@ int main(void) {
 	fprintf(stderr, "writing %s\n", output_smol_bijson_filename);
 	fflush(stderr);
 
-	fd = open(output_smol_bijson_filename, O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
-	if(fd == -1)
-		err(2, "open(%s)", output_smol_bijson_filename);
-	C(bijson_writer_write_to_fd(writer, fd));
-	close(fd);
+	C(bijson_writer_write_to_filename(writer, output_smol_bijson_filename));
 
 	bijson_writer_free(writer);
+
+	const char output_bijson_filename[] = "/dev/shm/test.bijson";
 
 	C(bijson_writer_alloc(&writer));
 
@@ -77,7 +75,7 @@ int main(void) {
 	// C(bijson_writer_add_decimal_from_string(writer, "1e8", 3));
 	// C(bijson_writer_add_string(writer, "あ", 3);
 	// // for(uint32_t u = 0; u < UINT32_C(10000000); u++)
-	// // 	C(bijson_writer_add_string(writer, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64);
+	// // 	C(bijson_writer_add_string(writer, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64));
 	// C(bijson_writer_end_array(writer));
 
 	// const char json[] = " [ 42, -1e-1, 0.1, 0, 0.0, \"hoi\" , \"iedereen\\t\", { \"x\\by\": null }, { \"true\" : true , \"false\" : false , \"null\" : null }, [0, 0.0, 0e0, 0e1, 0.0e0, 0.0e1], [[]], {} ] ";
@@ -90,7 +88,16 @@ int main(void) {
 	// C(error);
 
 	// bijson_writer_write_to_malloc(writer, (void **)&bijson.buffer, &bijson.size);
-/*
+
+	// C(bijson_writer_begin_object(writer));
+	// for(size_t u = 0; u < SIZE_C(100000000); u++) {
+	// 	char getal[20];
+	// 	int len = sprintf(getal, "%zu", u);
+	// 	C(bijson_writer_add_key(writer, getal, len));
+	// 	C(bijson_writer_add_string(writer, getal, len));
+	// }
+	// C(bijson_writer_end_object(writer));
+
 	const char input_json_filename[] = "/tmp/records.json";
 	fprintf(stderr, "parsing %s\n", input_json_filename);
 	fflush(stderr);
@@ -110,15 +117,10 @@ int main(void) {
 	C(bijson_parse_json(writer, json, st.st_size, &end));
 	munmap(json, st.st_size);
 
-	const char output_bijson_filename[] = "/dev/shm/test.bijson";
 	fprintf(stderr, "writing %s\n", output_bijson_filename);
 	fflush(stderr);
 
-	fd = open(output_bijson_filename, O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
-	if(fd == -1)
-		err(2, "open(%s)", output_bijson_filename);
-	C(bijson_writer_write_to_fd(writer, fd));
-	close(fd);
+	C(bijson_writer_write_to_filename(writer, output_bijson_filename));
 
 	fprintf(stderr, "freeing writer object\n");
 	fprintf(stderr, "spool was %zu bytes, stack was %zu bytes.\n", writer->spool._size, writer->stack._size);
@@ -169,7 +171,6 @@ int main(void) {
 
 	size_t count;
 	C(bijson_analyzed_object_count(&analysis, &count));
-	fprintf(stderr, "all %zu accounted for\n", count);
 	for(size_t u = SIZE_C(0); u < count; u++) {
 		const void *key;
 		size_t len;
@@ -182,18 +183,18 @@ int main(void) {
 			break;
 		}
 	}
+	fprintf(stderr, "all %zu accounted for\n", count);
 
-	const char output_json_filename[] = "/dev/shm/test.json";
-	fprintf(stderr, "writing %s\n", output_json_filename);
-	fflush(stderr);
+	// const char output_json_filename[] = "/dev/shm/test.json";
+	// fprintf(stderr, "writing %s\n", output_json_filename);
+	// fflush(stderr);
 
-	fd = open(output_json_filename, O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
-	if(fd == -1)
-		err(2, "open(%s)", output_json_filename);
-	C(bijson_to_json_fd(&bijson, fd));
+	// fd = open(output_json_filename, O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
+	// if(fd == -1)
+	// 	err(2, "open(%s)", output_json_filename);
+	// C(bijson_to_json_fd(&bijson, fd));
+	// close(fd);
 
-	close(fd);
-*/
 	fprintf(stderr, "done\n");
 	fflush(stderr);
 
