@@ -1,0 +1,75 @@
+#! /usr/bin/make -f
+
+programs = test
+
+all: $(programs)
+
+.ONESHELL:
+
+src := $(dir $(firstword $(MAKEFILE_LIST)))
+
+XXHASH_CFLAGS := $(shell exec pkg-config --cflags libxxhash)
+XXHASH_LIBS := $(shell exec pkg-config --libs libxxhash)
+
+ifeq (,$(findstring s,$(MAKEFLAGS)))
+.SHELLFLAGS = -exc
+.SILENT:
+else
+.SHELLFLAGS = -ec
+endif
+
+CC = gcc
+OPTIMIZE = -O3
+#SPECIALIZE = -march=native
+WERROR = -Werror
+FILE_OFFSET_BITS = 64
+D_FILE_OFFSET_BITS = -D_FILE_OFFSET_BITS=$(FILE_OFFSET_BITS)
+STANDARD = -std=c99
+LTO = -flto
+BASIC = -pipe -D_GNU_SOURCE $(D_FILE_OFFSET_BITS) -g -Wall $(WERROR) $(LTO)
+STRICT = -pedantic-errors -Wextra
+STRICT += -Wno-missing-field-initializers -Wno-unused-parameter
+STRICT += -Waggregate-return -Wbad-function-cast -Wcast-align -Wcast-qual -Wconversion -Winline -Wmissing-declarations -Wmissing-prototypes -Wnested-externs -Wold-style-definition -Wpointer-arith -Wredundant-decls -Wshadow -Wstack-protector -Wstrict-prototypes -Wundef -Wwrite-strings
+EXTRA_STRICT = $(STRICT) -Wunreachable-code
+STRIP = -s
+INCLUDE = -I$(src)include
+
+CFLAGS = $(STANDARD) $(OPTIMIZE) $(SPECIALIZE) $(INCLUDE) $(BASIC) $(EXTRA_CFLAGS) $(XXHASH_CFLAGS)
+LDFLAGS = -pipe $(OPTIMIZE) $(LTO) $(STRIP)
+LIBS = $(XXHASH_LIBS)
+
+
+test_EXTRA_OBJECTS = writer.o reader.o buffer.o common.o container.o format.o string.o decimal.o bytes.o constants.o io.o error.o parse.o
+
+
+define programrule
+$1_OBJECTS ?= $1.o
+$1_LDFLAGS ?= $$(LDFLAGS)
+$1_LIBS ?= $$(LIBS)
+objects += $$($1_OBJECTS) $$($1_EXTRA_OBJECTS)
+
+$1: $$(sort $$($1_OBJECTS) $$($1_EXTRA_OBJECTS))
+	exec $$(strip $(CC) $$($1_LDFLAGS) $$($1_EXTRA_LDFLAGS) $$^ -o $$@ $$($1_LIBS) $$($1_EXTRA_LIBS))
+endef
+
+$(foreach prog,$(programs),$(eval $(call programrule,$(prog))))
+
+objects := $(sort $(objects))
+
+define objectrule
+$1_CFLAGS ?= $$(CFLAGS)
+
+-include $1.d
+
+$1.o: $$(src)$1.c $$($1_EXTRA_DEPS)
+	exec $$(strip $(CC) $$($1_CFLAGS) $$($1_EXTRA_CFLAGS) -MMD -c $$< -o $$@)
+endef
+
+$(foreach obj,$(objects:.o=),$(eval $(call objectrule,$(obj))))
+
+generated = $(sort $(objects) $(objects:.o=.d) $(programs))
+
+.PHONY: all clean install recursive
+
+clean:
+	rm -f $(generated)
