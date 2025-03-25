@@ -81,7 +81,7 @@ int main(void) {
 	// C(error);
 
 	// bijson_writer_write_to_malloc(writer, (void **)&bijson.buffer, &bijson.size);
-/*
+
 	const char input_json_filename[] = "/tmp/records.json";
 	fprintf(stderr, "parsing %s\n", input_json_filename);
 	fflush(stderr);
@@ -184,7 +184,7 @@ int main(void) {
 	C(bijson_to_json_fd(&bijson, fd));
 
 	close(fd);
-*/
+
 	fprintf(stderr, "done\n");
 	fflush(stderr);
 
