@@ -161,15 +161,15 @@ bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 
 	size_t object_item_offset = spool_offset;
 	while(object_item_offset < spool_used) {
-		size_t key_spool_size = _bijson_buffer_read_size(&writer->spool, object_item_offset);
+		size_t key_size = _bijson_buffer_read_size(&writer->spool, object_item_offset);
 
-		keys_output_size += key_spool_size;
-		object_item_offset += sizeof key_spool_size;
+		keys_output_size += key_size;
+		object_item_offset += sizeof key_size;
 
-		const void *key = _bijson_buffer_access(&writer->spool, object_item_offset, key_spool_size);
-		XXH128_hash_t object_item_hash = XXH3_128bits(key, key_spool_size);
+		const void *key = _bijson_buffer_access(&writer->spool, object_item_offset, key_size);
+		XXH128_hash_t object_item_hash = XXH3_128bits(key, key_size);
 
-		object_item_offset += key_spool_size;
+		object_item_offset += key_size;
 		values_output_size += _bijson_writer_size_value(writer, object_item_offset);
 
 		object_item_offset++;
@@ -285,17 +285,17 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writ
 	size_t count = 0;
 	size_t keys_output_size = 0;
 	size_t values_output_size = 0;
+	size_t key_size;
 
 	// Build the array for sorting by going through the memory buffer and
 	// compute the largest value offset that we'll actually store
 	const byte *object_item = spool;
 	while(object_item != spool_end) {
 		_BIJSON_ERROR_RETURN(_bijson_buffer_push(&writer->stack, &object_item, sizeof object_item));
-		size_t key_spool_size;
-		memcpy(&key_spool_size, object_item, sizeof key_spool_size);
-		keys_output_size += key_spool_size;
-		object_item += sizeof key_spool_size;
-		object_item += key_spool_size;
+		memcpy(&key_size, object_item, sizeof key_size);
+		keys_output_size += key_size;
+		object_item += sizeof key_size;
+		object_item += key_size;
 		values_output_size += _bijson_writer_size_value(writer, _bijson_buffer_offset(&writer->spool, object_item));
 		object_item++;
 		size_t value_spool_size;
@@ -315,10 +315,9 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writ
 	// from the bounding size).
 	size_t count_1 = count - SIZE_C(1);
 	object_item = object_items[count_1];
-	size_t key_spool_size;
-	memcpy(&key_spool_size, object_item, sizeof key_spool_size);
-	object_item += sizeof key_spool_size;
-	object_item += key_spool_size;
+	memcpy(&key_size, object_item, sizeof key_size);
+	object_item += sizeof key_size;
+	object_item += key_size;
 	values_output_size -= _bijson_writer_size_value(writer, _bijson_buffer_offset(&writer->spool, object_item));
 
 	// We do not include the type bytes in the offsets (they're implicit)
@@ -336,9 +335,8 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writ
 	size_t key_offset = 0;
 	for(size_t z = 0; z < count; z++) {
 		object_item = object_items[z];
-		size_t key_spool_size;
-		memcpy(&key_spool_size, object_item, sizeof key_spool_size);
-		key_offset += key_spool_size;
+		memcpy(&key_size, object_item, sizeof key_size);
+		key_offset += key_size;
 		_BIJSON_ERROR_RETURN(_bijson_writer_write_compact_int(write, write_data, key_offset, key_offsets_width));
 	}
 
@@ -346,10 +344,9 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writ
 	size_t value_output_offset = 0;
 	for(size_t z = 0; z < count_1; z++) {
 		object_item = object_items[z];
-		size_t key_spool_size;
-		memcpy(&key_spool_size, object_item, sizeof key_spool_size);
-		object_item += sizeof key_spool_size;
-		object_item += key_spool_size;
+		memcpy(&key_size, object_item, sizeof key_size);
+		object_item += sizeof key_size;
+		object_item += key_size;
 		value_output_offset += _bijson_writer_size_value(writer, _bijson_buffer_offset(&writer->spool, object_item)) - SIZE_C(1);
 		_BIJSON_ERROR_RETURN(_bijson_writer_write_compact_int(write, write_data, value_output_offset, value_offsets_width));
 	}
@@ -357,16 +354,14 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writ
 	// Write the keys
 	for(size_t z = 0; z < count; z++) {
 		object_item = object_items[z];
-		size_t key_spool_size;
-		memcpy(&key_spool_size, object_item, sizeof key_spool_size);
-		object_item += sizeof key_spool_size;
-		_BIJSON_ERROR_RETURN(write(write_data, object_item, key_spool_size));
+		memcpy(&key_size, object_item, sizeof key_size);
+		object_item += sizeof key_size;
+		_BIJSON_ERROR_RETURN(write(write_data, object_item, key_size));
 	}
 
 	// Write the values
 	for(size_t z = 0; z < count; z++) {
 		object_item = object_items[z];
-		size_t key_size;
 		memcpy(&key_size, object_item, sizeof key_size);
 		object_item += sizeof key_size;
 		object_item += key_size;
