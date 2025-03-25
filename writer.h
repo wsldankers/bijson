@@ -31,7 +31,7 @@ typedef enum _bijson_writer_expect {
 typedef struct bijson_writer {
 	// The spool contains values, each starting with a _bijson_spool_type_t,
 	// then a size_t tobject_item denotes the length of the value in its spooled form
-	// (not including the type byte or the size field). Everything after tobject_item
+	// (not including the type byte or the size field). Everything after the size field
 	// is type dependent.
 	_bijson_buffer_t spool;
 	// Stack contains offsets into the spool for both previous and current
@@ -58,8 +58,6 @@ static inline bijson_error_t _bijson_writer_check_expect_value(bijson_writer_t *
 // If data == NULL: write a zeroed region of length len (or seek, if appropriate).
 typedef bijson_error_t (*_bijson_writer_write_func_t)(void *write_data, const void *data, size_t len);
 extern bijson_error_t _bijson_writer_bytecounter_writer(void *write_data, const void *data, size_t len);
-
-extern size_t _bijson_writer_size_value(bijson_writer_t *writer, size_t spool_offset);
 
 static inline bijson_error_t _bijson_writer_write_minimal_int(_bijson_writer_write_func_t write, void *write_data, uint64_t u, size_t nbytes) {
 	byte buf[8];

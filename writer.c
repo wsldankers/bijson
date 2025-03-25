@@ -41,17 +41,6 @@ bijson_error_t bijson_writer_alloc(bijson_writer_t **result) {
 	return NULL;
 }
 
-size_t _bijson_writer_size_value(bijson_writer_t *writer, size_t spool_offset) {
-	_bijson_spool_type_t spool_type = _bijson_buffer_read_byte(&writer->spool, spool_offset++);
-	if(spool_type == _bijson_spool_type_scalar) {
-		return _bijson_buffer_read_size(&writer->spool, spool_offset);
-	} else {
-		assert(spool_type == _bijson_spool_type_object
-			|| spool_type == _bijson_spool_type_array);
-		return _bijson_buffer_read_size(&writer->spool, spool_offset + sizeof(size_t));
-	}
-}
-
 typedef bijson_error_t (*_bijson_writer_write_type_func_t)(
 	bijson_writer_t *writer,
 	_bijson_writer_write_func_t write,
