@@ -97,7 +97,6 @@ bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t requ
 				IF_DEBUG(buffer->_failed = true);
 				return bijson_error_system;
 			}
-			buffer->_fd = fd;
 			if(posix_fallocate(fd, 0, new_size) == -1) {
 				close(fd);
 				IF_DEBUG(buffer->_failed = true);
@@ -105,7 +104,6 @@ bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t requ
 			}
 		} else {
 			if(posix_fallocate(fd, old_size, new_size - old_size) == -1) {
-				close(fd);
 				IF_DEBUG(buffer->_failed = true);
 				return bijson_error_system;
 			}
@@ -115,7 +113,8 @@ bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t requ
 			: mremap(buffer->_buffer, old_size, new_size, MREMAP_MAYMOVE, fd, 0);
 
 		if(new_buffer == MAP_FAILED) {
-			close(fd);
+			if(was_malloced)
+				close(fd);
 			IF_DEBUG(buffer->_failed = true);
 			return bijson_error_system;
 		}
@@ -124,9 +123,9 @@ bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t requ
 			memcpy(new_buffer, buffer->_buffer, buffer->used);
 			if(buffer->_buffer != buffer->_minibuffer)
 				free(buffer->_buffer);
+			buffer->_fd = fd;
 		}
 
-		buffer->_fd = fd;
 		buffer->_buffer = new_buffer;
 		buffer->_size = new_size;
 	}

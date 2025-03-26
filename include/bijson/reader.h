@@ -126,6 +126,11 @@ extern bijson_error_t bijson_to_json_malloc(
 	const void **result_buffer,
 	size_t *result_size
 );
+extern bijson_error_t bijson_to_json_tempfile(
+	const bijson_t *bijson,
+	const void **result_buffer,
+	size_t *result_size
+);
 extern bijson_error_t bijson_to_json_bytecounter(
 	const bijson_t *bijson,
 	size_t *result_size

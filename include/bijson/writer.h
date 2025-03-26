@@ -21,13 +21,13 @@ extern bijson_error_t bijson_writer_write_to_fd(bijson_writer_t *writer, int fd)
 extern bijson_error_t bijson_writer_write_to_FILE(bijson_writer_t *writer, FILE *file);
 extern bijson_error_t bijson_writer_write_to_malloc(bijson_writer_t *writer, bijson_t *bijson);
 extern bijson_error_t bijson_writer_write_to_filename(bijson_writer_t *writer, const char *filename);
+extern bijson_error_t bijson_writer_write_to_tempfile(bijson_writer_t *writer, bijson_t *bijson);
 
 extern bijson_error_t bijson_writer_begin_array(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_end_array(bijson_writer_t *writer);
 
 extern bijson_error_t bijson_writer_begin_object(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_end_object(bijson_writer_t *writer);
-
 extern bijson_error_t bijson_writer_add_key(bijson_writer_t *writer, const char *key, size_t len);
 
 extern bijson_error_t bijson_writer_begin_key(bijson_writer_t *writer);

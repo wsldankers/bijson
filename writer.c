@@ -125,12 +125,12 @@ bijson_error_t _bijson_writer_write_callback(
 
 bijson_error_t bijson_writer_write_to_fd(bijson_writer_t *writer, int fd) {
 	_bijson_writer_write_state_t state = {writer};
-	return _bijson_io_write_to_fd(_bijson_writer_write_callback, &state, fd);
+	return _bijson_io_write_to_fd(_bijson_writer_write_callback, &state, fd, NULL);
 }
 
 bijson_error_t bijson_writer_write_to_FILE(bijson_writer_t *writer, FILE *file) {
 	_bijson_writer_write_state_t state = {writer};
-	return _bijson_io_write_to_FILE(_bijson_writer_write_callback, &state, file);
+	return _bijson_io_write_to_FILE(_bijson_writer_write_callback, &state, file, NULL);
 }
 
 bijson_error_t bijson_writer_write_to_malloc(
@@ -139,6 +139,19 @@ bijson_error_t bijson_writer_write_to_malloc(
 ) {
 	_bijson_writer_write_state_t state = {writer};
 	return _bijson_io_write_to_malloc(
+		_bijson_writer_write_callback,
+		&state,
+		&bijson->buffer,
+		&bijson->size
+	);
+}
+
+bijson_error_t bijson_writer_write_to_tempfile(
+	bijson_writer_t *writer,
+	bijson_t *bijson
+) {
+	_bijson_writer_write_state_t state = {writer};
+	return _bijson_io_write_to_tempfile(
 		_bijson_writer_write_callback,
 		&state,
 		&bijson->buffer,
@@ -161,5 +174,5 @@ bijson_error_t bijson_writer_write_bytecounter(
 
 bijson_error_t bijson_writer_write_to_filename(bijson_writer_t *writer, const char *filename) {
 	_bijson_writer_write_state_t state = {writer};
-	return _bijson_io_write_to_filename(_bijson_writer_write_callback, &state, filename);
+	return _bijson_io_write_to_filename(_bijson_writer_write_callback, &state, filename, NULL);
 }

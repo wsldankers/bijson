@@ -28,13 +28,15 @@ extern bijson_error_t _bijson_io_bytecounter_output_callback(
 extern bijson_error_t _bijson_io_write_to_fd(
 	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
-	int fd
+	int fd,
+	size_t *result_size
 );
 
 extern bijson_error_t _bijson_io_write_to_FILE(
 	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
-	FILE *file
+	FILE *file,
+	size_t *result_size
 );
 
 extern bijson_error_t _bijson_io_write_to_malloc(
@@ -53,7 +55,15 @@ extern bijson_error_t _bijson_io_write_bytecounter(
 extern bijson_error_t _bijson_io_write_to_filename(
 	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
-	const char *filename
+	const char *filename,
+	size_t *result_size
+);
+
+extern bijson_error_t _bijson_io_write_to_tempfile(
+	_bijson_output_action_callback_t action_callback,
+	void *action_callback_data,
+	const void **result_buffer,
+	size_t *result_size
 );
 
 typedef bijson_error_t (*bijson_input_action_t)(

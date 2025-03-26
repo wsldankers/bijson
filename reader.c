@@ -1077,12 +1077,12 @@ bijson_error_t _bijson_to_json_callback(
 
 bijson_error_t bijson_to_json_fd(const bijson_t *bijson, int fd) {
 	_bijson_to_json_state_t state = {bijson};
-	return _bijson_io_write_to_fd(_bijson_to_json_callback, &state, fd);
+	return _bijson_io_write_to_fd(_bijson_to_json_callback, &state, fd, NULL);
 }
 
 bijson_error_t bijson_to_json_FILE(const bijson_t *bijson, FILE *file) {
 	_bijson_to_json_state_t state = {bijson};
-	return _bijson_io_write_to_FILE(_bijson_to_json_callback, &state, file);
+	return _bijson_io_write_to_FILE(_bijson_to_json_callback, &state, file, NULL);
 }
 
 bijson_error_t bijson_to_json_malloc(
@@ -1092,6 +1092,20 @@ bijson_error_t bijson_to_json_malloc(
 ) {
 	_bijson_to_json_state_t state = {bijson};
 	return _bijson_io_write_to_malloc(
+		_bijson_to_json_callback,
+		&state,
+		result_buffer,
+		result_size
+	);
+}
+
+bijson_error_t bijson_to_json_tempfile(
+	const bijson_t *bijson,
+	const void **result_buffer,
+	size_t *result_size
+) {
+	_bijson_to_json_state_t state = {bijson};
+	return _bijson_io_write_to_tempfile(
 		_bijson_to_json_callback,
 		&state,
 		result_buffer,
@@ -1113,7 +1127,7 @@ bijson_error_t bijson_to_json_bytecounter(
 
 bijson_error_t bijson_to_json_filename(const bijson_t *bijson, const char *filename) {
 	_bijson_to_json_state_t state = {bijson};
-	return _bijson_io_write_to_filename(_bijson_to_json_callback, &state, filename);
+	return _bijson_io_write_to_filename(_bijson_to_json_callback, &state, filename, NULL);
 }
 
 bijson_error_t bijson_open_filename(bijson_t *bijson, const char *filename) {

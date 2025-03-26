@@ -1,3 +1,6 @@
+#undef _GNU_SOURCE
+#define _GNU_SOURCE
+
 #include <stdbool.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -33,6 +36,7 @@ typedef struct _bijson_buffer_write_to_fd_state {
 	void *buffer;
 	size_t size;
 	size_t fill;
+	size_t written;
 	int fd;
 	bool nonblocking;
 } _bijson_buffer_write_to_fd_state_t;
@@ -57,6 +61,7 @@ static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, c
 				return NULL;
 			}
 		}
+		((_bijson_buffer_write_to_fd_state_t *)write_data)->written = state.written + state.fill + len;
 		if(state.fill) {
 			struct iovec vec[] = {
 				{state.buffer, state.fill},
@@ -125,50 +130,67 @@ static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, c
 	return NULL;
 }
 
-bijson_error_t _bijson_io_write_to_fd(_bijson_output_action_callback_t action_callback, void *action_callback_data, int fd) {
+bijson_error_t _bijson_io_write_to_fd(
+	_bijson_output_action_callback_t action_callback,
+	void *action_callback_data,
+	int fd,
+	size_t *result_size
+) {
 	_bijson_buffer_write_to_fd_state_t state = {.fd = fd, .size = SIZE_C(4096)};
 	state.buffer = malloc(state.size);
 	if(!state.buffer)
 		return bijson_error_system;
 	bijson_error_t error = action_callback(action_callback_data, _bijson_io_write_to_fd_output_callback, &state);
-	byte *buffer = state.buffer;
-	while(state.fill) {
-		if(state.nonblocking) {
-			struct pollfd poll_fd = {state.fd, POLLOUT};
-			int ret = poll(&poll_fd, 1, -1);
-			if(ret == -1) {
-				if(errno != EINTR) {
+	if(!error) {
+		byte *buffer = state.buffer;
+		state.written += state.fill;
+		while(state.fill) {
+			if(state.nonblocking) {
+				struct pollfd poll_fd = {state.fd, POLLOUT};
+				int ret = poll(&poll_fd, 1, -1);
+				if(ret == -1) {
+					if(errno != EINTR) {
+						error = bijson_error_system;
+						break;
+					}
+					continue;
+				}
+				if(!ret || !poll_fd.revents)
+					continue;
+				if(poll_fd.revents != POLLOUT) {
+					error = bijson_error_system;
+					break;
+				}
+			}
+			ssize_t written = write(state.fd, buffer, state.fill);
+			if(written == (ssize_t)-1) {
+				if(errno == EWOULDBLOCK || errno == EAGAIN) {
+					state.nonblocking = true;
+				} else if(errno != EINTR) {
 					error = bijson_error_system;
 					break;
 				}
 				continue;
 			}
-			if(!ret || !poll_fd.revents)
-				continue;
-			if(poll_fd.revents != POLLOUT) {
-				error = bijson_error_system;
-				break;
-			}
+			state.fill -= written;
+			buffer += written;
 		}
-		ssize_t written = write(state.fd, buffer, state.fill);
-		if(written == (ssize_t)-1) {
-			if(errno == EWOULDBLOCK || errno == EAGAIN) {
-				state.nonblocking = true;
-			} else if(errno != EINTR) {
-				error = bijson_error_system;
-				break;
-			}
-			continue;
-		}
-		state.fill -= written;
-		buffer += written;
 	}
+	if(!error && result_size)
+		*result_size = state.written;
 	free(state.buffer);
 	return error;
 }
 
+typedef struct _bijson_buffer_write_to_FILE_state {
+	FILE *file;
+	size_t written;
+} _bijson_buffer_write_to_FILE_state_t;
+
 static bijson_error_t _bijson_io_write_to_FILE_output_callback(void *callback_data, const void *data, size_t len) {
-	return fwrite(data, sizeof *data, len, callback_data) == len * sizeof *data
+	((_bijson_buffer_write_to_FILE_state_t *)callback_data)->written += len;
+	FILE *file = ((_bijson_buffer_write_to_FILE_state_t *)callback_data)->file;
+	return fwrite(data, sizeof *data, len, file) == len * sizeof *data
 		? NULL
 		: bijson_error_system;
 }
@@ -176,13 +198,24 @@ static bijson_error_t _bijson_io_write_to_FILE_output_callback(void *callback_da
 bijson_error_t _bijson_io_write_to_FILE(
 	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
-	FILE *file
+	FILE *file,
+	size_t *result_size
 ) {
-	return action_callback(
+	if(!file)
+		return bijson_error_parameter_is_null;
+
+	_bijson_buffer_write_to_FILE_state_t state = {.file = file};
+
+	bijson_error_t error = action_callback(
 		action_callback_data,
 		_bijson_io_write_to_FILE_output_callback,
-		file
+		&state
 	);
+
+	if(!error && result_size)
+		*result_size = state.written;
+
+	return error;
 }
 
 typedef struct _bijson_io_write_to_malloc_state {
@@ -264,16 +297,58 @@ bijson_error_t _bijson_io_write_bytecounter(
 bijson_error_t _bijson_io_write_to_filename(
 	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
-	const char *filename
+	const char *filename,
+	size_t *result_size
 ) {
 	int fd = open(filename, O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
 	if(fd == -1)
 		return bijson_error_system;
 
-	bijson_error_t error = _bijson_io_write_to_fd(action_callback, action_callback_data, fd);
+	bijson_error_t error = _bijson_io_write_to_fd(action_callback, action_callback_data, fd, result_size);
 
 	if(!error && fsync(fd) == -1)
 		error = bijson_error_system;
+
+	close(fd);
+
+	return error;
+}
+
+bijson_error_t _bijson_io_write_to_tempfile(
+	_bijson_output_action_callback_t action_callback,
+	void *action_callback_data,
+	const void **result_buffer,
+	size_t *result_size
+) {
+	if(!result_buffer || !result_size)
+		return bijson_error_parameter_is_null;
+
+	const char *tmpdir = getenv("BIJSON_TMPDIR");
+	if(!tmpdir)
+		tmpdir = getenv("TMPDIR");
+	if(!tmpdir)
+		tmpdir = "/tmp";
+
+	int fd = open(tmpdir, O_RDWR|O_TMPFILE|O_CLOEXEC, 0600);
+	if(fd == -1)
+		return bijson_error_system;
+
+	size_t size;
+	bijson_error_t error = _bijson_io_write_to_fd(action_callback, action_callback_data, fd, &size);
+
+	if(!error) {
+		void *buffer = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+		if(buffer == MAP_FAILED) {
+			error = bijson_error_system;
+		} else if(!buffer) {
+			// mmap() can technically return NULL
+			error = bijson_error_unsupported_feature;
+			munmap(buffer, size);
+		} else {
+			*result_buffer = buffer;
+			*result_size = size;
+		}
+	}
 
 	close(fd);
 

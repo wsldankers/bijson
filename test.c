@@ -97,10 +97,7 @@ int main(void) {
 
 	bijson_writer_free(writer);
 
-	const char output_bijson_filename[] = "/dev/shm/test.bijson";
-
-	C(bijson_writer_alloc(&writer));
-
+	// C(bijson_writer_alloc(&writer));
 	// C(bijson_writer_begin_array(writer));
 	// C(bijson_writer_begin_object(writer));
 	// C(bijson_writer_add_key(writer, "foo", 3));
@@ -126,7 +123,9 @@ int main(void) {
 	// // for(uint32_t u = 0; u < UINT32_C(10000000); u++)
 	// // 	C(bijson_writer_add_string(writer, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64));
 	// C(bijson_writer_end_array(writer));
+	// bijson_writer_free(writer);
 
+	// C(bijson_writer_alloc(&writer));
 	// const char json[] = " [ 42, -1e-1, 0.1, 0, 0.0, \"hoi\" , \"iedereen\\t\", { \"x\\by\": null }, { \"true\" : true , \"false\" : false , \"null\" : null }, [0, 0.0, 0e0, 0e1, 0.0e0, 0.0e1], [[]], {} ] ";
 	// size_t end;
 	// error = bijson_parse_json(writer, json, sizeof json - 1, &end);
@@ -135,9 +134,11 @@ int main(void) {
 	// 	fputc(' ', stderr);
 	// fputs(" ^\n", stderr);
 	// C(error);
+	// bijson_writer_free(writer);
 
-	// bijson_writer_write_to_malloc(writer, (void **)&bijson.buffer, &bijson.size);
+	// C(bijson_writer_write_to_malloc(writer, &bijson));
 
+	// C(bijson_writer_alloc(&writer));
 	// C(bijson_writer_begin_object(writer));
 	// for(size_t u = 0; u < SIZE_C(100000000); u++) {
 	// 	char getal[20];
@@ -146,6 +147,9 @@ int main(void) {
 	// 	C(bijson_writer_add_string(writer, getal, len));
 	// }
 	// C(bijson_writer_end_object(writer));
+	// bijson_writer_free(writer);
+
+	C(bijson_writer_alloc(&writer));
 
 	const char input_json_filename[] = "/tmp/records.json";
 	fprintf(stderr, "parsing %s\n", input_json_filename);
@@ -153,21 +157,16 @@ int main(void) {
 
 	C(bijson_parse_json_filename(writer, input_json_filename, NULL));
 
-	fprintf(stderr, "writing %s\n", output_bijson_filename);
+	fprintf(stderr, "writing to tempfile\n");
 	fflush(stderr);
 
-	C(bijson_writer_write_to_filename(writer, output_bijson_filename));
+	C(bijson_writer_write_to_tempfile(writer, &bijson));
 
 	fprintf(stderr, "freeing writer object\n");
 	fprintf(stderr, "spool was %zu bytes, stack was %zu bytes.\n", writer->spool._size, writer->stack._size);
 	fflush(stderr);
 
 	bijson_writer_free(writer);
-
-	fprintf(stderr, "opening %s\n", output_bijson_filename);
-	fflush(stderr);
-
-	C(bijson_open_filename(&bijson, output_bijson_filename));
 
 	fprintf(stderr, "checking keys at root level\n");
 	fflush(stderr);
