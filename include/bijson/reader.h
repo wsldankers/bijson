@@ -89,12 +89,12 @@ extern bijson_error_t bijson_to_json_fd(const bijson_t *bijson, int fd);
 extern bijson_error_t bijson_to_json_malloc(
 	const bijson_t *bijson,
 	void **result_buffer,
-    size_t *result_size
+	size_t *result_size
 );
 extern bijson_error_t bijson_to_json_bytecounter(
 	const bijson_t *bijson,
 	void **result_buffer,
-    size_t *result_size
+	size_t *result_size
 );
 extern bijson_error_t bijson_to_json_filename(const bijson_t *bijson, const char *filename);
 
