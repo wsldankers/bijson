@@ -99,6 +99,20 @@ extern bijson_error_t bijson_object_get_key(
 	size_t len,
 	bijson_t *result
 );
+extern bijson_error_t bijson_analyzed_object_get_key_range(
+	const bijson_object_analysis_t *analysis,
+	const char *key,
+	size_t len,
+	size_t *start_index,
+	size_t *end_index
+);
+extern bijson_error_t bijson_object_get_key_range(
+	const bijson_t *bijson,
+	const char *key,
+	size_t len,
+	size_t *start_index,
+	size_t *end_index
+);
 
 extern bijson_error_t bijson_analyzed_object_count(
 	const bijson_object_analysis_t *analysis,
