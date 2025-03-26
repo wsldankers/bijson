@@ -6,12 +6,19 @@
 #include <bijson/common.h>
 #include <bijson/reader.h>
 
-typedef bijson_error_t (*bijson_output_action_callback_t)(
+typedef bijson_error_t (*_bijson_output_action_callback_t)(
 	void *action_callback_data,
 	bijson_output_callback_t output_callback,
 	void *output_callback_data
 );
 
+bijson_error_t _bijson_io_write_nul_bytes(
+	bijson_output_callback_t write,
+	void *write_data,
+	size_t len
+);
+
+// To accommodate an evil optimization in decimal.c
 extern bijson_error_t _bijson_io_bytecounter_output_callback(
 	void *output_callback_data,
 	const void *data,
@@ -19,32 +26,32 @@ extern bijson_error_t _bijson_io_bytecounter_output_callback(
 );
 
 extern bijson_error_t _bijson_io_write_to_fd(
-	bijson_output_action_callback_t action_callback,
+	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
 	int fd
 );
 
 extern bijson_error_t _bijson_io_write_to_FILE(
-	bijson_output_action_callback_t action_callback,
+	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
 	FILE *file
 );
 
 extern bijson_error_t _bijson_io_write_to_malloc(
-	bijson_output_action_callback_t action_callback,
+	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
 	void **result_buffer,
 	size_t *result_size
 );
 
 extern bijson_error_t _bijson_io_write_bytecounter(
-	bijson_output_action_callback_t action_callback,
+	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
 	size_t *result_size
 );
 
 extern bijson_error_t _bijson_io_write_to_filename(
-	bijson_output_action_callback_t action_callback,
+	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
 	const char *filename
 );

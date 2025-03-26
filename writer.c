@@ -43,14 +43,14 @@ bijson_error_t bijson_writer_alloc(bijson_writer_t **result) {
 
 typedef bijson_error_t (*_bijson_writer_write_type_func_t)(
 	bijson_writer_t *writer,
-	_bijson_writer_write_func_t write,
+	bijson_output_callback_t write,
 	void *write_data,
 	const byte *spool
 );
 
 static bijson_error_t _bijson_writer_write_scalar(
 	bijson_writer_t *writer,
-	_bijson_writer_write_func_t write,
+	bijson_output_callback_t write,
 	void *write_data,
 	const byte *spool
 ) {
@@ -61,7 +61,7 @@ static bijson_error_t _bijson_writer_write_scalar(
 
 bijson_error_t _bijson_writer_write_value(
 	bijson_writer_t *writer,
-	_bijson_writer_write_func_t write,
+	bijson_output_callback_t write,
 	void *write_data,
 	const byte *spool
 ) {
@@ -83,7 +83,7 @@ bijson_error_t _bijson_writer_write_value(
 
 static bijson_error_t _bijson_writer_write(
 	bijson_writer_t *writer,
-	_bijson_writer_write_func_t write,
+	bijson_output_callback_t write,
 	void *write_data
 ) {
 	if(writer->failed)
@@ -105,11 +105,6 @@ static bijson_error_t _bijson_writer_write(
 
 	const byte *spool = _bijson_buffer_finalize(&writer->spool);
 	return _bijson_writer_write_value(writer, write, write_data, spool);
-}
-
-bijson_error_t _bijson_writer_bytecounter_writer(void *write_data, const void *data, size_t len) {
-	*(size_t *)write_data += len;
-	return NULL;
 }
 
 typedef struct _bijson_writer_write_state {

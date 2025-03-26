@@ -271,7 +271,7 @@ static int _bijson_writer_object_object_item_cmp(const void *a, const void *b) {
 			: 1;
 }
 
-bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, const byte *spool) {
+bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, bijson_output_callback_t write, void *write_data, const byte *spool) {
 	_bijson_container_t container;
 	memcpy(&container, spool, sizeof container);
 	spool += sizeof container;
@@ -372,7 +372,7 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, _bijson_writ
 	return NULL;
 }
 
-bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, _bijson_writer_write_func_t write, void *write_data, const byte *spool) {
+bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, bijson_output_callback_t write, void *write_data, const byte *spool) {
 	_bijson_container_t container;
 	memcpy(&container, spool, sizeof container);
 	spool += sizeof container;

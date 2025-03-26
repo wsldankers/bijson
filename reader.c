@@ -727,6 +727,64 @@ bijson_error_t bijson_array_analyze(const bijson_t *bijson, bijson_array_analysi
 	return _bijson_array_analyze(bijson, (_bijson_array_analysis_t *)result);
 }
 
+bijson_error_t bijson_get_value_type(const bijson_t *bijson, bijson_value_type_t *result) {
+	_BIJSON_ERROR_RETURN(_bijson_check_bijson(bijson));
+	const byte *buffer = bijson->buffer;
+	const byte type = *buffer;
+
+	switch(type & BYTE_C(0xF0)) {
+		case BYTE_C(0x00):
+			switch(type) {
+				case BYTE_C(0x00):
+					return bijson_error_file_format_error;
+				case BYTE_C(0x01):
+					return *result = bijson_value_type_null, NULL;
+				case BYTE_C(0x05):
+					return *result = bijson_value_type_undefined, NULL;
+				case BYTE_C(0x02):
+					return *result = bijson_value_type_false, NULL;
+				case BYTE_C(0x03):
+					return *result = bijson_value_type_true, NULL;
+				case BYTE_C(0x08):
+					return *result = bijson_value_type_string, NULL;
+				case BYTE_C(0x09):
+					return *result = bijson_value_type_bytes, NULL;
+				case BYTE_C(0x0A):
+					return *result = bijson_value_type_iee754_2008_float, NULL;
+				case BYTE_C(0x0B):
+					return *result = bijson_value_type_iee754_2008_decimal_float, NULL;
+				case BYTE_C(0x0C):
+					return *result = bijson_value_type_iee754_2008_decimal_float_dpd, NULL;
+			}
+			break;
+		case BYTE_C(0x10):
+			switch(type & BYTE_C(0xFE)) {
+				case BYTE_C(0x10):
+					return *result = bijson_value_type_snan, NULL;
+				case BYTE_C(0x12):
+					return *result = bijson_value_type_qnan, NULL;
+				case BYTE_C(0x14):
+					return *result = bijson_value_type_inf, NULL;
+				case BYTE_C(0x18):
+					return *result = bijson_value_type_integer, NULL;
+				case BYTE_C(0x1A):
+					return *result = bijson_value_type_decimal, NULL;
+			}
+			break;
+		case BYTE_C(0x20):
+			return *result = bijson_value_type_decimal, NULL;
+		case BYTE_C(0x30):
+			return *result = bijson_value_type_array, NULL;
+		case BYTE_C(0x40):
+		case BYTE_C(0x50):
+		case BYTE_C(0x60):
+		case BYTE_C(0x70):
+			return *result = bijson_value_type_object, NULL;
+	}
+
+	return bijson_error_unsupported_data_type;
+}
+
 static inline bijson_error_t _bijson_object_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	_bijson_object_analysis_t analysis;
 	_BIJSON_ERROR_RETURN(_bijson_object_analyze(bijson, &analysis));
@@ -852,7 +910,6 @@ bijson_error_t bijson_to_json_malloc(
 
 bijson_error_t bijson_to_json_bytecounter(
 	const bijson_t *bijson,
-	void **result_buffer,
 	size_t *result_size
 ) {
 	_bijson_to_json_state_t state = {bijson};

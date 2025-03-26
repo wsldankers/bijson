@@ -20,7 +20,33 @@ typedef struct bijson_object_analysis {
 	size_t v[10];
 } bijson_object_analysis_t;
 
+typedef enum bijson_value_type {
+	// Basic bijson types
+	bijson_value_type_null,
+	bijson_value_type_false,
+	bijson_value_type_true,
+	bijson_value_type_decimal,
+	bijson_value_type_string,
+	bijson_value_type_array,
+	bijson_value_type_object,
+
+	// Additional JSON compatible convenience types
+	bijson_value_type_integer,
+	bijson_value_type_iee754_2008_float,
+	bijson_value_type_iee754_2008_decimal_float,
+	bijson_value_type_iee754_2008_decimal_float_dpd,
+
+	// Outright JSON incompatible types
+	bijson_value_type_bytes,
+	bijson_value_type_undefined,
+	bijson_value_type_snan,
+	bijson_value_type_qnan,
+	bijson_value_type_inf,
+} bijson_value_type_t;
+
 extern bijson_error_t bijson_open_filename(bijson_t *bijson, const char *filename);
+
+extern bijson_error_t bijson_get_value_type(const bijson_t *bijson, bijson_value_type_t *result);
 
 extern bijson_error_t bijson_array_count(const bijson_t *bijson, size_t *result);
 extern bijson_error_t bijson_array_get_index(
@@ -93,7 +119,6 @@ extern bijson_error_t bijson_to_json_malloc(
 );
 extern bijson_error_t bijson_to_json_bytecounter(
 	const bijson_t *bijson,
-	void **result_buffer,
 	size_t *result_size
 );
 extern bijson_error_t bijson_to_json_filename(const bijson_t *bijson, const char *filename);

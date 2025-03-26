@@ -15,6 +15,20 @@
 #include "io.h"
 #include "common.h"
 
+static const char _bijson_nul_bytes[4096];
+
+bijson_error_t _bijson_io_write_nul_bytes(bijson_output_callback_t write, void *write_data, size_t len) {
+	while(len) {
+		size_t chunk = _bijson_size_min(len, sizeof _bijson_nul_bytes);
+		_BIJSON_ERROR_RETURN(write(write_data, _bijson_nul_bytes, chunk));
+		len -= chunk;
+	}
+	return NULL;
+}
+
+// Must be a power of two.
+#define _BIJSON_WRITE_TO_FD_MAX_BUFFER SIZE_C(1048576)
+
 typedef struct _bijson_buffer_write_to_fd_state {
 	void *buffer;
 	size_t size;
@@ -23,71 +37,32 @@ typedef struct _bijson_buffer_write_to_fd_state {
 	bool nonblocking;
 } _bijson_buffer_write_to_fd_state_t;
 
-static const char _bijson_nul_bytes[4096];
-
-// Must be a power of two.
-#define _BIJSON_WRITE_TO_FD_MAX_BUFFER SIZE_C(1048576)
-
 static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, const void *data, size_t len) {
 	_bijson_buffer_write_to_fd_state_t state = *(_bijson_buffer_write_to_fd_state_t *)write_data;
-	if(data) {
-		size_t required = state.fill + len;
-		if(required <= state.size) {
-			memcpy(state.buffer + state.fill, data, len);
-			((_bijson_buffer_write_to_fd_state_t *)write_data)->fill = required;
-		} else {
-			if(required <= _BIJSON_WRITE_TO_FD_MAX_BUFFER) {
-				size_t new_size = state.size;
-				while(new_size < required)
-					new_size <<= 1;
-				void *new_buffer = realloc(state.buffer, new_size);
-				if(new_buffer) {
-					memcpy(new_buffer + state.fill, data, len);
-					((_bijson_buffer_write_to_fd_state_t *)write_data)->buffer = new_buffer;
-					((_bijson_buffer_write_to_fd_state_t *)write_data)->size = new_size;
-					((_bijson_buffer_write_to_fd_state_t *)write_data)->fill = required;
-					return NULL;
-				}
+	size_t required = state.fill + len;
+	if(required <= state.size) {
+		memcpy(state.buffer + state.fill, data, len);
+		((_bijson_buffer_write_to_fd_state_t *)write_data)->fill = required;
+	} else {
+		if(required <= _BIJSON_WRITE_TO_FD_MAX_BUFFER) {
+			size_t new_size = state.size;
+			while(new_size < required)
+				new_size <<= 1;
+			void *new_buffer = realloc(state.buffer, new_size);
+			if(new_buffer) {
+				memcpy(new_buffer + state.fill, data, len);
+				((_bijson_buffer_write_to_fd_state_t *)write_data)->buffer = new_buffer;
+				((_bijson_buffer_write_to_fd_state_t *)write_data)->size = new_size;
+				((_bijson_buffer_write_to_fd_state_t *)write_data)->fill = required;
+				return NULL;
 			}
-			if(state.fill) {
-				struct iovec vec[] = {
-					{state.buffer, state.fill},
-					{(void *)data, len},
-				};
-				for(;;) {
-					if(state.nonblocking) {
-						struct pollfd poll_fd = {state.fd, POLLOUT};
-						int ret = poll(&poll_fd, 1, -1);
-						if(ret == -1) {
-							if(errno != EINTR)
-								return bijson_error_system;
-							continue;
-						}
-						if(!ret || !poll_fd.revents)
-							continue;
-						if(poll_fd.revents != POLLOUT)
-							return bijson_error_system;
-					}
-					ssize_t written = writev(state.fd, vec, 2);
-					if(written == (ssize_t)-1) {
-						if(errno == EWOULDBLOCK || errno == EAGAIN)
-							state.nonblocking = ((_bijson_buffer_write_to_fd_state_t *)write_data)->nonblocking = true;
-						else if(errno != EINTR)
-							return bijson_error_system;
-						continue;
-					}
-					if(written >= vec[0].iov_len) {
-						written -= vec[0].iov_len;
-						data = (const char *)data + written;
-						len -= written;
-						break;
-					}
-					vec[0].iov_base += written;
-					vec[0].iov_len -= written;
-				}
-				((_bijson_buffer_write_to_fd_state_t *)write_data)->fill = SIZE_C(0);
-			}
-			while(len) {
+		}
+		if(state.fill) {
+			struct iovec vec[] = {
+				{state.buffer, state.fill},
+				{(void *)data, len},
+			};
+			for(;;) {
 				if(state.nonblocking) {
 					struct pollfd poll_fd = {state.fd, POLLOUT};
 					int ret = poll(&poll_fd, 1, -1);
@@ -101,7 +76,7 @@ static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, c
 					if(poll_fd.revents != POLLOUT)
 						return bijson_error_system;
 				}
-				ssize_t written = write(state.fd, data, len);
+				ssize_t written = writev(state.fd, vec, 2);
 				if(written == (ssize_t)-1) {
 					if(errno == EWOULDBLOCK || errno == EAGAIN)
 						state.nonblocking = ((_bijson_buffer_write_to_fd_state_t *)write_data)->nonblocking = true;
@@ -109,22 +84,48 @@ static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, c
 						return bijson_error_system;
 					continue;
 				}
-				len -= written;
-				data = (const char *)data + written;
+				if(written >= vec[0].iov_len) {
+					written -= vec[0].iov_len;
+					data = (const char *)data + written;
+					len -= written;
+					break;
+				}
+				vec[0].iov_base += written;
+				vec[0].iov_len -= written;
 			}
+			((_bijson_buffer_write_to_fd_state_t *)write_data)->fill = SIZE_C(0);
 		}
-	} else {
 		while(len) {
-			size_t chunk = _bijson_size_min(len, sizeof _bijson_nul_bytes);
-			_BIJSON_ERROR_RETURN(_bijson_io_write_to_fd_output_callback(write_data, _bijson_nul_bytes, chunk));
-			len -= chunk;
+			if(state.nonblocking) {
+				struct pollfd poll_fd = {state.fd, POLLOUT};
+				int ret = poll(&poll_fd, 1, -1);
+				if(ret == -1) {
+					if(errno != EINTR)
+						return bijson_error_system;
+					continue;
+				}
+				if(!ret || !poll_fd.revents)
+					continue;
+				if(poll_fd.revents != POLLOUT)
+					return bijson_error_system;
+			}
+			ssize_t written = write(state.fd, data, len);
+			if(written == (ssize_t)-1) {
+				if(errno == EWOULDBLOCK || errno == EAGAIN)
+					state.nonblocking = ((_bijson_buffer_write_to_fd_state_t *)write_data)->nonblocking = true;
+				else if(errno != EINTR)
+					return bijson_error_system;
+				continue;
+			}
+			len -= written;
+			data = (const char *)data + written;
 		}
 	}
 
 	return NULL;
 }
 
-bijson_error_t _bijson_io_write_to_fd(bijson_output_action_callback_t action_callback, void *action_callback_data, int fd) {
+bijson_error_t _bijson_io_write_to_fd(_bijson_output_action_callback_t action_callback, void *action_callback_data, int fd) {
 	_bijson_buffer_write_to_fd_state_t state = {.fd = fd, .size = SIZE_C(4096)};
 	state.buffer = malloc(state.size);
 	if(!state.buffer)
@@ -173,7 +174,7 @@ static bijson_error_t _bijson_io_write_to_FILE_output_callback(void *callback_da
 }
 
 bijson_error_t _bijson_io_write_to_FILE(
-	bijson_output_action_callback_t action_callback,
+	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
 	FILE *file
 ) {
@@ -194,17 +195,14 @@ static bijson_error_t _bijson_io_write_to_malloc_output_callback(void *write_dat
 	_bijson_io_write_to_malloc_state_t state = *(_bijson_io_write_to_malloc_state_t *)write_data;
 	if(state.buffer && state.size > state.written) {
 		size_t remainder = state.size - state.written;
-		if(data)
-			memcpy(state.buffer + state.written, data, len < remainder ? len : remainder);
-		else
-			memset(state.buffer + state.written, '\0', len < remainder ? len : remainder);
+		memcpy(state.buffer + state.written, data, _bijson_size_min(len, remainder));
 	}
 	((_bijson_io_write_to_malloc_state_t *)write_data)->written = state.written + len;
 	return NULL;
 }
 
 bijson_error_t _bijson_io_write_to_malloc(
-	bijson_output_action_callback_t action_callback,
+	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
 	void **result_buffer,
 	size_t *result_size
@@ -252,19 +250,19 @@ bijson_error_t _bijson_io_bytecounter_output_callback(void *write_data, const vo
 }
 
 bijson_error_t _bijson_io_write_bytecounter(
-	bijson_output_action_callback_t action_callback,
+	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
 	size_t *result_size
 ) {
 	return action_callback(
 		action_callback_data,
-		_bijson_io_write_to_malloc_output_callback,
+		_bijson_io_bytecounter_output_callback,
 		result_size
 	);
 }
 
 bijson_error_t _bijson_io_write_to_filename(
-	bijson_output_action_callback_t action_callback,
+	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
 	const char *filename
 ) {
