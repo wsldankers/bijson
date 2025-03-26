@@ -603,7 +603,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range_upper(
 		const void *candidate_key;
 		size_t candidate_len;
 		_BIJSON_ERROR_RETURN(_bijson_analyzed_object_get_index(analysis, upper_bound, &candidate_key, &candidate_len, &value));
-		if(candidate_len != target->len && memcmp(candidate_key, target->key, candidate_len))
+		if(candidate_len != target->len || memcmp(candidate_key, target->key, candidate_len))
 			break;
 		if(upper_bound == upper_index_1)
 			return NULL;
@@ -656,8 +656,8 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range_lower(
 		bijson_t value;
 		const void *candidate_key;
 		size_t candidate_len;
-		_BIJSON_ERROR_RETURN(_bijson_analyzed_object_get_index(analysis, upper_bound, &candidate_key, &candidate_len, &value));
-		if(candidate_len != target->len && memcmp(candidate_key, target->key, candidate_len))
+		_BIJSON_ERROR_RETURN(_bijson_analyzed_object_get_index(analysis, lower_bound, &candidate_key, &candidate_len, &value));
+		if(candidate_len != target->len || memcmp(candidate_key, target->key, candidate_len))
 			break;
 		if(lower_bound == lower->index)
 			return NULL;
@@ -729,6 +729,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range(
 		_BIJSON_ERROR_RETURN(_bijson_get_key_entry_get(analysis, &guess));
 		int c = _bijson_get_key_entry_cmp(&guess, &target);
 		if(c == 0) {
+			target.index = guess.index;
 			_BIJSON_ERROR_RETURN(_bijson_analyzed_object_get_key_range_lower(analysis, &target, &lower));
 			_BIJSON_ERROR_RETURN(_bijson_analyzed_object_get_key_range_upper(analysis, &target, &upper));
 			*start_index = lower.index;
@@ -1086,7 +1087,7 @@ bijson_error_t bijson_to_json_FILE(const bijson_t *bijson, FILE *file) {
 
 bijson_error_t bijson_to_json_malloc(
 	const bijson_t *bijson,
-	void **result_buffer,
+	const void **result_buffer,
 	size_t *result_size
 ) {
 	_bijson_to_json_state_t state = {bijson};
@@ -1121,4 +1122,11 @@ bijson_error_t bijson_open_filename(bijson_t *bijson, const char *filename) {
 
 void bijson_close(bijson_t *bijson) {
 	_bijson_io_close(bijson);
+}
+
+void bijson_free(bijson_t *bijson) {
+	if(bijson) {
+		free((void *)bijson->buffer);
+		*bijson = bijson_0;
+	}
 }

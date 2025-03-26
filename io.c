@@ -204,7 +204,7 @@ static bijson_error_t _bijson_io_write_to_malloc_output_callback(void *write_dat
 bijson_error_t _bijson_io_write_to_malloc(
 	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
-	void **result_buffer,
+	const void **result_buffer,
 	size_t *result_size
 ) {
 	_bijson_io_write_to_malloc_state_t state = {.size = 4096};

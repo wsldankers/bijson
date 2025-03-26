@@ -19,7 +19,7 @@ extern bijson_error_t bijson_parse_json_filename(bijson_writer_t *writer, const 
 
 extern bijson_error_t bijson_writer_write_to_fd(bijson_writer_t *writer, int fd);
 extern bijson_error_t bijson_writer_write_to_FILE(bijson_writer_t *writer, FILE *file);
-extern bijson_error_t bijson_writer_write_to_malloc(bijson_writer_t *writer, void **result_buffer, size_t *result_size);
+extern bijson_error_t bijson_writer_write_to_malloc(bijson_writer_t *writer, bijson_t *bijson);
 extern bijson_error_t bijson_writer_write_to_filename(bijson_writer_t *writer, const char *filename);
 
 extern bijson_error_t bijson_writer_begin_array(bijson_writer_t *writer);

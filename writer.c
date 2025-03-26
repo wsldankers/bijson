@@ -135,15 +135,14 @@ bijson_error_t bijson_writer_write_to_FILE(bijson_writer_t *writer, FILE *file) 
 
 bijson_error_t bijson_writer_write_to_malloc(
 	bijson_writer_t *writer,
-	void **result_buffer,
-	size_t *result_size
+	bijson_t *bijson
 ) {
 	_bijson_writer_write_state_t state = {writer};
 	return _bijson_io_write_to_malloc(
 		_bijson_writer_write_callback,
 		&state,
-		result_buffer,
-		result_size
+		&bijson->buffer,
+		&bijson->size
 	);
 }
 

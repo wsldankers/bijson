@@ -5,11 +5,6 @@
 
 #include "common.h"
 
-typedef struct bijson {
-	const void *buffer;
-	size_t size;
-} bijson_t;
-
 typedef struct bijson_array_analysis {
 	// Opaque structure, do not access.
 	size_t v[6];
@@ -128,7 +123,7 @@ extern bijson_error_t bijson_to_json_FILE(const bijson_t *bijson, FILE *file);
 extern bijson_error_t bijson_to_json_fd(const bijson_t *bijson, int fd);
 extern bijson_error_t bijson_to_json_malloc(
 	const bijson_t *bijson,
-	void **result_buffer,
+	const void **result_buffer,
 	size_t *result_size
 );
 extern bijson_error_t bijson_to_json_bytecounter(
@@ -137,4 +132,5 @@ extern bijson_error_t bijson_to_json_bytecounter(
 );
 extern bijson_error_t bijson_to_json_filename(const bijson_t *bijson, const char *filename);
 
+extern void bijson_free(bijson_t *bijson);
 extern void bijson_close(bijson_t *bijson);

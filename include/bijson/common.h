@@ -3,6 +3,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+typedef struct bijson {
+	const void *buffer;
+	size_t size;
+} bijson_t;
+
 typedef const char *bijson_error_t;
 
 extern const char bijson_error_system[];

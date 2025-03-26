@@ -40,7 +40,7 @@ extern bijson_error_t _bijson_io_write_to_FILE(
 extern bijson_error_t _bijson_io_write_to_malloc(
 	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
-	void **result_buffer,
+	const void **result_buffer,
 	size_t *result_size
 );
 
