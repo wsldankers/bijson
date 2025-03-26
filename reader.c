@@ -595,7 +595,7 @@ typedef struct _bijson_array_analysis {
 static inline bijson_error_t _bijson_array_analyze_count(const bijson_t *bijson, _bijson_array_analysis_t *analysis) {
 	_BIJSON_ERROR_RETURN(_bijson_check_bijson(bijson));
 	if(!analysis)
-		return bijson_error_parameter_is_zero;
+		return bijson_error_parameter_is_null;
 
 	IF_DEBUG(memset(analysis, 'A', sizeof *analysis));
 
@@ -678,7 +678,7 @@ static inline bijson_error_t _bijson_array_analyze(const bijson_t *bijson, _bijs
 
 static inline bijson_error_t _bijson_analyzed_array_get_index(const _bijson_array_analysis_t *analysis, size_t index, bijson_t *result) {
 	if(!analysis)
-		return bijson_error_parameter_is_zero;
+		return bijson_error_parameter_is_null;
 
 	if(index >= analysis->count)
 		return bijson_error_index_out_of_range;
@@ -866,4 +866,12 @@ bijson_error_t bijson_to_json_bytecounter(
 bijson_error_t bijson_to_json_filename(const bijson_t *bijson, const char *filename) {
 	_bijson_to_json_state_t state = {bijson};
 	return _bijson_io_write_to_filename(_bijson_to_json_callback, &state, filename);
+}
+
+bijson_error_t bijson_open_filename(bijson_t *bijson, const char *filename) {
+	return _bijson_io_read_from_filename(NULL, bijson, filename);
+}
+
+void bijson_close(bijson_t *bijson) {
+	_bijson_io_close(bijson);
 }

@@ -15,6 +15,7 @@ extern bool bijson_writer_expects_value(bijson_writer_t *writer);
 extern bool bijson_writer_expects_key(bijson_writer_t *writer);
 
 extern bijson_error_t bijson_parse_json(bijson_writer_t *writer, const void *buffer, size_t len, size_t *parse_end);
+extern bijson_error_t bijson_parse_json_filename(bijson_writer_t *writer, const char *filename, size_t *parse_end);
 
 extern bijson_error_t bijson_writer_write_to_fd(bijson_writer_t *writer, int fd);
 extern bijson_error_t bijson_writer_write_to_FILE(bijson_writer_t *writer, FILE *file);

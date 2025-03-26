@@ -4,9 +4,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/uio.h>
 #include <poll.h>
 #include <errno.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <sys/uio.h>
+
+#include <bijson/reader.h>
 
 #include "io.h"
 #include "common.h"
@@ -276,4 +280,65 @@ bijson_error_t _bijson_io_write_to_filename(
 	close(fd);
 
 	return error;
+}
+
+bijson_error_t _bijson_io_read_from_filename(
+	bijson_input_action_t action,
+	const void *action_data,
+	const char *filename
+) {
+	if(!filename)
+		return bijson_error_parameter_is_null;
+	int fd = open(filename, O_RDONLY|O_NOCTTY|O_CLOEXEC);
+	if(fd == -1)
+		return bijson_error_system;
+	bijson_error_t error = bijson_error_system;
+	void *buffer = MAP_FAILED;
+	size_t size = 0;
+	do {
+		struct stat st;
+		if(fstat(fd, &st) == -1)
+			break;
+		if(!st.st_size) {
+			error = bijson_error_file_format_error;
+			break;
+		}
+		if(st.st_size > SIZE_MAX) {
+			error = bijson_error_out_of_virtual_memory;
+			break;
+		}
+		size = st.st_size;
+		buffer = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+	} while(false);
+	close(fd);
+
+	do {
+		if(buffer == MAP_FAILED)
+			break;
+		if(!buffer) {
+			// mmap() can technically return NULL
+			error = bijson_error_unsupported_feature;
+		} else if(action) {
+			error = action((void *)action_data, buffer, size);
+		} else if(action_data) {
+			error = NULL;
+			bijson_t *bijson = (bijson_t *)action_data;
+			bijson->buffer = buffer;
+			bijson->size = size;
+			break;
+		} else {
+			error = bijson_error_parameter_is_null;
+		}
+		munmap(buffer, size);
+	} while(false);
+
+	return error;
+}
+
+void _bijson_io_close(bijson_t *bijson) {
+	if(!bijson || !bijson->buffer || bijson->buffer == MAP_FAILED || !bijson->size)
+		return;
+	munmap((void *)bijson->buffer, bijson->size);
+	bijson->buffer = NULL;
+	bijson->size = 0;
 }

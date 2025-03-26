@@ -29,7 +29,7 @@ void bijson_writer_free(bijson_writer_t *writer) {
 
 bijson_error_t bijson_writer_alloc(bijson_writer_t **result) {
 	if(!result)
-		return bijson_error_parameter_is_zero;
+		return bijson_error_parameter_is_null;
 	bijson_writer_t *writer = malloc(sizeof *writer);
 	if(!writer)
 		return bijson_error_system;

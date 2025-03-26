@@ -10,7 +10,6 @@ typedef struct bijson {
 	size_t size;
 } bijson_t;
 
-
 typedef struct bijson_array_analysis {
 	// Opaque structure, do not access.
 	size_t v[6];
@@ -20,6 +19,8 @@ typedef struct bijson_object_analysis {
 	// Opaque structure, do not access.
 	size_t v[10];
 } bijson_object_analysis_t;
+
+extern bijson_error_t bijson_open_filename(bijson_t *bijson, const char *filename);
 
 extern bijson_error_t bijson_array_count(const bijson_t *bijson, size_t *result);
 extern bijson_error_t bijson_array_get_index(
@@ -96,3 +97,5 @@ extern bijson_error_t bijson_to_json_bytecounter(
     size_t *result_size
 );
 extern bijson_error_t bijson_to_json_filename(const bijson_t *bijson, const char *filename);
+
+extern void bijson_close(bijson_t *bijson);

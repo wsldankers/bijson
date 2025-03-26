@@ -2,10 +2,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <inttypes.h>
-#include <fcntl.h>
 #include <err.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
 
 #include <bijson/writer.h>
 #include <bijson/reader.h>
@@ -18,8 +15,6 @@
 
 int main(void) {
 	bijson_t bijson __attribute__((unused)) = {};
-	int fd __attribute__((unused));
-	struct stat st __attribute__((unused));
 	bijson_error_t error __attribute__((unused));
 
 	bijson_writer_t *writer = NULL;
@@ -32,13 +27,11 @@ int main(void) {
 	// C(bijson_writer_add_bytes(writer, NULL, 0));
 	// C(bijson_writer_end_array(writer));
 
+	C(bijson_writer_begin_array(writer));
 	C(bijson_writer_begin_object(writer));
-	for(size_t u = 0; u < SIZE_C(20); u++) {
-		C(bijson_writer_add_key(writer, "", 0));
-		C(bijson_writer_add_null(writer));
-	}
-
 	C(bijson_writer_end_object(writer));
+	C(bijson_writer_add_bytes(writer, NULL, 0));
+	C(bijson_writer_end_array(writer));
 
 	const char output_smol_bijson_filename[] = "/tmp/smol.bijson";
 	fprintf(stderr, "writing %s\n", output_smol_bijson_filename);
@@ -102,20 +95,7 @@ int main(void) {
 	fprintf(stderr, "parsing %s\n", input_json_filename);
 	fflush(stderr);
 
-	fd = open(input_json_filename, O_RDONLY|O_NOCTTY|O_CLOEXEC);
-	if(fd == -1)
-		err(2, "open(%s)", input_json_filename);
-	if(fstat(fd, &st) == -1)
-		err(2, "stat");
-	if(st.st_size > SIZE_MAX)
-		errx(2, "%s too large", input_json_filename);
-	void *json = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
-	if(json == MAP_FAILED)
-		err(2, "mmap");
-	close(fd);
-	size_t end;
-	C(bijson_parse_json(writer, json, st.st_size, &end));
-	munmap(json, st.st_size);
+	C(bijson_parse_json_filename(writer, input_json_filename, NULL));
 
 	fprintf(stderr, "writing %s\n", output_bijson_filename);
 	fflush(stderr);
@@ -131,23 +111,10 @@ int main(void) {
 	fprintf(stderr, "opening %s\n", output_bijson_filename);
 	fflush(stderr);
 
-	fd = open(output_bijson_filename, O_RDONLY|O_NOCTTY|O_CLOEXEC);
-	if(fd == -1)
-		err(2, "open(%s)", output_bijson_filename);
-	if(fstat(fd, &st) == -1)
-		err(2, "stat");
-	if(st.st_size > SIZE_MAX)
-		errx(2, "%s too large", output_bijson_filename);
-	bijson.buffer = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
-	if(bijson.buffer == MAP_FAILED)
-		err(2, "mmap");
-	bijson.size = st.st_size;
-	close(fd);
-	// fprintf(stderr, "opened test.bijson at address %p\n", bijson.buffer);
+	C(bijson_open_filename(&bijson, output_bijson_filename));
 
 	fprintf(stderr, "checking keys at root level\n");
 	fflush(stderr);
-
 
 	bijson_object_analysis_t analysis;
 	C(bijson_object_analyze(&bijson, &analysis));
@@ -169,6 +136,9 @@ int main(void) {
 	if(error != bijson_error_key_not_found)
 		C(error);
 
+	fprintf(stderr, "no non-existent keys found\n");
+	fflush(stderr);
+
 	size_t count;
 	C(bijson_analyzed_object_count(&analysis, &count));
 	for(size_t u = SIZE_C(0); u < count; u++) {
@@ -184,19 +154,17 @@ int main(void) {
 		}
 	}
 	fprintf(stderr, "all %zu accounted for\n", count);
+	fflush(stderr);
 
-	// const char output_json_filename[] = "/dev/shm/test.json";
-	// fprintf(stderr, "writing %s\n", output_json_filename);
-	// fflush(stderr);
-
-	// fd = open(output_json_filename, O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
-	// if(fd == -1)
-	// 	err(2, "open(%s)", output_json_filename);
-	// C(bijson_to_json_fd(&bijson, fd));
-	// close(fd);
+	const char output_json_filename[] = "/dev/shm/test.json";
+	fprintf(stderr, "writing %s\n", output_json_filename);
+	fflush(stderr);
+	C(bijson_to_json_filename(&bijson, output_json_filename));
 
 	fprintf(stderr, "done\n");
 	fflush(stderr);
+
+	bijson_close(&bijson);
 
 	return 0;
 }

@@ -4,6 +4,7 @@
 #include <bijson/common.h>
 
 #include "common.h"
+#include "io.h"
 #include "writer.h"
 
 typedef struct _bijson_json_parser {
@@ -434,4 +435,26 @@ bijson_error_t bijson_parse_json(bijson_writer_t *writer, const void *buffer, si
 		*parse_end = parser.buffer_pos - (const byte *)buffer;
 
 	return error;
+}
+
+typedef struct _bijson_parse_json_action_data {
+	bijson_writer_t *writer;
+	size_t *parse_end;
+} _bijson_parse_json_action_data_t;
+
+bijson_error_t _bijson_parse_json_action(void *action_data, const void *buffer, size_t len) {
+	return bijson_parse_json(
+		((_bijson_parse_json_action_data_t *)action_data)->writer,
+		buffer,
+		len,
+		((_bijson_parse_json_action_data_t *)action_data)->parse_end
+	);
+}
+
+bijson_error_t bijson_parse_json_filename(bijson_writer_t *writer, const char *filename, size_t *parse_end) {
+	_bijson_parse_json_action_data_t action_data = {
+		.writer = writer,
+		.parse_end = parse_end,
+	};
+	return _bijson_io_read_from_filename(_bijson_parse_json_action, &action_data, filename);
 }
