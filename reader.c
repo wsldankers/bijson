@@ -592,7 +592,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range_upper(
 
 	size_t jump = SIZE_C(1);
 	size_t upper_bound;
-	size_t lower_bound = target->index + jump;
+	size_t lower_bound = target->index;
 
 	for(;;) {
 		upper_bound = target->index + jump;
@@ -613,17 +613,18 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range_upper(
 	}
 
 	// We now know the boundary is somewhere between lower_bound and upper_bound
-	// lower_bound may point at an equal key or a key just after an equal key.
-	// upper_bound points to a higher key.
+	// lower_bound always points at an equal key.
+	// upper_bound always points at a higher key.
+	// We stop when there are no more keys inbetween the two.
 
-	while(lower_bound != upper_bound) {
+	while(lower_bound != upper_bound - SIZE_C(1)) {
 		size_t guess = lower_bound + ((upper_bound - lower_bound) >> 1U);
 		bijson_t value;
 		const void *candidate_key;
 		size_t candidate_len;
 		_BIJSON_ERROR_RETURN(_bijson_analyzed_object_get_index(analysis, guess, &candidate_key, &candidate_len, &value));
 		if(candidate_len == target->len && !memcmp(candidate_key, target->key, candidate_len))
-			lower_bound = guess + SIZE_C(1);
+			lower_bound = guess;
 		else
 			upper_bound = guess;
 	}
@@ -667,10 +668,11 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range_lower(
 	}
 
 	// We now know the boundary is somewhere between lower_bound and upper_bound
-	// lower_bound may point at an equal key or a key just before an equal key.
-	// upper_bound points to an equal key.
+	// lower_bound always points at a lower key.
+	// upper_bound always points at an equal key.
+	// We stop when there are no more keys inbetween the two.
 
-	while(lower_bound != upper_bound) {
+	while(lower_bound != upper_bound - SIZE_C(1)) {
 		size_t guess = lower_bound + ((upper_bound - lower_bound) >> 1U);
 		bijson_t value;
 		const void *candidate_key;
@@ -679,10 +681,10 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range_lower(
 		if(candidate_len == target->len && !memcmp(candidate_key, target->key, candidate_len))
 			upper_bound = guess;
 		else
-			lower_bound = guess + SIZE_C(1);
+			lower_bound = guess;
 	}
 
-	lower->index = lower_bound;
+	lower->index = upper_bound;
 	return NULL;
 }
 

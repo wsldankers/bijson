@@ -20,6 +20,9 @@ int main(void) {
 
 	bijson_writer_t *writer = NULL;
 
+	fprintf(stderr, "checking ranges...\n");
+	fflush(stderr);
+
 	for(size_t a = SIZE_C(1); a < SIZE_C(10); a++) {
 		for(size_t b = SIZE_C(1); b < SIZE_C(10); b++) {
 			for(size_t c = SIZE_C(1); c < SIZE_C(10); c++) {
@@ -74,6 +77,9 @@ int main(void) {
 			}
 		}
 	}
+
+	fprintf(stderr, "ranges OK.\n");
+	fflush(stderr);
 
 	C(bijson_writer_alloc(&writer));
 
