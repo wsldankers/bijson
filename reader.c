@@ -595,7 +595,10 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range_upper(
 	size_t lower_bound = target->index;
 
 	for(;;) {
-		upper_bound = target->index + jump;
+		if(jump > SIZE_MAX - target->index)
+			upper_bound = SIZE_MAX;
+		else
+			upper_bound = target->index + jump;
 		if(upper_bound > upper_index_1)
 			upper_bound = upper_index_1;
 
