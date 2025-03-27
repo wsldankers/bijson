@@ -25,7 +25,7 @@ FILE_OFFSET_BITS = 64
 D_FILE_OFFSET_BITS = -D_FILE_OFFSET_BITS=$(FILE_OFFSET_BITS)
 NDEBUG = -DNDEBUG
 STANDARD = -std=c99
-LTO = -flto
+LTO = -flto=auto
 BASIC = -pipe -D_GNU_SOURCE $(D_FILE_OFFSET_BITS) -DHAVE_BUILTIN_CLZLL $(NDEBUG) -g -Wall $(WERROR) $(LTO)
 STRICT = -pedantic-errors -Wextra
 STRICT += -Wno-missing-field-initializers -Wno-unused-parameter

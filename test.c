@@ -17,8 +17,7 @@
 int main(void) {
 	bijson_t bijson __attribute__((unused)) = {};
 	bijson_error_t error __attribute__((unused));
-
-	bijson_writer_t *writer = NULL;
+	bijson_writer_t *writer;
 
 	fprintf(stderr, "checking ranges...\n");
 	fflush(stderr);
@@ -41,8 +40,8 @@ int main(void) {
 					C(bijson_writer_add_key(writer, "baz", 3));
 					C(bijson_writer_add_null(writer));
 				}
-				C(bijson_writer_end_object(writer));
 
+				C(bijson_writer_end_object(writer));
 				C(bijson_writer_write_to_malloc(writer, &bijson));
 				// C(bijson_writer_write_to_filename(writer, "/dev/shm/foobarbaz.bijson"));
 				bijson_writer_free(writer);
@@ -67,9 +66,9 @@ int main(void) {
 				size_t c_b, c_e;
 				C(bijson_analyzed_object_get_key_range(&analysis, "baz", 3, &c_b, &c_e));
 				if(c_b != b_e)
-					errx(EX_SOFTWARE, "bar beginning does not match");
+					errx(EX_SOFTWARE, "baz beginning does not match");
 				if(c_e != a + b + c)
-					errx(EX_SOFTWARE, "bar end does not match");
+					errx(EX_SOFTWARE, "baz end does not match");
 				if(c_e - c_b != c)
 					errx(EX_SOFTWARE, "baz count does not match");
 
@@ -103,44 +102,53 @@ int main(void) {
 
 	bijson_writer_free(writer);
 
-	// C(bijson_writer_alloc(&writer));
-	// C(bijson_writer_begin_array(writer));
-	// C(bijson_writer_begin_object(writer));
-	// C(bijson_writer_add_key(writer, "foo", 3));
-	// C(bijson_writer_add_string(writer, "quux", 4));
-	// C(bijson_writer_add_key(writer, "bar", 3));
-	// C(bijson_writer_add_string(writer, "xyzzy", 5));
-	// C(bijson_writer_end_object(writer));
-	// C(bijson_writer_add_true(writer));
-	// C(bijson_writer_add_false(writer));
-	// C(bijson_writer_add_decimal_from_string(writer, "123456", 6));
-	// C(bijson_writer_add_decimal_from_string(writer, "10000000", 8));
-	// C(bijson_writer_add_decimal_from_string(writer, "100000000", 9));
-	// C(bijson_writer_add_decimal_from_string(writer, "3.1415", 6));
-	// C(bijson_writer_add_decimal_from_string(writer, "1e1", 3));
-	// C(bijson_writer_add_decimal_from_string(writer, "1e2", 3));
-	// C(bijson_writer_add_decimal_from_string(writer, "1e3", 3));
-	// C(bijson_writer_add_decimal_from_string(writer, "1e4", 3));
-	// C(bijson_writer_add_decimal_from_string(writer, "1e5", 3));
-	// C(bijson_writer_add_decimal_from_string(writer, "1e6", 3));
-	// C(bijson_writer_add_decimal_from_string(writer, "1e7", 3));
-	// C(bijson_writer_add_decimal_from_string(writer, "1e8", 3));
-	// C(bijson_writer_add_string(writer, "あ", 3);
-	// // for(uint32_t u = 0; u < UINT32_C(10000000); u++)
-	// // 	C(bijson_writer_add_string(writer, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64));
-	// C(bijson_writer_end_array(writer));
-	// bijson_writer_free(writer);
+	C(bijson_writer_alloc(&writer));
+	C(bijson_writer_begin_array(writer));
+	C(bijson_writer_begin_object(writer));
+	C(bijson_writer_add_key(writer, "foo", 3));
+	C(bijson_writer_add_string(writer, "quux", 4));
+	C(bijson_writer_add_key(writer, "bar", 3));
+	C(bijson_writer_add_string(writer, "xyzzy", 5));
+	C(bijson_writer_end_object(writer));
+	C(bijson_writer_add_true(writer));
+	C(bijson_writer_add_false(writer));
+	C(bijson_writer_add_decimal_from_string(writer, "123456", 6));
+	C(bijson_writer_add_decimal_from_string(writer, "10000000", 8));
+	C(bijson_writer_add_decimal_from_string(writer, "100000000", 9));
+	C(bijson_writer_add_decimal_from_string(writer, "3.1415", 6));
+	C(bijson_writer_add_decimal_from_string(writer, "1e1", 3));
+	C(bijson_writer_add_decimal_from_string(writer, "1e2", 3));
+	C(bijson_writer_add_decimal_from_string(writer, "1e3", 3));
+	C(bijson_writer_add_decimal_from_string(writer, "1e4", 3));
+	C(bijson_writer_add_decimal_from_string(writer, "1e5", 3));
+	C(bijson_writer_add_decimal_from_string(writer, "1e6", 3));
+	C(bijson_writer_add_decimal_from_string(writer, "1e7", 3));
+	C(bijson_writer_add_decimal_from_string(writer, "1e8", 3));
+	C(bijson_writer_add_string(writer, "あ", 3));
+	// for(uint32_t u = 0; u < UINT32_C(10000000); u++)
+	// 	C(bijson_writer_add_string(writer, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64));
+	C(bijson_writer_end_array(writer));
 
-	// C(bijson_writer_alloc(&writer));
-	// const char json[] = " [ 42, -1e-1, 0.1, 0, 0.0, \"hoi\" , \"iedereen\\t\", { \"x\\by\": null }, { \"true\" : true , \"false\" : false , \"null\" : null }, [0, 0.0, 0e0, 0e1, 0.0e0, 0.0e1], [[]], {} ] ";
-	// size_t end;
-	// error = bijson_parse_json(writer, json, sizeof json - 1, &end);
-	// fprintf(stderr, "'%s'\n", json);
-	// for(size_t u = 0; u < end; u++)
-	// 	fputc(' ', stderr);
-	// fputs(" ^\n", stderr);
-	// C(error);
-	// bijson_writer_free(writer);
+	C(bijson_writer_write_to_malloc(writer, &bijson));
+	bijson_writer_free(writer);
+	C(bijson_to_json_FILE(&bijson, stderr));
+	bijson_free(&bijson);
+	fputc('\n', stderr);
+
+	C(bijson_writer_alloc(&writer));
+	const char json[] = " [ 42, -1e-1, 0.1, 0, 0.0, \"hoi\" , \"iedereen\\t\", { \"x\\by\": null }, { \"true\" : true , \"false\" : false , \"null\" : null }, [0, 0.0, 0e0, 0e1, 0.0e0, 0.0e1], [[]], {} ] ";
+	size_t end;
+	error = bijson_parse_json(writer, json, sizeof json - 1, &end);
+	fprintf(stderr, "'%s'\n", json);
+	for(size_t u = 0; u < end; u++)
+		fputc(' ', stderr);
+	fputs(" ^\n", stderr);
+	C(error);
+	C(bijson_writer_write_to_malloc(writer, &bijson));
+	bijson_writer_free(writer);
+	C(bijson_to_json_FILE(&bijson, stderr));
+	bijson_free(&bijson);
+	fputc('\n', stderr);
 
 	// C(bijson_writer_write_to_malloc(writer, &bijson));
 
