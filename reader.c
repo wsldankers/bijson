@@ -32,13 +32,13 @@ static inline bijson_error_t _bijson_raw_string_to_json(const bijson_t *bijson, 
 	const byte *string = bijson->buffer;
 	size_t len = bijson->size;
 	const byte *previously_written = string;
-	byte escape[2] = "\\x";
-	byte unicode_escape[6] = "\\u00XX";
+	byte escape[2] = "\\";
+	byte unicode_escape[6] = "\\u00";
 	_BIJSON_ERROR_RETURN(callback(callback_data, "\"", 1));
 	const byte *string_end = string + len;
 	while(string < string_end) {
 		const byte *string_pos = string;
-		byte c = *string++;
+		int c = *string++;
 		byte plain_escape = 0;
 		switch(c) {
 			case '"':
@@ -73,14 +73,14 @@ static inline bijson_error_t _bijson_raw_string_to_json(const bijson_t *bijson, 
 			escape[1] = plain_escape;
 			_BIJSON_ERROR_RETURN(callback(callback_data, escape, sizeof escape));
 		} else {
-			unicode_escape[4] = _bijson_hex[c >> 4];
-			unicode_escape[5] = _bijson_hex[c & BYTE_C(0xF)];
+			unicode_escape[4] = _bijson_hex[(size_t)c >> 4U];
+			unicode_escape[5] = _bijson_hex[(size_t)c & SIZE_C(0xF)];
 			_BIJSON_ERROR_RETURN(callback(callback_data, unicode_escape, sizeof unicode_escape));
 		}
 	}
 	if(string > previously_written)
 		_BIJSON_ERROR_RETURN(callback(callback_data, previously_written, string - previously_written));
-	return callback(callback_data, "\"", 1);
+	return callback(callback_data, "\"", SIZE_C(1));
 }
 
 static inline bijson_error_t _bijson_string_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *userdata) {
@@ -120,7 +120,7 @@ static inline bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bij
 	const byte *buffer = bijson->buffer;
 	const byte *buffer_end = buffer + bijson->size;
 
-	byte type = *buffer;
+	byte_compute_t type = *buffer;
 
 	const byte *exponent_size_location = buffer + SIZE_C(1);
 	if(exponent_size_location == buffer_end)
@@ -163,7 +163,7 @@ static inline bijson_error_t _bijson_decimal_integer_to_json(const bijson_t *bij
 	const byte *buffer = bijson->buffer;
 	size_t size = bijson->size;
 
-	byte type = *buffer;
+	byte_compute_t type = *buffer;
 	if(type & BYTE_C(0x1))
 		_BIJSON_ERROR_RETURN(callback(callback_data, "-", SIZE_C(1)));
 
@@ -198,7 +198,7 @@ static inline bijson_error_t _bijson_object_analyze_count(const bijson_t *bijson
 	const byte *buffer = bijson->buffer;
 	const byte *buffer_end = buffer + bijson->size;
 
-	byte type = *buffer;
+	byte_compute_t type = *buffer;
 	if((type & BYTE_C(0xC0)) != BYTE_C(0x40))
 		return bijson_error_type_mismatch;
 
@@ -247,13 +247,13 @@ static inline bijson_error_t _bijson_object_analyze(const bijson_t *bijson, _bij
 
 	const byte *buffer = bijson->buffer;
 	const byte *buffer_end = buffer + bijson->size;
-	byte type = *buffer;
+	byte_compute_t type = *buffer;
 
 	size_t count = analysis->count;
 	size_t count_1 = analysis->count_1;
 	size_t index_and_data_size = buffer_end - analysis->key_index;
-	size_t key_index_item_size = SIZE_C(1) << ((type >> 2) & BYTE_C(0x3));
-	size_t value_index_item_size = SIZE_C(1) << ((type >> 4) & BYTE_C(0x3));
+	size_t key_index_item_size = SIZE_C(1) << ((type >> 2U) & BYTE_C(0x3));
+	size_t value_index_item_size = SIZE_C(1) << ((type >> 4U) & BYTE_C(0x3));
 	// We need at least one key_index_item, one value_index_item, and one
 	// type byte for each item, but the first item does not have a value
 	// index entry, so fake that.
@@ -414,14 +414,14 @@ bijson_error_t bijson_analyzed_object_get_index(
 #ifdef __SIZEOF_INT128__
 typedef __uint128_t _bijson_hash_t;
 #define _BIJSON_HASH_MAX (~(__uint128_t)0)
-#define _BIJSON_HASH_C(x) ((__uint128_t)(UINT64_C(x)))
+#define _BIJSON_HASH_C(x) ((__uint128_t)UINT64_C(x))
 static inline _bijson_hash_t _bijson_integer_hash(XXH128_hash_t *xxhash) {
-	return ((__uint128_t)xxhash->high64 << 64) | (__uint128_t)xxhash->low64;
+	return ((__uint128_t)xxhash->high64 << 64U) | (__uint128_t)xxhash->low64;
 }
 #else
 typedef uint64_t _bijson_hash_t;
 #define _BIJSON_HASH_MAX UINT64_MAX
-#define _BIJSON_HASH_C(x) (UINT64_C(x))
+#define _BIJSON_HASH_C(x) UINT64_C(x)
 static inline _bijson_hash_t _bijson_integer_hash(XXH128_hash_t *xxhash) {
 	return xxhash->high64;
 }
@@ -471,23 +471,23 @@ static inline size_t _bijson_2log64(uint64_t x) {
 	size_t result = SIZE_C(1);
 	if(x & UINT64_C(0xFFFFFFFF00000000)) {
 		result += SIZE_C(32);
-		x >>= 32;
+		x >>= 32U;
 	}
 	if(x & UINT64_C(0xFFFF0000)) {
 		result += SIZE_C(16);
-		x >>= 16;
+		x >>= 16U;
 	}
 	if(x & UINT64_C(0xFF00)) {
 		result += SIZE_C(8);
-		x >>= 8;
+		x >>= 8U;
 	}
 	if(x & UINT64_C(0xF0)) {
 		result += SIZE_C(4);
-		x >>= 4;
+		x >>= 4U;
 	}
 	if(x & UINT64_C(0xC)) {
 		result += SIZE_C(2);
-		x >>= 2;
+		x >>= 2U;
 	}
 	if(x & UINT64_C(0x2)) {
 		result += SIZE_C(1);
@@ -539,7 +539,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key(
 		_bijson_get_key_entry_t guess = {
 			.index = attempt < max_attempts
 				? _bijson_get_key_guess(&lower, &upper, &target)
-				: lower.index + ((upper.index - lower.index) >> 2)
+				: lower.index + ((upper.index - lower.index) >> 1U)
 		};
 		_BIJSON_ERROR_RETURN(_bijson_get_key_entry_get(analysis, &guess));
 		int c = _bijson_get_key_entry_cmp(&guess, &target);
@@ -609,7 +609,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range_upper(
 			return NULL;
 
 		lower_bound = upper_bound;
-		jump <<= 1;
+		jump <<= 1U;
 	}
 
 	// We now know the boundary is somewhere between lower_bound and upper_bound
@@ -617,7 +617,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range_upper(
 	// upper_bound points to a higher key.
 
 	while(lower_bound != upper_bound) {
-		size_t guess = lower_bound + ((upper_bound - lower_bound) >> 2);
+		size_t guess = lower_bound + ((upper_bound - lower_bound) >> 1U);
 		bijson_t value;
 		const void *candidate_key;
 		size_t candidate_len;
@@ -663,7 +663,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range_lower(
 			return NULL;
 
 		upper_bound = lower_bound;
-		jump <<= 1;
+		jump <<= 1U;
 	}
 
 	// We now know the boundary is somewhere between lower_bound and upper_bound
@@ -671,7 +671,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range_lower(
 	// upper_bound points to an equal key.
 
 	while(lower_bound != upper_bound) {
-		size_t guess = lower_bound + ((upper_bound - lower_bound) >> 2);
+		size_t guess = lower_bound + ((upper_bound - lower_bound) >> 1U);
 		bijson_t value;
 		const void *candidate_key;
 		size_t candidate_len;
@@ -724,7 +724,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range(
 		_bijson_get_key_entry_t guess = {
 			.index = attempt < max_attempts
 				? _bijson_get_key_guess(&lower, &upper, &target)
-				: lower.index + ((upper.index - lower.index) >> 2)
+				: lower.index + ((upper.index - lower.index) >> 1U)
 		};
 		_BIJSON_ERROR_RETURN(_bijson_get_key_entry_get(analysis, &guess));
 		int c = _bijson_get_key_entry_cmp(&guess, &target);
@@ -793,7 +793,7 @@ static inline bijson_error_t _bijson_array_analyze_count(const bijson_t *bijson,
 	const byte *buffer = bijson->buffer;
 	const byte *buffer_end = buffer + bijson->size;
 
-	byte type = *buffer;
+	byte_compute_t type = *buffer;
 	if((type & BYTE_C(0xF0)) != BYTE_C(0x30))
 		return bijson_error_type_mismatch;
 
@@ -843,12 +843,12 @@ static inline bijson_error_t _bijson_array_analyze(const bijson_t *bijson, _bijs
 	const byte *buffer = bijson->buffer;
 	const byte *buffer_end = buffer + bijson->size;
 
-	byte type = *buffer;
+	byte_compute_t type = *buffer;
 
 	const byte *item_index = analysis->item_index;
 	size_t index_and_data_size = buffer_end - item_index;
 
-	size_t index_item_size = SIZE_C(1) << ((type >> 2) & BYTE_C(0x3));
+	size_t index_item_size = SIZE_C(1) << ((type >> 2U) & BYTE_C(0x3));
 	// We need at least one index_item and one type byte for each item,
 	// but the first item does not have an index entry, so fake that.
 	size_t count = analysis->count;
@@ -921,7 +921,7 @@ bijson_error_t bijson_array_analyze(const bijson_t *bijson, bijson_array_analysi
 bijson_error_t bijson_get_value_type(const bijson_t *bijson, bijson_value_type_t *result) {
 	_BIJSON_ERROR_RETURN(_bijson_check_bijson(bijson));
 	const byte *buffer = bijson->buffer;
-	const byte type = *buffer;
+	const byte_compute_t type = *buffer;
 
 	switch(type & BYTE_C(0xF0)) {
 		case BYTE_C(0x00):
@@ -1018,7 +1018,7 @@ bijson_error_t bijson_to_json(const bijson_t *bijson, bijson_output_callback_t c
 	_BIJSON_ERROR_RETURN(_bijson_check_bijson(bijson));
 	const byte *buffer = bijson->buffer;
 
-	const byte type = *buffer;
+	const byte_compute_t type = *buffer;
 
 	switch(type & BYTE_C(0xF0)) {
 		case BYTE_C(0x00):

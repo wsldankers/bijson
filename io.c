@@ -18,7 +18,7 @@
 #include "io.h"
 #include "common.h"
 
-static const char _bijson_nul_bytes[4096];
+static const byte _bijson_nul_bytes[4096];
 
 bijson_error_t _bijson_io_write_nul_bytes(bijson_output_callback_t write, void *write_data, size_t len) {
 	while(len) {
@@ -51,7 +51,7 @@ static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, c
 		if(required <= _BIJSON_WRITE_TO_FD_MAX_BUFFER) {
 			size_t new_size = state.size;
 			while(new_size < required)
-				new_size <<= 1;
+				new_size <<= 1U;
 			void *new_buffer = realloc(state.buffer, new_size);
 			if(new_buffer) {
 				memcpy(new_buffer + state.fill, data, len);

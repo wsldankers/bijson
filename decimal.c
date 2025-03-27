@@ -11,7 +11,8 @@
 #include "format.h"
 #include "writer.h"
 
-static inline bool _bijson_is_ascii_digit(char c) {
+//
+static inline bool _bijson_is_ascii_digit(int c) {
 	return '0' <= c && c <= '9';
 }
 
@@ -38,7 +39,7 @@ static inline bijson_error_t _bijson_shift_digits(const char *start, size_t len,
 		if(shift & 1)
 			magnitude *= magnitude_base;
 		magnitude_base *= magnitude_base;
-		shift >>= 1;
+		shift >>= 1U;
 	}
 
 	if(write == _bijson_io_bytecounter_output_callback) {
@@ -206,7 +207,7 @@ static inline bijson_error_t _bijson_analyze_string(_bijson_string_analysis_t *r
 
 	const char *string_end = string + len;
 
-	char c = *string;
+	int c = *string;
 	result->mantissa_negative = c == '-';
 	if(result->mantissa_negative || c == '+')
 		string++;
@@ -309,7 +310,7 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 
 	bool shift_negative = string_analysis.decimal_point < string_analysis.significand_end;
 	size_t shift = shift_negative
-		? string_analysis.significand_end - string_analysis.decimal_point - 1
+		? string_analysis.significand_end - string_analysis.decimal_point - SIZE_C(1)
 		: string_analysis.decimal_point - string_analysis.significand_end;
 
 	typedef struct output_parameters {
@@ -352,10 +353,10 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 			.exponent_negative = string_analysis.exponent_negative,
 			.shift_adjustment = shift_adjustment,
 			.adjusted_shift_negative = adjusted_shift_negative,
+			.adjusted_shift_string_len = adjusted_shift
+				? sprintf(output_parameters.adjusted_shift_string, "%zu", adjusted_shift)
+				: 0,
 		};
-		output_parameters.adjusted_shift_string_len = adjusted_shift
-			? sprintf(output_parameters.adjusted_shift_string, "%zu", adjusted_shift)
-			: 0;
 
 		if(adjusted_shift_negative == string_analysis.exponent_negative) {
 			// add the shift to the exponent
@@ -421,9 +422,9 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 	byte type = best_output_parameters.exponent_size
 		? BYTE_C(0x20)
 			| _bijson_optimal_storage_size1(best_output_parameters.exponent_size)
-			| (string_analysis.mantissa_negative << 2)
-			| (best_output_parameters.exponent_negative << 3)
-		: BYTE_C(0x1A) | string_analysis.mantissa_negative;
+			| ((byte_compute_t)string_analysis.mantissa_negative << 2U)
+			| ((byte_compute_t)best_output_parameters.exponent_negative << 3U)
+		: BYTE_C(0x1A) | (byte_compute_t)string_analysis.mantissa_negative;
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_push_byte(&writer->spool, type));
 
 	if(best_output_parameters.exponent_size) {

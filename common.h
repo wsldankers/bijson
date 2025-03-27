@@ -7,6 +7,11 @@
 
 #include <bijson/common.h>
 
+#if __SIZEOF_SIZE_T__ < __SIZEOF_INT__
+// Integer promotions would make this too much of a pain
+#error "unsupported size_t size"
+#endif
+
 #if __SIZEOF_SIZE_T__ == 8
 #define SIZE_C(x) UINT64_C(x)
 #elif __SIZEOF_SIZE_T__ == 4
@@ -22,7 +27,22 @@
 #endif
 
 typedef uint8_t byte;
-#define BYTE_C(x) UINT8_C(x)
+#define BYTE_C(x) x##U
+
+// Types that will prevent integer promotion shenanigans during computations:
+// (Integer promotion changes unsigned values into signed ones).
+typedef unsigned int byte_compute_t;
+typedef unsigned int uint8_compute_t;
+#if __SIZEOF_INT__ == 2
+typedef uint16_t uint16_compute_t;
+typedef uint32_t uint32_compute_t;
+#elif __SIZEOF_INT__ == 4
+typedef unsigned int uint16_compute_t;
+typedef uint32_t uint32_compute_t;
+#else
+typedef unsigned int uint16_compute_t;
+typedef unsigned int uint32_compute_t;
+#endif
 
 #define orz(x) (sizeof (x) / sizeof *(x))
 

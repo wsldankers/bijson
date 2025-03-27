@@ -16,7 +16,7 @@ bijson_error_t _bijson_check_valid_utf8(const byte *string, size_t len) {
 	const byte *end = s + len;
 
 	while(s != end) {
-		byte c = *s++;
+		uint8_compute_t c = *s++;
 		if(!(c & BYTE_C(0x80)))
 			continue; // short-circuit common case
 
@@ -33,7 +33,7 @@ bijson_error_t _bijson_check_valid_utf8(const byte *string, size_t len) {
 			// Size 3 sequences can encode 4 + 6 + 6 = 16 bits.
 			if(s == end)
 				return bijson_error_invalid_utf8; // premature end
-			byte c2 = *s++;
+			uint8_compute_t c2 = *s++;
 			if((c2 & BYTE_C(0xC0)) != BYTE_C(0x80))
 				return bijson_error_invalid_utf8; // not a continuation byte
 			if(!(c & BYTE_C(0x0F)) && !(c2 & BYTE_C(0x30)))
@@ -50,7 +50,7 @@ bijson_error_t _bijson_check_valid_utf8(const byte *string, size_t len) {
 			// Size 4 sequences can encode 3 + 6 + 6 + 6 = 21 bits.
 			if(s == end)
 				return bijson_error_invalid_utf8; // premature end
-			byte c2 = *s++;
+			uint8_compute_t c2 = *s++;
 			if((c2 & BYTE_C(0xC0)) != BYTE_C(0x80))
 				return bijson_error_invalid_utf8; // not a continuation byte
 			if(!(c & BYTE_C(0x07)) && !(c2 & BYTE_C(0x30)))
@@ -81,37 +81,37 @@ bijson_error_t _bijson_check_valid_utf8(const byte *string, size_t len) {
 void u8test(void) {
 	// reference: https://stackoverflow.com/questions/6555015/check-for-invalid-utf8
 	union {
-		uint32_t u;
+		uint32_compute_t u;
 		byte b[sizeof(uint32_t)];
 	} x;
 	x.u = 0;
 	do {
 		size_t len = 0;
-		if(x.b[0] <= BYTE_C(0x7F))
+		if((byte_compute_t)x.b[0] <= BYTE_C(0x7F))
 			len = 1;
-		else if(x.b[0] >= BYTE_C(0xC2) && x.b[0] <= BYTE_C(0xDF) && x.b[1] >= BYTE_C(0x80) && x.b[1] <= BYTE_C(0xBF))
+		else if((byte_compute_t)x.b[0] >= BYTE_C(0xC2) && (byte_compute_t)x.b[0] <= BYTE_C(0xDF) && (byte_compute_t)x.b[1] >= BYTE_C(0x80) && (byte_compute_t)x.b[1] <= BYTE_C(0xBF))
 			len = 2;
-		else if(x.b[0] == BYTE_C(0xE0)                            && x.b[1] >= BYTE_C(0xA0) && x.b[1] <= BYTE_C(0xBF) && x.b[2] >= BYTE_C(0x80) && x.b[2] <= BYTE_C(0xBF))
+		else if((byte_compute_t)x.b[0] == BYTE_C(0xE0)                                           && (byte_compute_t)x.b[1] >= BYTE_C(0xA0) && (byte_compute_t)x.b[1] <= BYTE_C(0xBF) && (byte_compute_t)x.b[2] >= BYTE_C(0x80) && (byte_compute_t)x.b[2] <= BYTE_C(0xBF))
 			len = 3;
-		else if(x.b[0] >= BYTE_C(0xE1) && x.b[0] <= BYTE_C(0xEC) && x.b[1] >= BYTE_C(0x80) && x.b[1] <= BYTE_C(0xBF) && x.b[2] >= BYTE_C(0x80) && x.b[2] <= BYTE_C(0xBF))
+		else if((byte_compute_t)x.b[0] >= BYTE_C(0xE1) && (byte_compute_t)x.b[0] <= BYTE_C(0xEC) && (byte_compute_t)x.b[1] >= BYTE_C(0x80) && (byte_compute_t)x.b[1] <= BYTE_C(0xBF) && (byte_compute_t)x.b[2] >= BYTE_C(0x80) && (byte_compute_t)x.b[2] <= BYTE_C(0xBF))
 			len = 3;
-		else if(x.b[0] == BYTE_C(0xED)                            && x.b[1] >= BYTE_C(0x80) && x.b[1] <= BYTE_C(0x9F) && x.b[2] >= BYTE_C(0x80) && x.b[2] <= BYTE_C(0xBF))
+		else if((byte_compute_t)x.b[0] == BYTE_C(0xED)                                           && (byte_compute_t)x.b[1] >= BYTE_C(0x80) && (byte_compute_t)x.b[1] <= BYTE_C(0x9F) && (byte_compute_t)x.b[2] >= BYTE_C(0x80) && (byte_compute_t)x.b[2] <= BYTE_C(0xBF))
 			len = 3;
-		else if(x.b[0] >= BYTE_C(0xEE) && x.b[0] <= BYTE_C(0xEF) && x.b[1] >= BYTE_C(0x80) && x.b[1] <= BYTE_C(0xBF) && x.b[2] >= BYTE_C(0x80) && x.b[2] <= BYTE_C(0xBF))
+		else if((byte_compute_t)x.b[0] >= BYTE_C(0xEE) && (byte_compute_t)x.b[0] <= BYTE_C(0xEF) && (byte_compute_t)x.b[1] >= BYTE_C(0x80) && (byte_compute_t)x.b[1] <= BYTE_C(0xBF) && (byte_compute_t)x.b[2] >= BYTE_C(0x80) && (byte_compute_t)x.b[2] <= BYTE_C(0xBF))
 			len = 3;
-		else if(x.b[0] == BYTE_C(0xF0)                            && x.b[1] >= BYTE_C(0x90) && x.b[1] <= BYTE_C(0xBF) && x.b[2] >= BYTE_C(0x80) && x.b[2] <= BYTE_C(0xBF) && x.b[3] >= BYTE_C(0x80) && x.b[3] <= BYTE_C(0xBF))
+		else if((byte_compute_t)x.b[0] == BYTE_C(0xF0)                                           && (byte_compute_t)x.b[1] >= BYTE_C(0x90) && (byte_compute_t)x.b[1] <= BYTE_C(0xBF) && (byte_compute_t)x.b[2] >= BYTE_C(0x80) && (byte_compute_t)x.b[2] <= BYTE_C(0xBF) && (byte_compute_t)x.b[3] >= BYTE_C(0x80) && (byte_compute_t)x.b[3] <= BYTE_C(0xBF))
 			len = 4;
-		else if(x.b[0] >= BYTE_C(0xF1) && x.b[0] <= BYTE_C(0xF3) && x.b[1] >= BYTE_C(0x80) && x.b[1] <= BYTE_C(0xBF) && x.b[2] >= BYTE_C(0x80) && x.b[2] <= BYTE_C(0xBF) && x.b[3] >= BYTE_C(0x80) && x.b[3] <= BYTE_C(0xBF))
+		else if((byte_compute_t)x.b[0] >= BYTE_C(0xF1) && (byte_compute_t)x.b[0] <= BYTE_C(0xF3) && (byte_compute_t)x.b[1] >= BYTE_C(0x80) && (byte_compute_t)x.b[1] <= BYTE_C(0xBF) && (byte_compute_t)x.b[2] >= BYTE_C(0x80) && (byte_compute_t)x.b[2] <= BYTE_C(0xBF) && (byte_compute_t)x.b[3] >= BYTE_C(0x80) && (byte_compute_t)x.b[3] <= BYTE_C(0xBF))
 			len = 4;
-		else if(x.b[0] == BYTE_C(0xF4)                            && x.b[1] >= BYTE_C(0x80) && x.b[1] <= BYTE_C(0x8F) && x.b[2] >= BYTE_C(0x80) && x.b[2] <= BYTE_C(0xBF) && x.b[3] >= BYTE_C(0x80) && x.b[3] <= BYTE_C(0xBF))
+		else if((byte_compute_t)x.b[0] == BYTE_C(0xF4)                                           && (byte_compute_t)x.b[1] >= BYTE_C(0x80) && (byte_compute_t)x.b[1] <= BYTE_C(0x8F) && (byte_compute_t)x.b[2] >= BYTE_C(0x80) && (byte_compute_t)x.b[2] <= BYTE_C(0xBF) && (byte_compute_t)x.b[3] >= BYTE_C(0x80) && (byte_compute_t)x.b[3] <= BYTE_C(0xBF))
 			len = 4;
 
 		if(len) {
-			if(_bijson_check_valid_utf8(x.b, len))
-				fprintf(stderr, "%02X %02X %02X %02X (%zu) should not have failed\n", x.b[0], x.b[1], x.b[2], x.b[3], len);
+			if(_bijson_check_valid_utf8((byte_compute_t)x.b, len))
+				fprintf(stderr, "%02X %02X %02X %02X (%zu) should not have failed\n", (byte_compute_t)x.b[0], (byte_compute_t)x.b[1], (byte_compute_t)x.b[2], (byte_compute_t)x.b[3], len);
 		} else for(len = 1; len <= 4; len++) {
-			if(!_bijson_check_valid_utf8(x.b, len))
-				fprintf(stderr, "%02X %02X %02X %02X (%zu) should have failed\n", x.b[0], x.b[1], x.b[2], x.b[3], len);
+			if(!_bijson_check_valid_utf8((byte_compute_t)x.b, len))
+				fprintf(stderr, "%02X %02X %02X %02X (%zu) should have failed\n", (byte_compute_t)x.b[0], (byte_compute_t)x.b[1], (byte_compute_t)x.b[2], (byte_compute_t)x.b[3], len);
 		}
 	} while(x.u++ != UINT32_MAX);
 }

@@ -264,11 +264,15 @@ static int _bijson_writer_object_object_item_cmp(const void *a, const void *b) {
 	int c = XXH128_cmp(&a_hash, &b_hash);
 	if(c)
 		return c;
-	return a_size < b_size
+	c = a_size < b_size
 		? -1
 		: a_size == b_size
 			? memcmp(a_item, b_item, a_size)
 			: 1;
+	if(c)
+		return c;
+	// stable sorting:
+	return a_item < b_item ? -1 : a_item != b_item;
 }
 
 bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, bijson_output_callback_t write, void *write_data, const byte *spool) {
@@ -277,7 +281,7 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, bijson_outpu
 	spool += sizeof container;
 
 	if(container.spool_size == sizeof container.output_size)
-		return write(write_data, "\x40", 1);
+		return write(write_data, "\x40", SIZE_C(1));
 
 	const byte *spool_end = spool + container.spool_size - sizeof container.spool_size;
 	size_t stack_used = writer->stack.used;
@@ -323,12 +327,12 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, bijson_outpu
 	// We do not include the type bytes in the offsets (they're implicit)
 	values_output_size -= count_1;
 
-	byte count_width = _bijson_optimal_storage_size(count_1);
-	byte key_offsets_width = _bijson_optimal_storage_size(keys_output_size);
-	byte value_offsets_width = _bijson_optimal_storage_size(values_output_size);
-	byte final_type = BYTE_C(0x40) | count_width | (key_offsets_width << 2) | (value_offsets_width << 4);
+	byte_compute_t count_width = _bijson_optimal_storage_size(count_1);
+	byte_compute_t key_offsets_width = _bijson_optimal_storage_size(keys_output_size);
+	byte_compute_t value_offsets_width = _bijson_optimal_storage_size(values_output_size);
+	byte output_type = BYTE_C(0x40) | (value_offsets_width << 4U) | (key_offsets_width << 2U) | count_width;
 
-	_BIJSON_ERROR_RETURN(write(write_data, &final_type, sizeof final_type));
+	_BIJSON_ERROR_RETURN(write(write_data, &output_type, sizeof output_type));
 	_BIJSON_ERROR_RETURN(_bijson_writer_write_compact_int(write, write_data, count_1, count_width));
 
 	// Write the key offsets
@@ -378,7 +382,7 @@ bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, bijson_output
 	spool += sizeof container;
 
 	if(container.spool_size == sizeof container.output_size)
-		return write(write_data, "\x30", 1);
+		return write(write_data, "\x30", SIZE_C(1));
 
 	const byte *spool_end = spool + container.spool_size - sizeof container.spool_size;
 
@@ -401,11 +405,11 @@ bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, bijson_output
 
 	items_output_size -= count_1;
 
-	byte count_width = _bijson_optimal_storage_size(count_1);
-	byte item_offsets_width = _bijson_optimal_storage_size(items_output_size);
-	byte final_type = BYTE_C(0x30) | count_width | (item_offsets_width << 2);
+	byte_compute_t count_width = _bijson_optimal_storage_size(count_1);
+	byte_compute_t item_offsets_width = _bijson_optimal_storage_size(items_output_size);
+	byte output_type = BYTE_C(0x30) | (item_offsets_width << 2U) | count_width;
 
-	_BIJSON_ERROR_RETURN(write(write_data, &final_type, sizeof final_type));
+	_BIJSON_ERROR_RETURN(write(write_data, &output_type, sizeof output_type));
 	_BIJSON_ERROR_RETURN(_bijson_writer_write_compact_int(write, write_data, count_1, count_width));
 
 	// Write the item offsets

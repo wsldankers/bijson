@@ -59,8 +59,8 @@ static inline bijson_error_t _bijson_writer_check_expect_value(bijson_writer_t *
 static inline bijson_error_t _bijson_writer_write_minimal_int(bijson_output_callback_t write, void *write_data, uint64_t u, size_t nbytes) {
 	byte buf[8];
 	for(size_t z = 0; z < nbytes; z++) {
-		buf[z] = u & BYTE_C(0xFF);
-		u >>= 8;
+		buf[z] = u & UINT64_C(0xFF);
+		u >>= 8U;
 	}
 	return write(write_data, buf, nbytes);
 }

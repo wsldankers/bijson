@@ -82,9 +82,9 @@ bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t requ
 			// round to next multiple of _BIJSON_MAX_BUFFER_EXTENSION
 			new_size = (required - SIZE_C(1) + _BIJSON_MAX_BUFFER_EXTENSION) / _BIJSON_MAX_BUFFER_EXTENSION * _BIJSON_MAX_BUFFER_EXTENSION;
 		} else {
-			new_size = old_size << 1;
+			new_size = old_size << 1U;
 			while(new_size < required)
-				new_size <<= 1;
+				new_size <<= 1U;
 		}
 		if(was_malloced) {
 			const char *tmpdir = getenv("BIJSON_TMPDIR");
