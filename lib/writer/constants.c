@@ -1,9 +1,9 @@
 #include <stdbool.h>
 
-#include <bijson/writer.h>
+#include "../../include/bijson/writer.h"
 
-#include "common.h"
-#include "writer.h"
+#include "../common.h"
+#include "../writer.h"
 
 static inline bijson_error_t _bijson_writer_add_constant(bijson_writer_t *writer, byte type) {
 	if(writer->failed)

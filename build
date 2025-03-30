@@ -1,6 +1,6 @@
 #! /usr/bin/make -f
 
-programs = test
+programs = bin/test
 
 all: $(programs)
 
@@ -32,23 +32,35 @@ STRICT += -Wno-missing-field-initializers -Wno-unused-parameter
 STRICT += -Waggregate-return -Wbad-function-cast -Wcast-align -Wcast-qual -Wconversion -Winline -Wmissing-declarations -Wmissing-prototypes -Wnested-externs -Wold-style-definition -Wpointer-arith -Wredundant-decls -Wshadow -Wstack-protector -Wstrict-prototypes -Wundef -Wwrite-strings
 EXTRA_STRICT = $(STRICT) -Wunreachable-code
 STRIP = -s
-INCLUDE = -I$(src)include
+INCLUDE =
 
 CFLAGS = $(STANDARD) $(OPTIMIZE) $(SPECIALIZE) $(INCLUDE) $(BASIC) $(EXTRA_CFLAGS) $(XXHASH_CFLAGS)
 LDFLAGS = -pipe $(OPTIMIZE) $(LTO) $(STRIP)
 LIBS = $(XXHASH_LIBS) -lm
 
-
-test_EXTRA_OBJECTS = writer.o reader.o buffer.o common.o container.o format.o string.o decimal.o bytes.o constants.o io.o error.o parse.o
-
+bin/test_EXTRA_OBJECTS = \
+	lib/common.o \
+	lib/error.o \
+	lib/io.o \
+	lib/reader.o \
+	lib/reader/parse.o \
+	lib/writer.o \
+	lib/writer/buffer.o \
+	lib/writer/bytes.o \
+	lib/writer/constants.o \
+	lib/writer/container.o \
+	lib/writer/decimal.o \
+	lib/writer/format.o \
+	lib/writer/string.o
 
 define programrule
 $1_OBJECTS ?= $1.o
 $1_LDFLAGS ?= $$(LDFLAGS)
 $1_LIBS ?= $$(LIBS)
 objects += $$($1_OBJECTS) $$($1_EXTRA_OBJECTS)
+dirs += $(patsubst %/,%,$(dir $1))
 
-$1: $$(sort $$($1_OBJECTS) $$($1_EXTRA_OBJECTS))
+$1: $$(sort $$($1_OBJECTS) $$($1_EXTRA_OBJECTS)) | $(patsubst %/,%,$(dir $1))
 	exec $$(strip $(CC) $$($1_LDFLAGS) $$($1_EXTRA_LDFLAGS) $$^ -o $$@ $$($1_LIBS) $$($1_EXTRA_LIBS))
 endef
 
@@ -58,10 +70,11 @@ objects := $(sort $(objects))
 
 define objectrule
 $1_CFLAGS ?= $$(CFLAGS)
+dirs += $(patsubst %/,%,$(dir $1))
 
 -include $1.d
 
-$1.o: $$(src)$1.c $$($1_EXTRA_DEPS)
+$1.o: $$(src)$1.c $$($1_EXTRA_DEPS) | $(patsubst %/,%,$(dir $1))
 	exec $$(strip $(CC) $$($1_CFLAGS) $$($1_EXTRA_CFLAGS) -MMD -c $$< -o $$@)
 endef
 
@@ -69,7 +82,10 @@ $(foreach obj,$(objects:.o=),$(eval $(call objectrule,$(obj))))
 
 generated = $(sort $(objects) $(objects:.o=.d) $(programs))
 
+$(sort $(dirs)):
+	exec mkdir $@
+
 .PHONY: all clean install recursive
 
 clean:
-	rm -f $(generated)
+	exec rm -f $(generated)

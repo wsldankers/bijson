@@ -4,14 +4,12 @@
 #include <stdio.h>
 #include <xxhash.h>
 
-#include <bijson/writer.h>
+#include "../../include/bijson/writer.h"
 
-#include "bijson/common.h"
+#include "../common.h"
+#include "../writer.h"
 #include "buffer.h"
-#include "common.h"
 #include "container.h"
-#include "format.h"
-#include "writer.h"
 
 // Arrays and objects share the same container struct
 typedef struct _bijson_container {

@@ -2,7 +2,7 @@
 #define _GNU_SOURCE
 
 #include "buffer.h"
-#include "common.h"
+#include "../common.h"
 
 #include <stdio.h>
 #include <string.h>

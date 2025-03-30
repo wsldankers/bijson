@@ -5,13 +5,11 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include <bijson/writer.h>
+#include "../../include/bijson/writer.h"
 
-#include "common.h"
-#include "format.h"
-#include "writer.h"
+#include "../common.h"
+#include "../writer.h"
 
-//
 static inline bool _bijson_is_ascii_digit(int c) {
 	return '0' <= c && c <= '9';
 }

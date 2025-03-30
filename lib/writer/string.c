@@ -1,8 +1,7 @@
 #include <stdbool.h>
 
-#include "common.h"
-#include "string.h"
-#include "writer.h"
+#include "../common.h"
+#include "../writer.h"
 
 bijson_error_t bijson_writer_add_string(bijson_writer_t *writer, const char *string, size_t len) {
 	if(writer->failed)

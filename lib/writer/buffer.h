@@ -5,9 +5,8 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <bijson/common.h>
-
-#include "common.h"
+#include "../../include/bijson/common.h"
+#include "../common.h"
 
 typedef struct _bijson_buffer {
 	// minibuffer must be the first item for alignment reasons

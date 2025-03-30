@@ -5,19 +5,26 @@
 #include <err.h>
 #include <sysexits.h>
 
-#include <bijson/writer.h>
-#include <bijson/reader.h>
+#include "../include/bijson/writer.h"
+#include "../include/bijson/reader.h"
 
-#include "common.h"
-#include "writer.h"
+#include "../lib/common.h"
+#include "../lib/writer.h"
+#include "../lib/writer/buffer.h"
 
-#define C(x) do { bijson_error_t error = (x); if(error == bijson_error_system) err(EX_OSERR, "%s:%d: %s", __FILE__, __LINE__, #x); else if(error) errx(EX_SOFTWARE, "%s:%d: %s: %s", __FILE__, __LINE__, #x, error); } while(0)
+static void inline _c(const char *file, int line, const char *body, bijson_error_t error) {
+	if(error == bijson_error_system)
+		err(EX_OSERR, "%s:%d: %s", file, line, body);
+	else if(error)
+		errx(EX_SOFTWARE, "%s:%d: %s: %s", file, line, body, error);
+}
+#define C(error) do { _c(__FILE__, __LINE__, #error, (error)); } while(0)
 
 
 int main(void) {
 	bijson_t bijson __attribute__((unused)) = {};
 	bijson_error_t error __attribute__((unused));
-	bijson_writer_t *writer;
+	struct bijson_writer *writer;
 
 	fprintf(stderr, "checking ranges...\n");
 	fflush(stderr);

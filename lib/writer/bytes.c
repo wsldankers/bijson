@@ -1,9 +1,9 @@
 #include <stdbool.h>
 
-#include <bijson/writer.h>
+#include "../../include/bijson/writer.h"
 
-#include "common.h"
-#include "writer.h"
+#include "../common.h"
+#include "../writer.h"
 
 bijson_error_t bijson_writer_add_bytes(bijson_writer_t *writer, const void *bytes, size_t len) {
 	if(writer->failed)

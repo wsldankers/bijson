@@ -1,11 +1,11 @@
 #include <string.h>
 
-#include <bijson/writer.h>
-#include <bijson/common.h>
+#include "../../include/bijson/writer.h"
+#include "../../include/bijson/common.h"
 
-#include "common.h"
-#include "io.h"
-#include "writer.h"
+#include "../common.h"
+#include "../io.h"
+#include "../writer.h"
 
 typedef struct _bijson_json_parser {
 	bijson_writer_t *writer;

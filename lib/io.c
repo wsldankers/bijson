@@ -13,8 +13,6 @@
 #include <sys/mman.h>
 #include <sys/uio.h>
 
-#include <bijson/reader.h>
-
 #include "io.h"
 #include "common.h"
 

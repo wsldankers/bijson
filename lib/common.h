@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <bijson/common.h>
+#include "../include/bijson/common.h"
 
 #if __SIZEOF_SIZE_T__ < __SIZEOF_INT__
 // Integer promotions would make this too much of a pain

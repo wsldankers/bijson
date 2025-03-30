@@ -3,14 +3,13 @@
 #include <unistd.h>
 #include <string.h>
 
-#include <bijson/writer.h>
+#include "../include/bijson/writer.h"
 
-#include "buffer.h"
 #include "common.h"
-#include "container.h"
-#include "string.h"
-#include "writer.h"
 #include "io.h"
+#include "writer.h"
+#include "writer/buffer.h"
+#include "writer/container.h"
 
 #define _bijson_writer_0 ((bijson_writer_t){ \
 	.spool = _bijson_buffer_0, \
