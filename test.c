@@ -150,18 +150,33 @@ int main(void) {
 	bijson_free(&bijson);
 	fputc('\n', stderr);
 
-	// C(bijson_writer_write_to_malloc(writer, &bijson));
+	fprintf(stderr, "generating numbers\n");
+	fflush(stderr);
 
-	// C(bijson_writer_alloc(&writer));
-	// C(bijson_writer_begin_object(writer));
-	// for(size_t u = 0; u < SIZE_C(100000000); u++) {
-	// 	char getal[20];
-	// 	int len = sprintf(getal, "%zu", u);
-	// 	C(bijson_writer_add_key(writer, getal, len));
-	// 	C(bijson_writer_add_string(writer, getal, len));
-	// }
-	// C(bijson_writer_end_object(writer));
-	// bijson_writer_free(writer);
+	const char output_numbers_filename[] = "/dev/shm/numbers.bijson";
+	C(bijson_writer_alloc(&writer));
+	C(bijson_writer_begin_object(writer));
+	for(size_t u = 0; u < SIZE_C(100000000); u++) {
+		char getal[20];
+		int len = sprintf(getal, "%zu", u);
+		C(bijson_writer_add_key(writer, getal, len));
+		C(bijson_writer_add_decimal_from_string(writer, getal, len));
+	}
+	C(bijson_writer_end_object(writer));
+	fprintf(stderr, "writing %s\n", output_numbers_filename);
+	fflush(stderr);
+	C(bijson_writer_write_to_filename(writer, output_numbers_filename));
+	bijson_writer_free(writer);
+
+	const char output_numbers_json_filename[] = "/dev/shm/numbers.json";
+	fprintf(stderr, "writing %s\n", output_numbers_json_filename);
+	fflush(stderr);
+	C(bijson_open_filename(&bijson, output_numbers_filename));
+	C(bijson_to_json_filename(&bijson, output_numbers_json_filename));
+	bijson_close(&bijson);
+
+	fprintf(stderr, "done\n");
+	fflush(stderr);
 
 	C(bijson_writer_alloc(&writer));
 
