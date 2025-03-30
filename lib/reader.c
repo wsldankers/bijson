@@ -63,7 +63,7 @@ static inline bijson_error_t _bijson_raw_string_to_json(const bijson_t *bijson, 
 				plain_escape = 't';
 				break;
 			default:
-				if(c >= BYTE_C(32))
+				if(c >= 32)
 					continue;
 		}
 		if(string_pos > previously_written)
