@@ -1,0 +1,8 @@
+#! /usr/bin/make -f
+
+%:
+	exec dh $@ --parallel
+
+override_dh_auto_install:
+	exec dh_auto_install
+	exec find debian/tmp -name \*.la -delete

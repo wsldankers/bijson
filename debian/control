@@ -1,0 +1,33 @@
+Source: bijson
+Section: libs
+Priority: optional
+Maintainer: Wessel Dankers <wsl@fruit.je>
+Build-Depends: debhelper (>= 14), libxxhash-dev
+Standards-Version: 4.7.2
+
+Package: bijson
+Section: admin
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Write-once database with JSON semantics
+ Store JSON data in a write-once database.
+ .
+ This package provides a tool to convert from and to JSON.
+
+Package: libbijson0
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Write-once database with JSON semantics
+ Store JSON data in a write-once database.
+ .
+ This package provides the shared library for use in other programs.
+
+Package: libbijson-dev
+Section: libdevel
+Architecture: any
+Depends: libbijson0 (= ${binary:Version}), libc6-dev
+Description: Write-once database with JSON semantics
+ Store JSON data in a write-once database.
+ .
+ This package provides the files required to compile applications
+ that use the bijson library.

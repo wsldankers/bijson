@@ -1,0 +1,14 @@
+This package was debianized by Wessel Dankers <wsl@fruit.je> on
+Sun, 30 Mar 2025 23:26:48 +0200.
+
+It can be downloaded from https://www.fruit.je/download/bijson/
+Version control is at https://git.fruit.je/bijson
+
+Upstream Author: Wessel Dankers <wsl@fruit.je>
+
+Copyright: 2024,2025 Wessel Dankers <wsl@fruit.je>
+
+License: LGPL version 3 or any later version.
+
+The Debian packaging is © 2025, Wessel Dankers <wsl@fruit.je> and
+is licensed under the GPL, see '/usr/share/common-licenses/GPL-3'.
