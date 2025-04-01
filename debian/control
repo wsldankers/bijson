@@ -2,7 +2,7 @@ Source: bijson
 Section: libs
 Priority: optional
 Maintainer: Wessel Dankers <wsl@fruit.je>
-Build-Depends: debhelper (>= 14), libxxhash-dev
+Build-Depends: debhelper (>= 13), libxxhash-dev
 Standards-Version: 4.7.2
 
 Package: bijson
