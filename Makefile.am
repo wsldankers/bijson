@@ -12,7 +12,7 @@ TESTS = tests/wrapper
 lib_LTLIBRARIES = lib/libbijson.la
 lib_libbijson_la_SOURCES = lib/common.c lib/error.c lib/io.c lib/reader.c lib/reader/parse.c lib/writer/buffer.c lib/writer/bytes.c lib/writer.c lib/writer/constants.c lib/writer/container.c lib/writer/decimal.c lib/writer/string.c
 lib_libbijson_la_LDFLAGS = -Wl,--version-script,$(srcdir)/libbijson.ver
-lib_libbijson_la_LIBADD = -lrt
+lib_libbijson_la_LIBADD = -lxxhash
 
 includefiles_HEADERS = include/bijson/common.h include/bijson/reader.h include/bijson/writer.h
 includefilesdir = $(pkgincludedir)

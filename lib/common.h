@@ -30,7 +30,7 @@ typedef uint8_t byte;
 #define BYTE_C(x) x##U
 
 // Types that will prevent integer promotion shenanigans during computations:
-// (Integer promotion changes unsigned values into signed ones).
+// (Integer promotion in some cases changes unsigned values into signed ones).
 typedef unsigned int byte_compute_t;
 typedef unsigned int uint8_compute_t;
 #if __SIZEOF_INT__ == 2
@@ -44,9 +44,17 @@ typedef unsigned int uint16_compute_t;
 typedef unsigned int uint32_compute_t;
 #endif
 
-#define orz(x) (sizeof (x) / sizeof *(x))
+#define _BIJSON_ARRAY_COUNT(x) (sizeof (x) / sizeof *(x))
 
-#define _BIJSON_ERROR_CLEANUP_AND_RETURN(x, cleanup) do { bijson_error_t _error = (x); if(__builtin_expect((bool)_error, 0)) { cleanup; return _error; } } while(false)
+#ifdef HAVE_BUILTIN_EXPECT
+#define _BIJSON_EXPECT_TRUE(x) __builtin_expect((bool)(x), 1)
+#define _BIJSON_EXPECT_FALSE(x) __builtin_expect((bool)(x), 0)
+#else
+#define _BIJSON_EXPECT_TRUE(x) (x)
+#define _BIJSON_EXPECT_FALSE(x) (x)
+#endif
+
+#define _BIJSON_ERROR_CLEANUP_AND_RETURN(x, cleanup) do { bijson_error_t _error = (x); if(_BIJSON_EXPECT_FALSE(_error)) { cleanup; return _error; } } while(false)
 #define _BIJSON_ERROR_RETURN(x) _BIJSON_ERROR_CLEANUP_AND_RETURN((x), do {} while(false))
 
 #define bijson_0 ((bijson_t){0})

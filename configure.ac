@@ -7,9 +7,12 @@ AC_INIT(bijson, m4_esyscmd_s([
 ]), [wsl-bijson-bugs@fruit.je])
 AM_INIT_AUTOMAKE([foreign subdir-objects dist-xz no-dist-gzip])
 
+# libtool is annoyingly verbose without this:
+AM_SILENT_RULES([yes])
+
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([lib/io.c])
-AC_CONFIG_HEADERS([lib/config.h])
+AC_CONFIG_HEADERS([config.h])
 
 AC_DEFINE(_GNU_SOURCE, 1, [needed for some calls])
 AC_DEFINE(_FILE_OFFSET_BITS, 64, [gnu libc has inconvenient defaults])
@@ -47,9 +50,9 @@ AX_APPEND_FLAG([-Wextra])
 AX_APPEND_FLAG([-Wno-missing-field-initializers])
 AX_APPEND_FLAG([-Wno-unused-parameter])
 AX_APPEND_FLAG([-Wstrict-aliasing])
-AX_APPEND_FLAG([-include lib/config.h])
+AX_APPEND_FLAG([-include config.h])
 AX_APPEND_FLAG([-flto=auto])
-AX_APPEND_FLAG([-flto=auto],[DFLAGS])
+AX_APPEND_FLAG([-flto=auto],[LDFLAGS])
 
 AC_REQUIRE_AUX_FILE([tap-driver.sh])
 AC_CONFIG_FILES([Makefile])
