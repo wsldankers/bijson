@@ -1,7 +1,6 @@
 # version info for symbols in the shared library
 
-HARDHAT_0.0 {
-	global:
-		bijson_*;
-	local: *; 
+BIJSON_0.0 {
+	global: bijson_*;
+	local: *;
 };
