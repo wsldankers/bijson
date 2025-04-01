@@ -5,8 +5,8 @@
 #include <err.h>
 #include <sysexits.h>
 
-#include "../include/bijson/writer.h"
-#include "../include/bijson/reader.h"
+#include "../include/writer.h"
+#include "../include/reader.h"
 
 #include "../lib/common.h"
 #include "../lib/writer.h"

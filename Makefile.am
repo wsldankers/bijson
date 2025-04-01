@@ -14,7 +14,7 @@ lib_libbijson_la_SOURCES = lib/common.c lib/error.c lib/io.c lib/reader.c lib/re
 lib_libbijson_la_LDFLAGS = -Wl,--version-script,$(srcdir)/libbijson.ver
 lib_libbijson_la_LIBADD = -lxxhash
 
-includefiles_HEADERS = include/bijson/common.h include/bijson/reader.h include/bijson/writer.h
+includefiles_HEADERS = include/common.h include/reader.h include/writer.h
 includefilesdir = $(pkgincludedir)
 
 EXTRA_DIST = bijson.ver

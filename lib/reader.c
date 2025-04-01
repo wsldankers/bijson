@@ -6,7 +6,7 @@
 #include <math.h>
 #include <xxhash.h>
 
-#include "../include/bijson/reader.h"
+#include "../include/reader.h"
 
 #include "common.h"
 #include "io.h"

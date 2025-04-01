@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <xxhash.h>
 
-#include "../../include/bijson/writer.h"
+#include "../../include/writer.h"
 
 #include "../common.h"
 #include "../writer.h"

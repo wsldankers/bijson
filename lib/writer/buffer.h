@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "../../include/bijson/common.h"
+#include "../../include/common.h"
 #include "../common.h"
 
 typedef struct _bijson_buffer {

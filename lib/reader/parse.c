@@ -1,7 +1,7 @@
 #include <string.h>
 
-#include "../../include/bijson/writer.h"
-#include "../../include/bijson/common.h"
+#include "../../include/writer.h"
+#include "../../include/common.h"
 
 #include "../common.h"
 #include "../io.h"

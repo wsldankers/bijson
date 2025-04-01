@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "../include/bijson/writer.h"
+#include "../include/writer.h"
 
 #include "common.h"
 #include "io.h"

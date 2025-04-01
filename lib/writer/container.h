@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../include/bijson/writer.h"
+#include "../../include/writer.h"
 
 #include "../writer.h"
 

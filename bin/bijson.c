@@ -4,8 +4,8 @@
 #include <err.h>
 #include <sysexits.h>
 
-#include "../include/bijson/reader.h"
-#include "../include/bijson/writer.h"
+#include "../include/reader.h"
+#include "../include/writer.h"
 
 #ifndef PACKAGE_STRING
 #define PACKAGE_STRING "bijson (git)"

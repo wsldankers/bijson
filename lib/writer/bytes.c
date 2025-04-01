@@ -1,6 +1,6 @@
 #include <stdbool.h>
 
-#include "../../include/bijson/writer.h"
+#include "../../include/writer.h"
 
 #include "../common.h"
 #include "../writer.h"

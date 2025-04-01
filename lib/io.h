@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "../include/bijson/common.h"
-#include "../include/bijson/reader.h"
+#include "../include/common.h"
+#include "../include/reader.h"
 
 typedef bijson_error_t (*_bijson_output_action_callback_t)(
 	void *action_callback_data,

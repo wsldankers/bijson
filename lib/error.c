@@ -1,4 +1,4 @@
-#include "../include/bijson/common.h"
+#include "../include/common.h"
 
 const char bijson_error_system[] = "system error";
 const char bijson_error_index_out_of_range[] = "index out of range";
