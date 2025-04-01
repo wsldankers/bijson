@@ -79,8 +79,8 @@ static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, c
 					if(poll_fd.revents != POLLOUT)
 						return bijson_error_system;
 				}
-				ssize_t written = writev(state.fd, vec, 2);
-				if(written == (ssize_t)-1) {
+				size_t written = writev(state.fd, vec, 2);
+				if(written == SIZE_MAX) {
 					if(errno == EWOULDBLOCK || errno == EAGAIN)
 						state.nonblocking = ((_bijson_buffer_write_to_fd_state_t *)write_data)->nonblocking = true;
 					else if(errno != EINTR)
@@ -370,11 +370,11 @@ bijson_error_t _bijson_io_read_from_filename(
 		struct stat st;
 		if(fstat(fd, &st) == -1)
 			break;
-		if(!st.st_size) {
+		if(st.st_size <= 0) {
 			error = bijson_error_file_format_error;
 			break;
 		}
-		if(st.st_size > SIZE_MAX) {
+		if((uintmax_t)st.st_size > (uintmax_t)SIZE_MAX) {
 			error = bijson_error_out_of_virtual_memory;
 			break;
 		}

@@ -308,8 +308,8 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 
 	bool shift_negative = string_analysis.decimal_point < string_analysis.significand_end;
 	size_t shift = shift_negative
-		? string_analysis.significand_end - string_analysis.decimal_point - SIZE_C(1)
-		: string_analysis.decimal_point - string_analysis.significand_end;
+		? (size_t)(string_analysis.significand_end - string_analysis.decimal_point) - SIZE_C(1)
+		: (size_t)(string_analysis.decimal_point - string_analysis.significand_end);
 
 	typedef struct output_parameters {
 		size_t total_size;

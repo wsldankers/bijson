@@ -5,7 +5,7 @@
 #define HAVE_BUILTIN_CLZLL 1
 
 /* has __builtin_expect function */
-/* #undef HAVE_BUILTIN_EXPECT */
+#define HAVE_BUILTIN_EXPECT 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define HAVE_DLFCN_H 1

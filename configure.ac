@@ -34,11 +34,22 @@ AC_CHECK_HEADERS([stdint.h inttypes.h stdlib.h unistd.h fcntl.h], , [
 ])
 
 MY_CHECK_BUILTIN(clzll, 0)
-MY_CHECK_BUILTIN(expect, 0)
+MY_CHECK_BUILTIN(expect, [0, 0])
 
 LT_INIT
 
-AX_APPEND_FLAG([-std=c99 -pipe -fvisibility=hidden -Wall -Wextra -Wno-missing-field-initializers -Wstrict-aliasing -include lib/config.h])
+MY_REMOVE_FLAG([-O2])
+AX_APPEND_FLAG([-O3])
+AX_APPEND_FLAG([-std=c99])
+AX_APPEND_FLAG([-pipe])
+AX_APPEND_FLAG([-Wall])
+AX_APPEND_FLAG([-Wextra])
+AX_APPEND_FLAG([-Wno-missing-field-initializers])
+AX_APPEND_FLAG([-Wno-unused-parameter])
+AX_APPEND_FLAG([-Wstrict-aliasing])
+AX_APPEND_FLAG([-include lib/config.h])
+AX_APPEND_FLAG([-flto=auto])
+AX_APPEND_FLAG([-flto=auto],[DFLAGS])
 
 AC_REQUIRE_AUX_FILE([tap-driver.sh])
 AC_CONFIG_FILES([Makefile])
