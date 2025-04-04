@@ -3,6 +3,7 @@
 #include <string.h>
 #include <err.h>
 #include <sysexits.h>
+#include <assert.h>
 
 #include "../include/reader.h"
 #include "../include/writer.h"
