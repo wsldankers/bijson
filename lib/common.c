@@ -57,9 +57,9 @@ bijson_error_t _bijson_check_valid_utf8(const byte *string, size_t len) {
 				return bijson_error_invalid_utf8; // overlong sequence
 			if(c == BYTE_C(0xF4)) {
 				if(c2 & BYTE_C(0x30))
-					return bijson_error_invalid_utf8; // outside of BMP
+					return bijson_error_invalid_utf8; // outside Unicode code space
 			} else if(c & BYTE_C(0x0C)) {
-				return bijson_error_invalid_utf8; // outside of BMP
+				return bijson_error_invalid_utf8; // outside Unicode code space
 			}
 			if(s == end)
 				return bijson_error_invalid_utf8; // premature end
