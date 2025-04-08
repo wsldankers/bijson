@@ -30,6 +30,7 @@ BASIC = -pipe -D_GNU_SOURCE $(D_FILE_OFFSET_BITS) -DHAVE_BUILTIN_CLZLL $(NDEBUG)
 STRICT = -pedantic-errors -Wextra
 STRICT += -Wno-missing-field-initializers -Wno-unused-parameter
 STRICT += -Waggregate-return -Wbad-function-cast -Wcast-align -Wcast-qual -Wconversion -Winline -Wmissing-declarations -Wmissing-prototypes -Wnested-externs -Wold-style-definition -Wpointer-arith -Wredundant-decls -Wshadow -Wstack-protector -Wstrict-prototypes -Wundef -Wwrite-strings
+STRICT += -Wsuggest-attribute=pure -Wsuggest-attribute=const -Wsuggest-attribute=noreturn -Wmissing-noreturn -Wsuggest-attribute=malloc -Wsuggest-attribute=format -Wmissing-format-attribute -Wsuggest-attribute=cold
 EXTRA_STRICT = $(STRICT) -Wunreachable-code
 STRIP = -s
 INCLUDE =
