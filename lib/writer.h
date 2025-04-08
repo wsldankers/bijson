@@ -95,7 +95,7 @@ static inline bijson_error_t _bijson_writer_check_expect_value(bijson_writer_t *
 }
 
 static inline bijson_error_t _bijson_writer_write_minimal_int(bijson_output_callback_t write, void *write_data, uint64_t u, size_t nbytes) {
-	byte buf[8];
+	byte_t buf[8];
 	for(size_t z = 0; z < nbytes; z++) {
 		buf[z] = u & UINT64_C(0xFF);
 		u >>= 8U;
@@ -103,7 +103,7 @@ static inline bijson_error_t _bijson_writer_write_minimal_int(bijson_output_call
 	return write(write_data, buf, nbytes);
 }
 
-static inline bijson_error_t _bijson_writer_write_compact_int(bijson_output_callback_t write, void *write_data, uint64_t u, byte width) {
+static inline bijson_error_t _bijson_writer_write_compact_int(bijson_output_callback_t write, void *write_data, uint64_t u, byte_t width) {
 	return _bijson_writer_write_minimal_int(write, write_data, u, 1 << width);
 }
 
@@ -111,5 +111,5 @@ extern bijson_error_t _bijson_writer_write_value(
 	bijson_writer_t *writer,
 	bijson_output_callback_t write,
 	void *write_data,
-	const byte *spool
+	const byte_t *spool
 );

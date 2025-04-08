@@ -26,7 +26,7 @@
 #define IF_DEBUG(x) do { x; } while(false)
 #endif
 
-typedef uint8_t byte;
+typedef uint8_t byte_t;
 #define BYTE_C(x) x##U
 
 // Types that will prevent integer promotion shenanigans during computations:
@@ -46,9 +46,17 @@ typedef unsigned int uint32_compute_t;
 
 #define _BIJSON_ARRAY_COUNT(x) (sizeof (x) / sizeof *(x))
 
+// Sometimes we do need to lose the const qualifier. Do it explicitly.
+inline static void *_bijson_no_const(const void *p) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+	return (void *)p;
+#pragma GCC diagnostic pop
+}
+
 #ifdef HAVE_BUILTIN_EXPECT
-#define _BIJSON_EXPECT_TRUE(x) __builtin_expect((bool)(x), 1)
-#define _BIJSON_EXPECT_FALSE(x) __builtin_expect((bool)(x), 0)
+#define _BIJSON_EXPECT_TRUE(x) __builtin_expect((x) != 0, 1)
+#define _BIJSON_EXPECT_FALSE(x) __builtin_expect((x) != 0, 0)
 #else
 #define _BIJSON_EXPECT_TRUE(x) (x)
 #define _BIJSON_EXPECT_FALSE(x) (x)
@@ -59,7 +67,7 @@ typedef unsigned int uint32_compute_t;
 
 #define bijson_0 ((bijson_t){0})
 
-extern bijson_error_t _bijson_check_valid_utf8(const byte *string, size_t len);
+extern bijson_error_t _bijson_check_valid_utf8(const byte_t *string, size_t len);
 
 static inline size_t _bijson_size_min(size_t a, size_t b) {
 	return a < b ? a : b;

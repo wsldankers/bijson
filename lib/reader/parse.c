@@ -9,13 +9,13 @@
 
 typedef struct _bijson_json_parser {
 	bijson_writer_t *writer;
-	const byte *buffer_pos;
-	const byte *buffer_end;
+	const byte_t *buffer_pos;
+	const byte_t *buffer_end;
 } _bijson_json_parser_t;
 
 typedef bijson_error_t (*_bijson_appender_t)(bijson_writer_t *writer, const char *buffer, size_t len);
 
-static inline bijson_error_t _bijson_parse_json_unichar(const byte *hex, uint16_compute_t *result) {
+static inline bijson_error_t _bijson_parse_json_unichar(const byte_t *hex, uint16_compute_t *result) {
 	uint16_compute_t value = 0;
 	for(unsigned int u = 0; u < 4; u++) {
 		int c = hex[u];
@@ -40,11 +40,11 @@ static bijson_error_t _bijson_parser_append_unichar(
 	bijson_writer_t *writer,
 	uint32_compute_t unichar
 ) {
-	byte utf8[4];
+	byte_t utf8[4];
 	size_t len;
 	if(unichar <= UINT32_C(0x7F)) {
 		len = SIZE_C(1);
-		utf8[0] = (byte)unichar;
+		utf8[0] = (byte_t)unichar;
 	} else if(unichar <= UINT32_C(0x7FF)) {
 		len = SIZE_C(2);
 		utf8[0] = BYTE_C(0xC0) | (unichar >> 6U);
@@ -71,7 +71,7 @@ static bijson_error_t _bijson_parser_append_unichar(
 }
 
 static inline bijson_error_t _bijson_parse_json_string_escape(_bijson_json_parser_t *parser, _bijson_appender_t append) {
-	const byte * const buffer_pos = parser->buffer_pos;
+	const byte_t * const buffer_pos = parser->buffer_pos;
 	size_t len = parser->buffer_end - buffer_pos;
 	assert(len);
 	assert(*buffer_pos == '\\');
@@ -147,7 +147,7 @@ static inline bijson_error_t _bijson_parse_json_string_escape(_bijson_json_parse
 	return NULL;
 }
 
-static inline bijson_error_t _bijson_check_control_chars(const byte *buffer_pos, const byte *buffer_end) {
+static inline bijson_error_t _bijson_check_control_chars(const byte_t *buffer_pos, const byte_t *buffer_end) {
 	while(buffer_pos != buffer_end)
 		if(!(*buffer_pos++ & BYTE_C(0xE0)))
 			return bijson_error_invalid_json_syntax;
@@ -155,16 +155,16 @@ static inline bijson_error_t _bijson_check_control_chars(const byte *buffer_pos,
 }
 
 static bijson_error_t _bijson_parse_json_string(_bijson_json_parser_t *parser, bool is_object_key) {
-	const byte *buffer_pos = parser->buffer_pos;
-	const byte *buffer_end = parser->buffer_end;
+	const byte_t *buffer_pos = parser->buffer_pos;
+	const byte_t *buffer_end = parser->buffer_end;
 	assert(buffer_end - buffer_pos);
 	assert(*buffer_pos == '"');
 	buffer_pos++;
 
-	const byte *next_quote = memchr(buffer_pos, '"', buffer_end - buffer_pos);
+	const byte_t *next_quote = memchr(buffer_pos, '"', buffer_end - buffer_pos);
 	if(!next_quote)
 		return bijson_error_invalid_json_syntax;
-	const byte *next_escape = memchr(buffer_pos, '\\', next_quote - buffer_pos);
+	const byte_t *next_escape = memchr(buffer_pos, '\\', next_quote - buffer_pos);
 	if(!next_escape) {
 		// short-circuit common case
 		_BIJSON_ERROR_RETURN(_bijson_check_control_chars(buffer_pos, next_quote));
@@ -213,8 +213,8 @@ static bijson_error_t _bijson_parse_json_string(_bijson_json_parser_t *parser, b
 }
 
 static bijson_error_t _bijson_find_json_number_end(_bijson_json_parser_t *parser) {
-	const byte *buffer_pos = parser->buffer_pos;
-	const byte *buffer_end = parser->buffer_end;
+	const byte_t *buffer_pos = parser->buffer_pos;
+	const byte_t *buffer_end = parser->buffer_end;
 	assert(buffer_end - buffer_pos);
 	int c = *buffer_pos;
 	if(c == '-') {
@@ -264,7 +264,7 @@ static bijson_error_t _bijson_find_json_number_end(_bijson_json_parser_t *parser
 }
 
 static bijson_error_t _bijson_parse_json_number(_bijson_json_parser_t *parser) {
-	const byte *buffer_pos = parser->buffer_pos;
+	const byte_t *buffer_pos = parser->buffer_pos;
 	_BIJSON_ERROR_RETURN(_bijson_find_json_number_end(parser));
 	return bijson_writer_add_decimal_from_string(parser->writer, (const char *)buffer_pos, parser->buffer_pos - buffer_pos);
 }
@@ -274,8 +274,8 @@ static inline bool _bijson_is_json_ws(int c) {
 }
 
 static inline bijson_error_t _bijson_skip_json_ws(_bijson_json_parser_t *parser) {
-	const byte *buffer_end = parser->buffer_end;
-	const byte *buffer_pos = parser->buffer_pos;
+	const byte_t *buffer_end = parser->buffer_end;
+	const byte_t *buffer_pos = parser->buffer_pos;
 	while(buffer_pos != buffer_end) {
 		if(!_bijson_is_json_ws(*buffer_pos)) {
 			parser->buffer_pos = buffer_pos;
@@ -288,7 +288,7 @@ static inline bijson_error_t _bijson_skip_json_ws(_bijson_json_parser_t *parser)
 
 static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 	int c;
-	const byte *buffer_end = parser->buffer_end;
+	const byte_t *buffer_end = parser->buffer_end;
 	size_t nesting = 0;
 
 	for(;;) {
@@ -352,7 +352,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 					_BIJSON_ERROR_RETURN(_bijson_parse_json_number(parser));
 					break;
 				case 't': {
-					const byte *buffer_next = parser->buffer_pos + SIZE_C(4);
+					const byte_t *buffer_next = parser->buffer_pos + SIZE_C(4);
 					if(buffer_next >= buffer_end || memcmp(parser->buffer_pos, "true", SIZE_C(4)))
 						return bijson_error_invalid_json_syntax;
 					_BIJSON_ERROR_RETURN(bijson_writer_add_true(parser->writer));
@@ -360,7 +360,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 					break;
 				}
 				case 'f': {
-					const byte *buffer_next = parser->buffer_pos + SIZE_C(5);
+					const byte_t *buffer_next = parser->buffer_pos + SIZE_C(5);
 					if(buffer_next > buffer_end || memcmp(parser->buffer_pos, "false", SIZE_C(5)))
 						return bijson_error_invalid_json_syntax;
 					_BIJSON_ERROR_RETURN(bijson_writer_add_false(parser->writer));
@@ -368,7 +368,7 @@ static inline bijson_error_t _bijson_parse_json(_bijson_json_parser_t *parser) {
 					break;
 				}
 				case 'n': {
-					const byte *buffer_next = parser->buffer_pos + SIZE_C(4);
+					const byte_t *buffer_next = parser->buffer_pos + SIZE_C(4);
 					if(buffer_next > buffer_end || memcmp(parser->buffer_pos, "null", SIZE_C(4)))
 						return bijson_error_invalid_json_syntax;
 					_BIJSON_ERROR_RETURN(bijson_writer_add_null(parser->writer));
@@ -439,7 +439,7 @@ bijson_error_t bijson_parse_json(bijson_writer_t *writer, const void *buffer, si
 	bijson_error_t error = _bijson_parse_json(&parser);
 
 	if(parse_end)
-		*parse_end = parser.buffer_pos - (const byte *)buffer;
+		*parse_end = parser.buffer_pos - (const byte_t *)buffer;
 
 	return error;
 }

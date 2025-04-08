@@ -5,7 +5,7 @@
 #include "../common.h"
 #include "../writer.h"
 
-static inline bijson_error_t _bijson_writer_add_constant(bijson_writer_t *writer, byte type) {
+static inline bijson_error_t _bijson_writer_add_constant(bijson_writer_t *writer, byte_t type) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));

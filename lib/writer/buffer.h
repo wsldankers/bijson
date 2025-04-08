@@ -10,8 +10,8 @@
 
 typedef struct _bijson_buffer {
 	// minibuffer must be the first item for alignment reasons
-	byte _minibuffer[sizeof(size_t) * SIZE_C(4)];
-	byte *_buffer;
+	byte_t _minibuffer[sizeof(size_t) * SIZE_C(4)];
+	byte_t *_buffer;
 	size_t _size;
 	size_t used;
 	int _fd;
@@ -23,15 +23,15 @@ typedef struct _bijson_buffer {
 
 #define _bijson_buffer_0 ((struct _bijson_buffer){._fd = -1})
 
-static inline size_t _bijson_buffer_offset(_bijson_buffer_t *buffer, const byte *pointer) {
+static inline size_t _bijson_buffer_offset(_bijson_buffer_t *buffer, const byte_t *pointer) {
 	assert(!buffer->_failed);
 	assert(buffer->_finalized);
-	return pointer - (const byte *)buffer->_buffer;
+	return (size_t)(pointer - (const byte_t *)buffer->_buffer);
 }
 
 extern void _bijson_buffer_init(_bijson_buffer_t *buffer);
 extern void _bijson_buffer_wipe(_bijson_buffer_t *buffer);
-extern const byte *_bijson_buffer_finalize(_bijson_buffer_t *buffer);
+extern const byte_t *_bijson_buffer_finalize(_bijson_buffer_t *buffer);
 extern bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t required);
 
 static inline void *_bijson_buffer_access(_bijson_buffer_t *buffer, size_t offset, size_t len) {
@@ -47,8 +47,8 @@ static inline void _bijson_buffer_read(_bijson_buffer_t *buffer, size_t offset, 
 	memcpy(data, offset_buffer, len);
 }
 
-static inline byte _bijson_buffer_read_byte(_bijson_buffer_t *buffer, size_t offset) {
-	byte byte;
+static inline byte_t _bijson_buffer_read_byte(_bijson_buffer_t *buffer, size_t offset) {
+	byte_t byte;
 	_bijson_buffer_read(buffer, offset, &byte, sizeof byte);
 	return byte;
 }
@@ -67,7 +67,7 @@ static inline void _bijson_buffer_write(_bijson_buffer_t *buffer, size_t offset,
 	memcpy(buffer->_buffer + offset, data, len);
 }
 
-static inline void _bijson_buffer_write_byte(_bijson_buffer_t *buffer, size_t offset, byte byte) {
+static inline void _bijson_buffer_write_byte(_bijson_buffer_t *buffer, size_t offset, byte_t byte) {
 	_bijson_buffer_write(buffer, offset, &byte, sizeof byte);
 }
 
@@ -86,7 +86,7 @@ static inline bijson_error_t _bijson_buffer_push(_bijson_buffer_t *buffer, const
 	return NULL;
 }
 
-static inline bijson_error_t _bijson_buffer_push_byte(_bijson_buffer_t *buffer, byte byte) {
+static inline bijson_error_t _bijson_buffer_push_byte(_bijson_buffer_t *buffer, byte_t byte) {
 	return _bijson_buffer_push(buffer, &byte, sizeof byte);
 }
 
@@ -104,8 +104,8 @@ static inline void _bijson_buffer_pop(_bijson_buffer_t *buffer, void *data, size
 	buffer->used = new_used;
 }
 
-static inline byte _bijson_buffer_pop_byte(_bijson_buffer_t *buffer) {
-	byte byte;
+static inline byte_t _bijson_buffer_pop_byte(_bijson_buffer_t *buffer) {
+	byte_t byte;
 	_bijson_buffer_pop(buffer, &byte, sizeof byte);
 	return byte;
 }

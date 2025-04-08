@@ -36,7 +36,7 @@ void _bijson_buffer_wipe(_bijson_buffer_t *buffer) {
 	IF_DEBUG(memset(buffer, 'A', sizeof *buffer));
 }
 
-const byte *_bijson_buffer_finalize(_bijson_buffer_t *buffer) {
+const byte_t *_bijson_buffer_finalize(_bijson_buffer_t *buffer) {
 	assert(!buffer->_failed);
 	IF_DEBUG(buffer->_finalized = true);
 	return buffer->_buffer;

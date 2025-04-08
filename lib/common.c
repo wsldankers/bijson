@@ -9,11 +9,11 @@
 
 #include "common.h"
 
-bijson_error_t _bijson_check_valid_utf8(const byte *string, size_t len) {
+bijson_error_t _bijson_check_valid_utf8(const byte_t *string, size_t len) {
 	if(!string)
 		return len == 0 ? NULL : bijson_error_parameter_is_null;
-	const byte *s = string;
-	const byte *end = s + len;
+	const byte_t *s = string;
+	const byte_t *end = s + len;
 
 	while(s != end) {
 		uint8_compute_t c = *s++;

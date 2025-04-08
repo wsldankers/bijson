@@ -417,7 +417,7 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 #ifndef NDEBUG
 	size_t spool_used = writer->spool.used;
 #endif
-	byte type = best_output_parameters.exponent_size
+	byte_t type = best_output_parameters.exponent_size
 		? BYTE_C(0x20)
 			| _bijson_optimal_storage_size1(best_output_parameters.exponent_size)
 			| ((byte_compute_t)string_analysis.mantissa_negative << 2U)

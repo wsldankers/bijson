@@ -44,14 +44,14 @@ typedef bijson_error_t (*_bijson_writer_write_type_func_t)(
 	bijson_writer_t *writer,
 	bijson_output_callback_t write,
 	void *write_data,
-	const byte *spool
+	const byte_t *spool
 );
 
 static bijson_error_t _bijson_writer_write_scalar(
 	bijson_writer_t *writer,
 	bijson_output_callback_t write,
 	void *write_data,
-	const byte *spool
+	const byte_t *spool
 ) {
 	size_t spool_size;
 	memcpy(&spool_size, spool, sizeof spool_size);
@@ -62,9 +62,9 @@ bijson_error_t _bijson_writer_write_value(
 	bijson_writer_t *writer,
 	bijson_output_callback_t write,
 	void *write_data,
-	const byte *spool
+	const byte_t *spool
 ) {
-	_bijson_spool_type_t spool_type = *(const byte *)spool++;
+	_bijson_spool_type_t spool_type = *(const byte_t *)spool++;
 	switch(spool_type) {
 		case _bijson_spool_type_scalar:
 			return _bijson_writer_write_scalar(writer, write, write_data, spool);
@@ -102,7 +102,7 @@ static bijson_error_t _bijson_writer_write(
 	if(root_spool_size != spool_used)
 		return bijson_error_bad_root;
 
-	const byte *spool = _bijson_buffer_finalize(&writer->spool);
+	const byte_t *spool = _bijson_buffer_finalize(&writer->spool);
 	return _bijson_writer_write_value(writer, write, write_data, spool);
 }
 

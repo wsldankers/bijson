@@ -12,7 +12,7 @@
 #include "../lib/writer.h"
 #include "../lib/writer/buffer.h"
 
-static void inline _c(const char *file, int line, const char *body, bijson_error_t error) {
+inline static void _c(const char *file, int line, const char *body, bijson_error_t error) {
 	if(error == bijson_error_system)
 		err(EX_OSERR, "%s:%d: %s", file, line, body);
 	else if(error)
@@ -22,7 +22,7 @@ static void inline _c(const char *file, int line, const char *body, bijson_error
 
 
 int main(void) {
-	bijson_t bijson __attribute__((unused)) = {};
+	bijson_t bijson __attribute__((unused)) = bijson_0;
 	bijson_error_t error __attribute__((unused));
 	struct bijson_writer *writer;
 
@@ -165,7 +165,7 @@ int main(void) {
 	C(bijson_writer_begin_object(writer));
 	for(size_t u = 0; u < SIZE_C(100000000); u++) {
 		char getal[20];
-		int len = sprintf(getal, "%zu", u);
+		size_t len = (size_t)sprintf(getal, "%zu", u);
 		C(bijson_writer_add_key(writer, getal, len));
 		C(bijson_writer_add_decimal_from_string(writer, getal, len));
 	}
@@ -235,7 +235,6 @@ int main(void) {
 	for(size_t u = SIZE_C(0); u < count; u++) {
 		const void *key;
 		size_t len;
-		bijson_t value;
 		C(bijson_analyzed_object_get_index(&analysis, u, &key, &len, &value));
 		bijson_t check;
 		C(bijson_analyzed_object_get_key(&analysis, key, len, &check));
