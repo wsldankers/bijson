@@ -455,6 +455,8 @@ static inline bijson_error_t _bijson_get_key_entry_get(const _bijson_object_anal
 }
 
 static inline uint64_t _bijson_get_key_guess(_bijson_get_key_entry_t *lower, _bijson_get_key_entry_t *upper, _bijson_get_key_entry_t *target) {
+	if(lower->hash == upper->hash)
+		return lower->index + ((upper->index - lower->index) >> 1U);
 	return lower->index + (size_t)floorl(
 		(long double)(upper->index - lower->index)
 		* (long double)(target->hash - lower->hash)
