@@ -11,8 +11,8 @@ typedef struct bijson_writer bijson_writer_t;
 extern void bijson_writer_free(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_alloc(bijson_writer_t **result);
 
-extern bool bijson_writer_expects_value(bijson_writer_t *writer);
-extern bool bijson_writer_expects_key(bijson_writer_t *writer);
+extern bool bijson_writer_expects_value(const bijson_writer_t *writer)  __attribute__((pure));
+extern bool bijson_writer_expects_key(const bijson_writer_t *writer) __attribute__((pure));
 
 extern bijson_error_t bijson_parse_json(bijson_writer_t *writer, const void *buffer, size_t len, size_t *parse_end);
 extern bijson_error_t bijson_parse_json_filename(bijson_writer_t *writer, const char *filename, size_t *parse_end);
@@ -22,6 +22,7 @@ extern bijson_error_t bijson_writer_write_to_FILE(bijson_writer_t *writer, FILE 
 extern bijson_error_t bijson_writer_write_to_malloc(bijson_writer_t *writer, bijson_t *bijson);
 extern bijson_error_t bijson_writer_write_to_filename(bijson_writer_t *writer, const char *filename);
 extern bijson_error_t bijson_writer_write_to_tempfile(bijson_writer_t *writer, bijson_t *bijson);
+extern bijson_error_t bijson_writer_write_bytecounter(bijson_writer_t *writer, size_t *result_size);
 
 extern bijson_error_t bijson_writer_begin_array(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_end_array(bijson_writer_t *writer);

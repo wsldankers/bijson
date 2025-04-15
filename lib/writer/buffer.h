@@ -23,10 +23,11 @@ typedef struct _bijson_buffer {
 
 #define _bijson_buffer_0 ((struct _bijson_buffer){._fd = -1})
 
+__attribute__((pure))
 static inline size_t _bijson_buffer_offset(_bijson_buffer_t *buffer, const byte_t *pointer) {
 	assert(!buffer->_failed);
 	assert(buffer->_finalized);
-	return (size_t)(pointer - (const byte_t *)buffer->_buffer);
+	return _bijson_ptrdiff(pointer, buffer->_buffer);
 }
 
 extern void _bijson_buffer_init(_bijson_buffer_t *buffer);
@@ -34,6 +35,7 @@ extern void _bijson_buffer_wipe(_bijson_buffer_t *buffer);
 extern const byte_t *_bijson_buffer_finalize(_bijson_buffer_t *buffer);
 extern bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t required);
 
+ __attribute__((pure))
 static inline void *_bijson_buffer_access(_bijson_buffer_t *buffer, size_t offset, size_t len) {
 	assert(!buffer->_failed);
 	assert(offset + len <= buffer->used);

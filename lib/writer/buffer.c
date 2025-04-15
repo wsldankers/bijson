@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <limits.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 
@@ -36,6 +37,9 @@ void _bijson_buffer_wipe(_bijson_buffer_t *buffer) {
 	IF_DEBUG(memset(buffer, 'A', sizeof *buffer));
 }
 
+#ifdef NDEBUG
+__attribute__((pure))
+#endif
 const byte_t *_bijson_buffer_finalize(_bijson_buffer_t *buffer) {
 	assert(!buffer->_failed);
 	IF_DEBUG(buffer->_finalized = true);
@@ -86,6 +90,10 @@ bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t requ
 			while(new_size < required)
 				new_size <<= 1U;
 		}
+		if(new_size > OFF_MAX) {
+			IF_DEBUG(buffer->_failed = true);
+			return bijson_error_out_of_virtual_memory;
+		}
 		if(was_malloced) {
 			const char *tmpdir = getenv("BIJSON_TMPDIR");
 			if(!tmpdir)
@@ -97,13 +105,13 @@ bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t requ
 				IF_DEBUG(buffer->_failed = true);
 				return bijson_error_system;
 			}
-			if(posix_fallocate(fd, 0, new_size) == -1) {
+			if(posix_fallocate(fd, 0, (off_t)new_size) == -1) {
 				close(fd);
 				IF_DEBUG(buffer->_failed = true);
 				return bijson_error_system;
 			}
 		} else {
-			if(posix_fallocate(fd, old_size, new_size - old_size) == -1) {
+			if(posix_fallocate(fd, (off_t)old_size, (off_t)(new_size - old_size)) == -1) {
 				IF_DEBUG(buffer->_failed = true);
 				return bijson_error_system;
 			}

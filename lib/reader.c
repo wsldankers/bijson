@@ -67,7 +67,7 @@ static inline bijson_error_t _bijson_raw_string_to_json(const bijson_t *bijson, 
 					continue;
 		}
 		if(string_pos > previously_written)
-			_BIJSON_ERROR_RETURN(callback(callback_data, previously_written, string_pos - previously_written));
+			_BIJSON_ERROR_RETURN(callback(callback_data, previously_written, _bijson_ptrdiff(string_pos, previously_written)));
 		previously_written = string;
 		if(plain_escape) {
 			escape[1] = plain_escape;
@@ -79,12 +79,12 @@ static inline bijson_error_t _bijson_raw_string_to_json(const bijson_t *bijson, 
 		}
 	}
 	if(string > previously_written)
-		_BIJSON_ERROR_RETURN(callback(callback_data, previously_written, string - previously_written));
+		_BIJSON_ERROR_RETURN(callback(callback_data, previously_written, (size_t)(string - previously_written)));
 	return callback(callback_data, "\"", SIZE_C(1));
 }
 
 static inline bijson_error_t _bijson_string_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *userdata) {
-	bijson_t raw_string = { .buffer = bijson->buffer + SIZE_C(1), .size = bijson->size - SIZE_C(1) };
+	bijson_t raw_string = { .buffer = (const byte_t *)bijson->buffer + SIZE_C(1), .size = bijson->size - SIZE_C(1) };
 	_BIJSON_ERROR_RETURN(_bijson_check_valid_utf8(raw_string.buffer, raw_string.size));
 	return _bijson_raw_string_to_json(&raw_string, callback, userdata);
 }
@@ -102,7 +102,10 @@ static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson
 	last_word++;
 
 	char word_chars[20];
-	_BIJSON_ERROR_RETURN(callback(callback_data, word_chars, sprintf(word_chars, "%"PRIu64, last_word)));
+	int sprintf_result = sprintf(word_chars, "%"PRIu64, last_word);
+	if(sprintf_result < 0)
+		return bijson_error_internal_error;
+	_BIJSON_ERROR_RETURN(callback(callback_data, word_chars, (size_t)sprintf_result));
 
 	const byte_t *word_start = last_word_start;
 	while(word_start > buffer) {
@@ -110,7 +113,8 @@ static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson
 		uint64_t word = _bijson_read_minimal_int(word_start, sizeof(uint64_t));
 		if(word > UINT64_C(9999999999999999999))
 			return bijson_error_file_format_error;
-		_BIJSON_ERROR_RETURN(callback(callback_data, word_chars, sprintf(word_chars, "%019"PRIu64, word)));
+		sprintf_result = sprintf(word_chars, "%019"PRIu64, word);
+		_BIJSON_ERROR_RETURN(callback(callback_data, word_chars, (size_t)sprintf_result));
 	}
 
 	return NULL;
@@ -134,7 +138,7 @@ static inline bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bij
 	if(raw_exponent_size > SIZE_MAX - SIZE_C(1))
 		return bijson_error_file_format_error;
 	size_t exponent_size = (size_t)raw_exponent_size + SIZE_C(1);
-	if(exponent_size > buffer_end - exponent_start - SIZE_C(1))
+	if(exponent_size > _bijson_ptrdiff(buffer_end, exponent_start) - SIZE_C(1))
 		return bijson_error_file_format_error;
 
 	if(type & BYTE_C(0x4))
@@ -143,7 +147,7 @@ static inline bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bij
 	const byte_t *significand_start = exponent_start + exponent_size;
 	bijson_t significand = {
 		significand_start,
-		buffer_end - significand_start,
+		_bijson_ptrdiff(buffer_end, significand_start),
 	};
 	_BIJSON_ERROR_RETURN(_bijson_decimal_part_to_json(&significand, callback, callback_data));
 
@@ -236,7 +240,7 @@ bijson_error_t bijson_object_count(const bijson_t *bijson, size_t *result) {
 }
 
 bijson_error_t bijson_analyzed_object_count(const bijson_object_analysis_t *analysis, size_t *result) {
-	*result = ((_bijson_object_analysis_t *)analysis)->count;
+	*result = ((const _bijson_object_analysis_t *)analysis)->count;
 	return NULL;
 }
 
@@ -251,7 +255,7 @@ static inline bijson_error_t _bijson_object_analyze(const bijson_t *bijson, _bij
 
 	size_t count = analysis->count;
 	size_t count_1 = analysis->count_1;
-	size_t index_and_data_size = buffer_end - analysis->key_index;
+	size_t index_and_data_size = _bijson_ptrdiff(buffer_end, analysis->key_index);
 	size_t key_index_item_size = SIZE_C(1) << ((type >> 2U) & BYTE_C(0x3));
 	size_t value_index_item_size = SIZE_C(1) << ((type >> 4U) & BYTE_C(0x3));
 	// We need at least one key_index_item, one value_index_item, and one
@@ -271,7 +275,7 @@ static inline bijson_error_t _bijson_object_analyze(const bijson_t *bijson, _bij
 		return bijson_error_file_format_error;
 	size_t last_key_end_offset = (size_t)raw_last_key_end_offset;
 
-	if(last_key_end_offset > buffer_end - key_data_start - count)
+	if(last_key_end_offset > _bijson_ptrdiff(buffer_end, key_data_start) - count)
 		return bijson_error_file_format_error;
 
 	const byte_t *value_data_start = key_data_start + last_key_end_offset;
@@ -282,7 +286,7 @@ static inline bijson_error_t _bijson_object_analyze(const bijson_t *bijson, _bij
 	analysis->value_index = value_index;
 	analysis->value_index_item_size = value_index_item_size;
 	analysis->value_data_start = value_data_start;
-	analysis->value_data_size = buffer_end - value_data_start;
+	analysis->value_data_size = _bijson_ptrdiff(buffer_end, value_data_start);
 
 	return NULL;
 }
@@ -454,21 +458,24 @@ static inline bijson_error_t _bijson_get_key_entry_get(const _bijson_object_anal
 	return NULL;
 }
 
-static inline uint64_t _bijson_get_key_guess(_bijson_get_key_entry_t *lower, _bijson_get_key_entry_t *upper, _bijson_get_key_entry_t *target) {
-	if(lower->hash == upper->hash)
+static inline size_t _bijson_get_key_guess(_bijson_get_key_entry_t *lower, _bijson_get_key_entry_t *upper, _bijson_get_key_entry_t *target) {
+	if(lower->hash >= upper->hash)
 		return lower->index + ((upper->index - lower->index) >> 1U);
-	return lower->index + (size_t)floorl(
+	// Put in a temporary variable to appease -Wbad-function-cast
+	long double offset = floorl(
 		(long double)(upper->index - lower->index)
 		* (long double)(target->hash - lower->hash)
 		/ (long double)(upper->hash - lower->hash)
 	);
+	return lower->index + (size_t)offset;
 }
 
+ __attribute__((const))
 static inline size_t _bijson_2log64(uint64_t x) {
 	assert(x > UINT64_C(1));
 	x--;
 #ifdef HAVE_BUILTIN_CLZLL
-	return SIZE_C(63) - __builtin_clzll(x);
+	return SIZE_C(63) - (size_t)__builtin_clzll(x);
 #else
 	size_t result = SIZE_C(1);
 	if(x & UINT64_C(0xFFFFFFFF00000000)) {
@@ -529,7 +536,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key(
 	target.hash = _bijson_integer_hash(&target.xxhash);
 
 	size_t max_attempts = _bijson_2log64(analysis->count);
-	_bijson_get_key_entry_t lower = {};
+	_bijson_get_key_entry_t lower = {0};
 	_bijson_get_key_entry_t upper = {.index = analysis->count, .hash = _BIJSON_HASH_MAX};
 
 	for(size_t attempt = SIZE_C(0); lower.index != upper.index; attempt++) {
@@ -724,7 +731,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range(
 	target.hash = _bijson_integer_hash(&target.xxhash);
 
 	size_t max_attempts = _bijson_2log64(analysis->count);
-	_bijson_get_key_entry_t lower = {};
+	_bijson_get_key_entry_t lower = {0};
 	_bijson_get_key_entry_t upper = {.index = analysis->count, .hash = _BIJSON_HASH_MAX};
 
 	for(size_t attempt = SIZE_C(0); lower.index != upper.index; attempt++) {
@@ -838,7 +845,7 @@ bijson_error_t bijson_array_count(const bijson_t *bijson, size_t *result) {
 }
 
 bijson_error_t bijson_analyzed_array_count(const bijson_array_analysis_t *analysis, size_t *result) {
-	*result = ((_bijson_array_analysis_t *)analysis)->count;
+	*result = ((const _bijson_array_analysis_t *)analysis)->count;
 	return NULL;
 }
 
@@ -853,7 +860,7 @@ static inline bijson_error_t _bijson_array_analyze(const bijson_t *bijson, _bijs
 	byte_compute_t type = *buffer;
 
 	const byte_t *item_index = analysis->item_index;
-	size_t index_and_data_size = buffer_end - item_index;
+	size_t index_and_data_size = _bijson_ptrdiff(buffer_end, item_index);
 
 	size_t index_item_size = SIZE_C(1) << ((type >> 2U) & BYTE_C(0x3));
 	// We need at least one index_item and one type byte for each item,
@@ -863,7 +870,7 @@ static inline bijson_error_t _bijson_array_analyze(const bijson_t *bijson, _bijs
 		return bijson_error_file_format_error;
 
 	const byte_t *item_data_start = item_index + (count - SIZE_C(1)) * index_item_size;
-	size_t item_data_size = buffer_end - item_data_start;
+	size_t item_data_size = _bijson_ptrdiff(buffer_end, item_data_start);
 
 	analysis->index_item_size = index_item_size;
 	analysis->item_data_start = item_data_start;
@@ -1070,7 +1077,7 @@ typedef struct _bijson_to_json_state {
 	const bijson_t *bijson;
 } _bijson_to_json_state_t;
 
-bijson_error_t _bijson_to_json_callback(
+static bijson_error_t _bijson_to_json_callback(
 	void *action_callback_data,
 	bijson_output_callback_t output_callback,
 	void *output_callback_data
@@ -1147,7 +1154,7 @@ void bijson_close(bijson_t *bijson) {
 
 void bijson_free(bijson_t *bijson) {
 	if(bijson) {
-		free((void *)bijson->buffer);
+		free(_bijson_no_const(bijson->buffer));
 		*bijson = bijson_0;
 	}
 }

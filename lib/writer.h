@@ -103,7 +103,7 @@ static inline bijson_error_t _bijson_writer_write_minimal_int(bijson_output_call
 	return write(write_data, buf, nbytes);
 }
 
-static inline bijson_error_t _bijson_writer_write_compact_int(bijson_output_callback_t write, void *write_data, uint64_t u, byte_t width) {
+static inline bijson_error_t _bijson_writer_write_compact_int(bijson_output_callback_t write, void *write_data, uint64_t u, unsigned int width) {
 	return _bijson_writer_write_minimal_int(write, write_data, u, 1 << width);
 }
 

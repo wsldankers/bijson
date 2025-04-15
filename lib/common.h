@@ -44,15 +44,11 @@ typedef unsigned int uint16_compute_t;
 typedef unsigned int uint32_compute_t;
 #endif
 
-#define _BIJSON_ARRAY_COUNT(x) (sizeof (x) / sizeof *(x))
+#ifndef OFF_MAX
+#define OFF_MAX ((((off_t)1 << (sizeof (off_t) * CHAR_BIT - 2)) - (off_t)1) * (off_t)2 + (off_t)1)
+#endif
 
-// Sometimes we do need to lose the const qualifier. Do it explicitly.
-inline static void *_bijson_no_const(const void *p) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-	return (void *)p;
-#pragma GCC diagnostic pop
-}
+#define _BIJSON_ARRAY_COUNT(x) (sizeof (x) / sizeof *(x))
 
 #ifdef HAVE_BUILTIN_EXPECT
 #define _BIJSON_EXPECT_TRUE(x) __builtin_expect((x) != 0, 1)
@@ -67,17 +63,44 @@ inline static void *_bijson_no_const(const void *p) {
 
 #define bijson_0 ((bijson_t){0})
 
+ __attribute__((pure))
 extern bijson_error_t _bijson_check_valid_utf8(const byte_t *string, size_t len);
 
+__attribute__((const))
 static inline size_t _bijson_size_min(size_t a, size_t b) {
 	return a < b ? a : b;
 }
 
+__attribute__((const))
 static inline size_t _bijson_size_max(size_t a, size_t b) {
 	return a > b ? a : b;
 }
 
+__attribute__((const))
 static inline size_t _bijson_size_clamp(size_t min, size_t x, size_t max) {
 	assert(min <= max);
 	return x < min ? min : x > max ? max : x;
+}
+
+// Sometimes we do need to lose the const qualifier. Do it explicitly.
+__attribute__((const))
+static inline void *_bijson_no_const(const void *p) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+	return (void *)p;
+#pragma GCC diagnostic pop
+}
+
+#ifdef NDEBUG
+__attribute__((const))
+#else
+__attribute__((pure))
+#endif
+static inline size_t _bijson_ptrdiff(const void *end, const void *start) {
+	assert(start);
+	assert(end);
+	const byte_t *end_bytes = (const byte_t *)end;
+	const byte_t *start_bytes = (const byte_t *)start;
+	assert(end_bytes >= start_bytes);
+	return (size_t)(end_bytes - start_bytes);
 }

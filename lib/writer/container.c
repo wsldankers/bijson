@@ -19,11 +19,11 @@ typedef struct _bijson_container {
 
 static const _bijson_container_t _bijson_container_0 = {0};
 
-bool bijson_writer_expects_value(bijson_writer_t *writer) {
+bool bijson_writer_expects_value(const bijson_writer_t *writer) {
 	return writer->expect == _bijson_writer_expect_value;
 }
 
-bool bijson_writer_expects_key(bijson_writer_t *writer) {
+bool bijson_writer_expects_key(const bijson_writer_t *writer) {
 	return writer->expect == _bijson_writer_expect_key;
 }
 
@@ -155,7 +155,7 @@ bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 	size_t values_output_size = 0;
 	size_t value_output_size_of_highest_key = 0;
 
-	XXH128_hash_t highest_hash = {};
+	XXH128_hash_t highest_hash = {0};
 
 	size_t object_item_offset = spool_offset;
 	while(object_item_offset < spool_used) {
@@ -250,8 +250,8 @@ bijson_error_t bijson_writer_end_array(bijson_writer_t *writer) {
 }
 
 static int _bijson_writer_object_object_item_cmp(const void *a, const void *b) {
-	const char *a_item = *(const char **)a;
-	const char *b_item = *(const char **)b;
+	const byte_t *a_item = *(byte_t * const *)a;
+	const byte_t *b_item = *(byte_t * const *)b;
 	size_t a_size, b_size;
 	memcpy(&a_size, a_item, sizeof a_size);
 	memcpy(&b_size, b_item, sizeof b_size);
@@ -328,7 +328,7 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, bijson_outpu
 	byte_compute_t count_width = _bijson_optimal_storage_size(count_1);
 	byte_compute_t key_offsets_width = _bijson_optimal_storage_size(keys_output_size);
 	byte_compute_t value_offsets_width = _bijson_optimal_storage_size(values_output_size);
-	byte_t output_type = BYTE_C(0x40) | (value_offsets_width << 4U) | (key_offsets_width << 2U) | count_width;
+	byte_t output_type = (byte_t)(BYTE_C(0x40) | (value_offsets_width << 4U) | (key_offsets_width << 2U) | count_width);
 
 	_BIJSON_ERROR_RETURN(write(write_data, &output_type, sizeof output_type));
 	_BIJSON_ERROR_RETURN(_bijson_writer_write_compact_int(write, write_data, count_1, count_width));
@@ -405,7 +405,7 @@ bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, bijson_output
 
 	byte_compute_t count_width = _bijson_optimal_storage_size(count_1);
 	byte_compute_t item_offsets_width = _bijson_optimal_storage_size(items_output_size);
-	byte_t output_type = BYTE_C(0x30) | (item_offsets_width << 2U) | count_width;
+	byte_t output_type = (byte_t)(BYTE_C(0x30) | (item_offsets_width << 2U) | count_width);
 
 	_BIJSON_ERROR_RETURN(write(write_data, &output_type, sizeof output_type));
 	_BIJSON_ERROR_RETURN(_bijson_writer_write_compact_int(write, write_data, count_1, count_width));

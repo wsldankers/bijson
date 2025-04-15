@@ -110,7 +110,7 @@ typedef struct _bijson_writer_write_state {
 	bijson_writer_t *writer;
 } _bijson_writer_write_state_t;
 
-bijson_error_t _bijson_writer_write_callback(
+static bijson_error_t _bijson_writer_write_callback(
 	void *action_callback_data,
 	bijson_output_callback_t output_callback,
 	void *output_callback_data
@@ -160,7 +160,6 @@ bijson_error_t bijson_writer_write_to_tempfile(
 
 bijson_error_t bijson_writer_write_bytecounter(
 	bijson_writer_t *writer,
-	void **result_buffer,
 	size_t *result_size
 ) {
 	_bijson_writer_write_state_t state = {writer};
