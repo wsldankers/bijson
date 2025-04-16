@@ -39,7 +39,7 @@ CFLAGS = $(STANDARD) $(OPTIMIZE) $(SPECIALIZE) $(INCLUDE) $(BASIC) $(STRICT) $(E
 LDFLAGS = -pipe $(OPTIMIZE) $(LTO) $(STRIP)
 LIBS = $(XXHASH_LIBS) -lm
 
-bin/unit-test_EXTRA_OBJECTS = lib/common.o
+bin/unit-test_EXTRA_OBJECTS = lib/common.o lib/error.o
 
 bin/bijson_EXTRA_OBJECTS = \
 	lib/common.o \

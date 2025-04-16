@@ -71,46 +71,6 @@ bijson_error_t _bijson_check_valid_utf8(const byte_t *string, size_t len) {
 	return NULL;
 }
 
-/*
-void u8test(void) {
-	// reference: https://stackoverflow.com/questions/6555015/check-for-invalid-utf8
-	union {
-		uint32_compute_t u;
-		byte b[sizeof(uint32_t)];
-	} x;
-	x.u = 0;
-	do {
-		size_t len = 0;
-		if((byte_compute_t)x.b[0] <= BYTE_C(0x7F))
-			len = 1;
-		else if((byte_compute_t)x.b[0] >= BYTE_C(0xC2) && (byte_compute_t)x.b[0] <= BYTE_C(0xDF) && (byte_compute_t)x.b[1] >= BYTE_C(0x80) && (byte_compute_t)x.b[1] <= BYTE_C(0xBF))
-			len = 2;
-		else if((byte_compute_t)x.b[0] == BYTE_C(0xE0)                                           && (byte_compute_t)x.b[1] >= BYTE_C(0xA0) && (byte_compute_t)x.b[1] <= BYTE_C(0xBF) && (byte_compute_t)x.b[2] >= BYTE_C(0x80) && (byte_compute_t)x.b[2] <= BYTE_C(0xBF))
-			len = 3;
-		else if((byte_compute_t)x.b[0] >= BYTE_C(0xE1) && (byte_compute_t)x.b[0] <= BYTE_C(0xEC) && (byte_compute_t)x.b[1] >= BYTE_C(0x80) && (byte_compute_t)x.b[1] <= BYTE_C(0xBF) && (byte_compute_t)x.b[2] >= BYTE_C(0x80) && (byte_compute_t)x.b[2] <= BYTE_C(0xBF))
-			len = 3;
-		else if((byte_compute_t)x.b[0] == BYTE_C(0xED)                                           && (byte_compute_t)x.b[1] >= BYTE_C(0x80) && (byte_compute_t)x.b[1] <= BYTE_C(0x9F) && (byte_compute_t)x.b[2] >= BYTE_C(0x80) && (byte_compute_t)x.b[2] <= BYTE_C(0xBF))
-			len = 3;
-		else if((byte_compute_t)x.b[0] >= BYTE_C(0xEE) && (byte_compute_t)x.b[0] <= BYTE_C(0xEF) && (byte_compute_t)x.b[1] >= BYTE_C(0x80) && (byte_compute_t)x.b[1] <= BYTE_C(0xBF) && (byte_compute_t)x.b[2] >= BYTE_C(0x80) && (byte_compute_t)x.b[2] <= BYTE_C(0xBF))
-			len = 3;
-		else if((byte_compute_t)x.b[0] == BYTE_C(0xF0)                                           && (byte_compute_t)x.b[1] >= BYTE_C(0x90) && (byte_compute_t)x.b[1] <= BYTE_C(0xBF) && (byte_compute_t)x.b[2] >= BYTE_C(0x80) && (byte_compute_t)x.b[2] <= BYTE_C(0xBF) && (byte_compute_t)x.b[3] >= BYTE_C(0x80) && (byte_compute_t)x.b[3] <= BYTE_C(0xBF))
-			len = 4;
-		else if((byte_compute_t)x.b[0] >= BYTE_C(0xF1) && (byte_compute_t)x.b[0] <= BYTE_C(0xF3) && (byte_compute_t)x.b[1] >= BYTE_C(0x80) && (byte_compute_t)x.b[1] <= BYTE_C(0xBF) && (byte_compute_t)x.b[2] >= BYTE_C(0x80) && (byte_compute_t)x.b[2] <= BYTE_C(0xBF) && (byte_compute_t)x.b[3] >= BYTE_C(0x80) && (byte_compute_t)x.b[3] <= BYTE_C(0xBF))
-			len = 4;
-		else if((byte_compute_t)x.b[0] == BYTE_C(0xF4)                                           && (byte_compute_t)x.b[1] >= BYTE_C(0x80) && (byte_compute_t)x.b[1] <= BYTE_C(0x8F) && (byte_compute_t)x.b[2] >= BYTE_C(0x80) && (byte_compute_t)x.b[2] <= BYTE_C(0xBF) && (byte_compute_t)x.b[3] >= BYTE_C(0x80) && (byte_compute_t)x.b[3] <= BYTE_C(0xBF))
-			len = 4;
-
-		if(len) {
-			if(_bijson_check_valid_utf8((byte_compute_t)x.b, len))
-				fprintf(stderr, "%02X %02X %02X %02X (%zu) should not have failed\n", (byte_compute_t)x.b[0], (byte_compute_t)x.b[1], (byte_compute_t)x.b[2], (byte_compute_t)x.b[3], len);
-		} else for(len = 1; len <= 4; len++) {
-			if(!_bijson_check_valid_utf8((byte_compute_t)x.b, len))
-				fprintf(stderr, "%02X %02X %02X %02X (%zu) should have failed\n", (byte_compute_t)x.b[0], (byte_compute_t)x.b[1], (byte_compute_t)x.b[2], (byte_compute_t)x.b[3], len);
-		}
-	} while(x.u++ != UINT32_MAX);
-}
-*/
-
 __attribute__((const))
 inline uint64_t _bijson_uint64_pow10(unsigned int exp) {
 	assert(exp < 20U);
