@@ -67,6 +67,14 @@ typedef unsigned int uint32_compute_t;
 extern bijson_error_t _bijson_check_valid_utf8(const byte_t *string, size_t len);
 
 __attribute__((const))
+extern uint64_t _bijson_uint64_pow10(unsigned int exp);
+
+// Note: these function do not add a trailing \0
+extern size_t _bijson_uint64_str(byte_t *dst, uint64_t value);
+extern size_t _bijson_uint64_str_padded(byte_t *dst, uint64_t value);
+extern size_t _bijson_uint64_str_raw(byte_t *dst, uint64_t value);
+
+__attribute__((const))
 static inline size_t _bijson_size_min(size_t a, size_t b) {
 	return a < b ? a : b;
 }

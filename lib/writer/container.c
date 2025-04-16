@@ -76,7 +76,7 @@ bijson_error_t bijson_writer_begin_array(bijson_writer_t *writer) {
 	return NULL;
 }
 
-bijson_error_t bijson_writer_add_key(bijson_writer_t *writer, const char *key, size_t len) {
+bijson_error_t bijson_writer_add_key(bijson_writer_t *writer, const void *key, size_t len) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
 	if(writer->expect != _bijson_writer_expect_key)
@@ -108,7 +108,7 @@ bijson_error_t bijson_writer_begin_key(bijson_writer_t *writer) {
 	return NULL;
 }
 
-bijson_error_t bijson_writer_append_key(bijson_writer_t *writer, const char *key, size_t len) {
+bijson_error_t bijson_writer_append_key(bijson_writer_t *writer, const void *key, size_t len) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
 	if(writer->expect != _bijson_writer_expect_more_key)

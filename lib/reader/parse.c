@@ -13,7 +13,7 @@ typedef struct _bijson_json_parser {
 	const byte_t *buffer_end;
 } _bijson_json_parser_t;
 
-typedef bijson_error_t (*_bijson_appender_t)(bijson_writer_t *writer, const char *buffer, size_t len);
+typedef bijson_error_t (*_bijson_appender_t)(bijson_writer_t *writer, const void *buffer, size_t len);
 
 static inline bijson_error_t _bijson_parse_json_unichar(const byte_t *hex, uint16_compute_t *result) {
 	uint16_compute_t value = 0;

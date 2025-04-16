@@ -3,7 +3,7 @@
 #include "../common.h"
 #include "../writer.h"
 
-bijson_error_t bijson_writer_add_string(bijson_writer_t *writer, const char *string, size_t len) {
+bijson_error_t bijson_writer_add_string(bijson_writer_t *writer, const void *string, size_t len) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
@@ -32,7 +32,7 @@ bijson_error_t bijson_writer_begin_string(bijson_writer_t *writer) {
 	return NULL;
 }
 
-bijson_error_t bijson_writer_append_string(bijson_writer_t *writer, const char *string, size_t len) {
+bijson_error_t bijson_writer_append_string(bijson_writer_t *writer, const void *string, size_t len) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
 	if(writer->expect != _bijson_writer_expect_more_string)

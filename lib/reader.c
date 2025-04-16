@@ -101,11 +101,12 @@ static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson
 		return bijson_error_file_format_error;
 	last_word++;
 
-	char word_chars[20];
-	int sprintf_result = sprintf(word_chars, "%"PRIu64, last_word);
-	if(sprintf_result < 0)
-		return bijson_error_internal_error;
-	_BIJSON_ERROR_RETURN(callback(callback_data, word_chars, (size_t)sprintf_result));
+	byte_t word_chars[20];
+	_BIJSON_ERROR_RETURN(callback(
+		callback_data,
+		word_chars,
+		_bijson_uint64_str(word_chars, last_word)
+	));
 
 	const byte_t *word_start = last_word_start;
 	while(word_start > buffer) {
@@ -113,8 +114,11 @@ static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson
 		uint64_t word = _bijson_read_minimal_int(word_start, sizeof(uint64_t));
 		if(word > UINT64_C(9999999999999999999))
 			return bijson_error_file_format_error;
-		sprintf_result = sprintf(word_chars, "%019"PRIu64, word);
-		_BIJSON_ERROR_RETURN(callback(callback_data, word_chars, (size_t)sprintf_result));
+		_BIJSON_ERROR_RETURN(callback(
+			callback_data,
+			word_chars,
+			_bijson_uint64_str_padded(word_chars, word)
+		));
 	}
 
 	return NULL;

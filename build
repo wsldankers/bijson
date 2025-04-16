@@ -1,6 +1,6 @@
 #! /usr/bin/make -f
 
-programs = bin/test
+programs = bin/unit-test bin/bijson
 
 all: $(programs)
 
@@ -39,7 +39,9 @@ CFLAGS = $(STANDARD) $(OPTIMIZE) $(SPECIALIZE) $(INCLUDE) $(BASIC) $(STRICT) $(E
 LDFLAGS = -pipe $(OPTIMIZE) $(LTO) $(STRIP)
 LIBS = $(XXHASH_LIBS) -lm
 
-bin/test_EXTRA_OBJECTS = \
+bin/unit-test_EXTRA_OBJECTS = lib/common.o
+
+bin/bijson_EXTRA_OBJECTS = \
 	lib/common.o \
 	lib/error.o \
 	lib/io.o \

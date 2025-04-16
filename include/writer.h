@@ -29,21 +29,21 @@ extern bijson_error_t bijson_writer_end_array(bijson_writer_t *writer);
 
 extern bijson_error_t bijson_writer_begin_object(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_end_object(bijson_writer_t *writer);
-extern bijson_error_t bijson_writer_add_key(bijson_writer_t *writer, const char *key, size_t len);
+extern bijson_error_t bijson_writer_add_key(bijson_writer_t *writer, const void *key, size_t len);
 
 extern bijson_error_t bijson_writer_begin_key(bijson_writer_t *writer);
-extern bijson_error_t bijson_writer_append_key(bijson_writer_t *writer, const char *key, size_t len);
+extern bijson_error_t bijson_writer_append_key(bijson_writer_t *writer, const void *key, size_t len);
 extern bijson_error_t bijson_writer_end_key(bijson_writer_t *writer);
 
-extern bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *string, size_t len);
+extern bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const void *string, size_t len);
 extern bijson_error_t bijson_writer_add_bytes(bijson_writer_t *writer, const void *bytes, size_t len);
-extern bijson_error_t bijson_writer_add_string(bijson_writer_t *writer, const char *string, size_t len);
+extern bijson_error_t bijson_writer_add_string(bijson_writer_t *writer, const void *string, size_t len);
 extern bijson_error_t bijson_writer_add_null(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_add_false(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_add_true(bijson_writer_t *writer);
 
 extern bijson_error_t bijson_writer_begin_string(bijson_writer_t *writer);
-extern bijson_error_t bijson_writer_append_string(bijson_writer_t *writer, const char *string, size_t len);
+extern bijson_error_t bijson_writer_append_string(bijson_writer_t *writer, const void *string, size_t len);
 extern bijson_error_t bijson_writer_end_string(bijson_writer_t *writer);
 
 extern bijson_error_t bijson_writer_begin_bytes(bijson_writer_t *writer);
@@ -51,5 +51,5 @@ extern bijson_error_t bijson_writer_append_bytes(bijson_writer_t *writer, const 
 extern bijson_error_t bijson_writer_end_bytes(bijson_writer_t *writer);
 
 extern bijson_error_t bijson_writer_begin_decimal_from_string(bijson_writer_t *writer);
-extern bijson_error_t bijson_writer_append_decimal_from_string(bijson_writer_t *writer, const char *string, size_t len);
+extern bijson_error_t bijson_writer_append_decimal_from_string(bijson_writer_t *writer, const void *string, size_t len);
 extern bijson_error_t bijson_writer_end_decimal_from_string(bijson_writer_t *writer);

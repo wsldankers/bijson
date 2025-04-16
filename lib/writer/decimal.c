@@ -22,13 +22,13 @@ static inline unsigned int _bijson_ascii_digit(int c) {
 }
 
  __attribute__((pure))
-static inline int _bijson_compare_digits(const char *a_start, size_t a_len, const char *b_start, size_t b_len) {
+static inline int _bijson_compare_digits(const byte_t *a_start, size_t a_len, const byte_t *b_start, size_t b_len) {
 	assert(!a_len || *a_start != '0');
 	assert(!b_len || *b_start != '0');
-	return a_len > b_len ? 1 : a_len < b_len ? -1 : memcmp(a_start, b_start, a_len);
+	return a_len < b_len ? -1 : a_len == b_len ? memcmp(a_start, b_start, a_len) : 1;
 }
 
-static inline bijson_error_t _bijson_shift_digits(const char *start, size_t len, const char *decimal_point, size_t shift, bijson_output_callback_t write, void *write_data) {
+static inline bijson_error_t _bijson_shift_digits(const byte_t *start, size_t len, const byte_t *decimal_point, size_t shift, bijson_output_callback_t write, void *write_data) {
 	assert(!len || *start != '0');
 
 	if(!len)
@@ -38,15 +38,7 @@ static inline bijson_error_t _bijson_shift_digits(const char *start, size_t len,
 	_BIJSON_ERROR_RETURN(_bijson_io_write_nul_bytes(write, write_data, big_shift * sizeof(uint64_t)));
 	shift -= big_shift * SIZE_C(19);
 
-	uint64_t magnitude = UINT64_C(1);
-	uint64_t magnitude_base = UINT64_C(10);
-	// integer exponentiation
-	while(shift) {
-		if(shift & 1)
-			magnitude *= magnitude_base;
-		magnitude_base *= magnitude_base;
-		shift >>= 1U;
-	}
+	uint64_t magnitude = _bijson_uint64_pow10((unsigned int)shift);
 
 	if(write == _bijson_io_bytecounter_output_callback) {
 		// crude hack
@@ -55,7 +47,7 @@ static inline bijson_error_t _bijson_shift_digits(const char *start, size_t len,
 		len -= skip * SIZE_C(19);
 	}
 
-	const char *s = start + len;
+	const byte_t *s = start + len;
 	uint64_t word = 0;
 	while(s-- != start) {
 		if(s == decimal_point)
@@ -79,7 +71,7 @@ static inline bijson_error_t _bijson_shift_digits(const char *start, size_t len,
 	return NULL;
 }
 
-static bijson_error_t _bijson_add_digits(const char *a_start, size_t a_len, const char *b_start, size_t b_len, bijson_output_callback_t write, void *write_data) {
+static bijson_error_t _bijson_add_digits(const byte_t *a_start, size_t a_len, const byte_t *b_start, size_t b_len, bijson_output_callback_t write, void *write_data) {
 	assert(!a_len || *a_start != '0');
 	assert(!b_len || *b_start != '0');
 
@@ -90,8 +82,8 @@ static bijson_error_t _bijson_add_digits(const char *a_start, size_t a_len, cons
 
 	size_t magnitude = 1;
 	uint64_t carry = UINT64_C(0);
-	const char *a = a_start + a_len;
-	const char *b = b_start + b_len;
+	const byte_t *a = a_start + a_len;
+	const byte_t *b = b_start + b_len;
 	uint64_t word = UINT64_C(0);
 	for(;;) {
 		a--;
@@ -123,7 +115,7 @@ static bijson_error_t _bijson_add_digits(const char *a_start, size_t a_len, cons
 	return _bijson_writer_write_minimal_int(write, write_data, word, _bijson_fit_uint64(word - 1));
 }
 
-static bijson_error_t _bijson_subtract_digits(const char *a_start, size_t a_len, const char *b_start, size_t b_len, bijson_output_callback_t write, void *write_data) {
+static bijson_error_t _bijson_subtract_digits(const byte_t *a_start, size_t a_len, const byte_t *b_start, size_t b_len, bijson_output_callback_t write, void *write_data) {
 	// Compute a-b; a must not be smaller than b. Neither a nor be can have
 	// leading zeroes.
 	assert(!a_len || *a_start != '0');
@@ -138,8 +130,8 @@ static bijson_error_t _bijson_subtract_digits(const char *a_start, size_t a_len,
 
 	size_t magnitude = 1;
 	uint64_t carry = UINT64_C(0);
-	const char *a = a_start + a_len;
-	const char *b = b_start + b_len;
+	const byte_t *a = a_start + a_len;
+	const byte_t *b = b_start + b_len;
 	uint64_t word = UINT64_C(0);
 	bool pending_word = false;
 	uint64_t pending_zeroes = UINT64_C(0);
@@ -196,21 +188,21 @@ static bijson_error_t _bijson_subtract_digits(const char *a_start, size_t a_len,
 }
 
 typedef struct _bijson_string_analysis {
-	const char *significand_start;
-	const char *significand_end;
-	const char *decimal_point;
-	const char *exponent_start;
-	const char *exponent_end;
+	const byte_t *significand_start;
+	const byte_t *significand_end;
+	const byte_t *decimal_point;
+	const byte_t *exponent_start;
+	const byte_t *exponent_end;
 	bool mantissa_negative;
 	bool exponent_negative;
 } _bijson_string_analysis_t;
 
 static const _bijson_string_analysis_t _bijson_string_analysis_0 = {0};
 
-static inline bijson_error_t _bijson_analyze_string(_bijson_string_analysis_t *result, const char *string, size_t len) {
+static inline bijson_error_t _bijson_analyze_string(_bijson_string_analysis_t *result, const byte_t *string, size_t len) {
 	*result = _bijson_string_analysis_0;
 
-	const char *string_end = string + len;
+	const byte_t *string_end = string + len;
 
 	int c = *string;
 	result->mantissa_negative = c == '-';
@@ -286,7 +278,7 @@ static bijson_error_t _bijson_decimal_buffer_push_writer(void *spool, const void
 	return _bijson_buffer_push(spool, data, len);
 }
 
-bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const char *string, size_t len) {
+bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const void *string, size_t len) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
@@ -325,7 +317,7 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 		size_t exponent_size;
 		size_t adjusted_shift_string_len;
 		int exponent_adjusted_shift_cmp;
-		char adjusted_shift_string[__SIZEOF_SIZE_T__ * 5 / 2 + 1];
+		byte_t adjusted_shift_string[__SIZEOF_SIZE_T__ * 5 / 2 + 1];
 		bool exponent_negative;
 		bool adjusted_shift_negative;
 	} output_parameters_t;
@@ -358,9 +350,7 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 			.exponent_negative = string_analysis.exponent_negative,
 			.shift_adjustment = shift_adjustment,
 			.adjusted_shift_negative = adjusted_shift_negative,
-			.adjusted_shift_string_len = adjusted_shift
-				? (size_t)sprintf(output_parameters.adjusted_shift_string, "%zu", adjusted_shift)
-				: SIZE_C(0),
+			.adjusted_shift_string_len = _bijson_uint64_str_raw(output_parameters.adjusted_shift_string, adjusted_shift),
 		};
 
 		if(adjusted_shift_negative == string_analysis.exponent_negative) {
@@ -492,7 +482,7 @@ bijson_error_t bijson_writer_begin_decimal_from_string(bijson_writer_t *writer) 
 	return NULL;
 }
 
-bijson_error_t bijson_writer_append_decimal_from_string(bijson_writer_t *writer, const char *string, size_t len) {
+bijson_error_t bijson_writer_append_decimal_from_string(bijson_writer_t *writer, const void *string, size_t len) {
 	if(writer->failed)
 		return bijson_error_writer_failed;
 	if(writer->expect != _bijson_writer_expect_more_decimal_string)
