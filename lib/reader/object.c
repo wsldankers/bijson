@@ -4,6 +4,7 @@
 
 #include "../common.h"
 #include "../reader.h"
+#include "string.h"
 #include "object/index.h"
 #include "object.h"
 
