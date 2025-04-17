@@ -55,11 +55,13 @@ bin/bijson_EXTRA_OBJECTS = \
 	lib/reader/parse.o \
 	lib/reader/string.o \
 	lib/writer.o \
+	lib/writer/array.o \
 	lib/writer/buffer.o \
 	lib/writer/bytes.o \
 	lib/writer/constants.o \
 	lib/writer/container.o \
 	lib/writer/decimal.o \
+	lib/writer/object.o \
 	lib/writer/string.o
 
 define programrule

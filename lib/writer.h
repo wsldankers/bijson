@@ -1,12 +1,7 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stdlib.h>
-
 #include "../include/writer.h"
 
-#include "common.h"
-#include "io.h"
 #include "writer/buffer.h"
 
 // These values actually end up on the spool:

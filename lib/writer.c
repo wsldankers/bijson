@@ -1,15 +1,9 @@
-#include <stdbool.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <string.h>
-
 #include "../include/writer.h"
 
-#include "common.h"
 #include "io.h"
-#include "writer.h"
+#include "writer/array.h"
 #include "writer/buffer.h"
-#include "writer/container.h"
+#include "writer/object.h"
 
 #define _bijson_writer_0 ((bijson_writer_t){ \
 	.spool = _bijson_buffer_0, \

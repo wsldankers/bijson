@@ -8,6 +8,7 @@
 #include "../../include/writer.h"
 
 #include "../common.h"
+#include "../io.h"
 #include "../writer.h"
 
  __attribute__((const))
