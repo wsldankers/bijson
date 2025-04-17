@@ -46,6 +46,11 @@ bin/bijson_EXTRA_OBJECTS = \
 	lib/error.o \
 	lib/io.o \
 	lib/reader.o \
+	lib/reader/array.o \
+	lib/reader/object.o \
+	lib/reader/object/index.o \
+	lib/reader/object/key.o \
+	lib/reader/object/key_range.o \
 	lib/reader/parse.o \
 	lib/writer.o \
 	lib/writer/buffer.o \

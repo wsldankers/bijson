@@ -112,3 +112,38 @@ static inline size_t _bijson_ptrdiff(const void *end, const void *start) {
 	assert(end_bytes >= start_bytes);
 	return (size_t)(end_bytes - start_bytes);
 }
+
+ __attribute__((const))
+static inline size_t _bijson_2log64(uint64_t x) {
+	assert(x > UINT64_C(1));
+	x--;
+#ifdef HAVE_BUILTIN_CLZLL
+	return SIZE_C(63) - (size_t)__builtin_clzll(x);
+#else
+	size_t result = SIZE_C(1);
+	if(x & UINT64_C(0xFFFFFFFF00000000)) {
+		result += SIZE_C(32);
+		x >>= 32U;
+	}
+	if(x & UINT64_C(0xFFFF0000)) {
+		result += SIZE_C(16);
+		x >>= 16U;
+	}
+	if(x & UINT64_C(0xFF00)) {
+		result += SIZE_C(8);
+		x >>= 8U;
+	}
+	if(x & UINT64_C(0xF0)) {
+		result += SIZE_C(4);
+		x >>= 4U;
+	}
+	if(x & UINT64_C(0xC)) {
+		result += SIZE_C(2);
+		x >>= 2U;
+	}
+	if(x & UINT64_C(0x2)) {
+		result += SIZE_C(1);
+	}
+	return result;
+#endif
+}
