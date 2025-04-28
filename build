@@ -28,10 +28,33 @@ STANDARD = -std=c99
 LTO = -flto=auto
 BASIC = -pipe -D_GNU_SOURCE $(D_FILE_OFFSET_BITS) -DHAVE_BUILTIN_CLZLL $(NDEBUG) -g $(WERROR) $(LTO)
 STRICT = -Wall -pedantic -pedantic-errors -Wextra
-STRICT += -Wno-missing-field-initializers -Wno-unused-parameter
-STRICT += -Waggregate-return -Wbad-function-cast -Wcast-align -Wcast-qual -Wconversion -Wmissing-declarations -Wmissing-prototypes -Wnested-externs -Wold-style-definition -Wpointer-arith -Wredundant-decls -Wshadow -Wstack-protector -Wstrict-prototypes -Wundef -Wwrite-strings
-STRICT += -Wsuggest-attribute=pure -Wsuggest-attribute=const -Wsuggest-attribute=noreturn -Wmissing-noreturn -Wsuggest-attribute=malloc -Wsuggest-attribute=format -Wmissing-format-attribute -Wsuggest-attribute=cold
+STRICT += -Wbad-function-cast
+STRICT += -Wcast-align
+STRICT += -Wcast-qual
+STRICT += -Wconversion
+STRICT += -Wmissing-declarations
+STRICT += -Wmissing-format-attribute
+STRICT += -Wmissing-noreturn
+STRICT += -Wmissing-prototypes
+STRICT += -Wnested-externs
+STRICT += -Wold-style-definition
+STRICT += -Wpointer-arith
+STRICT += -Wredundant-decls
+STRICT += -Wshadow
+STRICT += -Wstack-protector
+STRICT += -Wstrict-prototypes
+STRICT += -Wsuggest-attribute=cold
+STRICT += -Wsuggest-attribute=const
+STRICT += -Wsuggest-attribute=format
+STRICT += -Wsuggest-attribute=malloc
+STRICT += -Wsuggest-attribute=noreturn
+STRICT += -Wsuggest-attribute=pure
+STRICT += -Wundef
 STRICT += -Wunreachable-code
+STRICT += -Wwrite-strings
+STRICT += -Wno-missing-field-initializers
+STRICT += -Wno-unused-parameter
+#STRICT += -Waggregate-return
 STRIP = -s
 INCLUDE =
 

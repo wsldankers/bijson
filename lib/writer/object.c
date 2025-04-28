@@ -107,17 +107,17 @@ bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 		XXH128_hash_t object_item_hash = XXH3_128bits(key, key_size);
 
 		object_item_offset += key_size;
-		values_output_size += _bijson_writer_size_value(writer, object_item_offset);
-
-		object_item_offset++;
-		size_t value_spool_size = _bijson_buffer_read_size(&writer->spool, object_item_offset);
-		object_item_offset += sizeof value_spool_size;
-		object_item_offset += value_spool_size;
+		size_t value_output_size = _bijson_writer_size_value(writer, object_item_offset);
+		values_output_size += value_output_size;
 
 		if(!count || XXH128_cmp(&highest_hash, &object_item_hash) < 0) {
-			value_output_size_of_highest_key = value_spool_size;
+			value_output_size_of_highest_key = value_output_size;
 			highest_hash = object_item_hash;
 		}
+
+		object_item_offset++;
+		object_item_offset += _bijson_buffer_read_size(&writer->spool, object_item_offset);
+		object_item_offset += sizeof(size_t);
 
 		count++;
 	}
