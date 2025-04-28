@@ -22,10 +22,10 @@ void bijson_writer_free(bijson_writer_t *writer) {
 
 bijson_error_t bijson_writer_alloc(bijson_writer_t **result) {
 	if(!result)
-		return bijson_error_parameter_is_null;
+		_BIJSON_RETURN_ERROR(bijson_error_parameter_is_null);
 	bijson_writer_t *writer = malloc(sizeof *writer);
 	if(!writer)
-		return bijson_error_system;
+		_BIJSON_RETURN_ERROR(bijson_error_system);
 
 	*writer = _bijson_writer_0;
 	_bijson_buffer_init(&writer->spool);
@@ -80,21 +80,21 @@ static bijson_error_t _bijson_writer_write(
 	void *write_data
 ) {
 	if(writer->failed)
-		return bijson_error_writer_failed;
+		_BIJSON_RETURN_ERROR(bijson_error_writer_failed);
 
 	if(writer->stack.used)
-		return bijson_error_unmatched_end;
+		_BIJSON_RETURN_ERROR(bijson_error_unmatched_end);
 
 	size_t spool_used = writer->spool.used;
 	if(!spool_used)
-		return bijson_error_bad_root;
+		_BIJSON_RETURN_ERROR(bijson_error_bad_root);
 
 	size_t root_spool_size = _bijson_buffer_read_size(
 		&writer->spool,
 		SIZE_C(1)
 	) + SIZE_C(1) + sizeof root_spool_size;
 	if(root_spool_size != spool_used)
-		return bijson_error_bad_root;
+		_BIJSON_RETURN_ERROR(bijson_error_bad_root);
 
 	const byte_t *spool = _bijson_buffer_finalize(&writer->spool);
 	return _bijson_writer_write_value(writer, write, write_data, spool);

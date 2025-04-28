@@ -18,53 +18,53 @@ bijson_error_t _bijson_check_valid_utf8(const byte_t *string, size_t len) {
 			// Basic characters can encode 7 bits.
 			// Size 2 sequences can encode 5 + 6 = 11 bits.
 			if(!(c & BYTE_C(0x1E)))
-				return bijson_error_invalid_utf8; // overlong sequence
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // overlong sequence
 			if(s == end)
-				return bijson_error_invalid_utf8; // premature end
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // premature end
 			if((*s++ & BYTE_C(0xC0)) != BYTE_C(0x80))
-				return bijson_error_invalid_utf8; // not a continuation byte
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // not a continuation byte
 		} else if((c & BYTE_C(0xF0)) == BYTE_C(0xE0)) { // 0b1110....
 			// Size 3 sequences can encode 4 + 6 + 6 = 16 bits.
 			if(s == end)
-				return bijson_error_invalid_utf8; // premature end
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // premature end
 			uint8_compute_t c2 = *s++;
 			if((c2 & BYTE_C(0xC0)) != BYTE_C(0x80))
-				return bijson_error_invalid_utf8; // not a continuation byte
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // not a continuation byte
 			if(!(c & BYTE_C(0x0F)) && !(c2 & BYTE_C(0x30)))
-				return bijson_error_invalid_utf8; // overlong sequence
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // overlong sequence
 			if(c == BYTE_C(0xE0) && !(c2 & BYTE_C(0x20)))
-				return bijson_error_invalid_utf8; // exclude U+0080..U+009F
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // exclude U+0080..U+009F
 			if(c == BYTE_C(0xED) && (c2 & BYTE_C(0x20)))
-				return bijson_error_invalid_utf8; // UTF-16 surrogate
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // UTF-16 surrogate
 			if(s == end)
-				return bijson_error_invalid_utf8; // premature end
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // premature end
 			if((*s++ & BYTE_C(0xC0)) != BYTE_C(0x80))
-				return bijson_error_invalid_utf8; // not a continuation byte
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // not a continuation byte
 		} else if((c & BYTE_C(0xF8)) == BYTE_C(0xF0)) { // 0b11110...
 			// Size 4 sequences can encode 3 + 6 + 6 + 6 = 21 bits.
 			if(s == end)
-				return bijson_error_invalid_utf8; // premature end
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // premature end
 			uint8_compute_t c2 = *s++;
 			if((c2 & BYTE_C(0xC0)) != BYTE_C(0x80))
-				return bijson_error_invalid_utf8; // not a continuation byte
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // not a continuation byte
 			if(!(c & BYTE_C(0x07)) && !(c2 & BYTE_C(0x30)))
-				return bijson_error_invalid_utf8; // overlong sequence
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // overlong sequence
 			if(c == BYTE_C(0xF4)) {
 				if(c2 & BYTE_C(0x30))
-					return bijson_error_invalid_utf8; // outside Unicode code space
+					_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // outside Unicode code space
 			} else if(c & BYTE_C(0x0C)) {
-				return bijson_error_invalid_utf8; // outside Unicode code space
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // outside Unicode code space
 			}
 			if(s == end)
-				return bijson_error_invalid_utf8; // premature end
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // premature end
 			if((*s++ & BYTE_C(0xC0)) != BYTE_C(0x80))
-				return bijson_error_invalid_utf8; // not a continuation byte
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // not a continuation byte
 			if(s == end)
-				return bijson_error_invalid_utf8; // premature end
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // premature end
 			if((*s++ & BYTE_C(0xC0)) != BYTE_C(0x80))
-				return bijson_error_invalid_utf8; // not a continuation byte
+				_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // not a continuation byte
 		} else {
-			return bijson_error_invalid_utf8; // invalid byte
+			_BIJSON_RETURN_ERROR(bijson_error_invalid_utf8); // invalid byte
 		}
 	}
 

@@ -19,7 +19,7 @@ bijson_error_t _bijson_analyzed_object_get_index(
 ) {
 	size_t count = analysis->count;
 	if(index >= count)
-		return bijson_error_index_out_of_range;
+		_BIJSON_RETURN_ERROR(bijson_error_index_out_of_range);
 
 	const byte_t *key_index = analysis->key_index;
 	size_t key_index_item_size = analysis->key_index_item_size;
@@ -29,23 +29,23 @@ bijson_error_t _bijson_analyzed_object_get_index(
 		? _bijson_read_minimal_int(key_index + key_index_item_size * (index - SIZE_C(1)), key_index_item_size)
 		: UINT64_C(0);
 	if(raw_key_start_offset > SIZE_MAX)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 	size_t key_start_offset = (size_t)raw_key_start_offset;
 	if(key_start_offset > last_key_end_offset)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 
 	size_t count_1 = analysis->count_1;
 	uint64_t raw_key_end_offset = index == count_1
 		? last_key_end_offset
 		: _bijson_read_minimal_int(key_index + key_index_item_size * index, key_index_item_size);
 	if(raw_key_end_offset > SIZE_MAX)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 	size_t key_end_offset = (size_t)raw_key_end_offset;
 	if(key_end_offset > last_key_end_offset)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 
 	if(key_start_offset > key_end_offset)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 
 	const byte_t *value_index = analysis->value_index;
 	size_t value_index_item_size = analysis->value_index_item_size;
@@ -59,28 +59,28 @@ bijson_error_t _bijson_analyzed_object_get_index(
 		? _bijson_read_minimal_int(value_index + value_index_item_size * (index - SIZE_C(1)), value_index_item_size)
 		: UINT64_C(0);
 	if(raw_value_start_offset > SIZE_MAX)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 	size_t value_start_offset = (size_t)raw_value_start_offset;
 	if(value_start_offset > highest_valid_value_offset)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 	value_start_offset += index;
 
 	uint64_t raw_value_end_offset = index == count_1
 		? highest_valid_value_offset
 		: _bijson_read_minimal_int(value_index + value_index_item_size * index, value_index_item_size);
 	if(raw_value_end_offset > SIZE_MAX)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 	size_t value_end_offset = (size_t)raw_value_end_offset;
 
 	if(value_end_offset > highest_valid_value_offset)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 
 	value_end_offset += index + SIZE_C(1);
 	if(index == count_1)
 		value_end_offset = value_data_size;
 
 	if(value_start_offset >= value_end_offset)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 
 	const byte_t *key_buffer = analysis->key_data_start + key_start_offset;
 	size_t key_size = key_end_offset - key_start_offset;
@@ -88,7 +88,7 @@ bijson_error_t _bijson_analyzed_object_get_index(
 	// We could return an UTF-8 error but it's the file that's at fault here:
 	bijson_error_t error = _bijson_check_valid_utf8(key_buffer, key_size);
 	if(error == bijson_error_invalid_utf8)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 	else if(error)
 		return error;
 

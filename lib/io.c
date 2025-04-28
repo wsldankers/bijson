@@ -71,20 +71,20 @@ static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, c
 					int ret = poll(&poll_fd, 1, -1);
 					if(ret == -1) {
 						if(errno != EINTR)
-							return bijson_error_system;
+							_BIJSON_RETURN_ERROR(bijson_error_system);
 						continue;
 					}
 					if(!ret || !poll_fd.revents)
 						continue;
 					if(poll_fd.revents != POLLOUT)
-						return bijson_error_system;
+						_BIJSON_RETURN_ERROR(bijson_error_system);
 				}
 				size_t written = (size_t)writev(state.fd, vec, 2);
 				if(written == SIZE_MAX) {
 					if(errno == EWOULDBLOCK || errno == EAGAIN)
 						state.nonblocking = ((_bijson_buffer_write_to_fd_state_t *)write_data)->nonblocking = true;
 					else if(errno != EINTR)
-						return bijson_error_system;
+						_BIJSON_RETURN_ERROR(bijson_error_system);
 					continue;
 				}
 				if(written >= vec[0].iov_len) {
@@ -104,20 +104,20 @@ static bijson_error_t _bijson_io_write_to_fd_output_callback(void *write_data, c
 				int ret = poll(&poll_fd, 1, -1);
 				if(ret == -1) {
 					if(errno != EINTR)
-						return bijson_error_system;
+						_BIJSON_RETURN_ERROR(bijson_error_system);
 					continue;
 				}
 				if(!ret || !poll_fd.revents)
 					continue;
 				if(poll_fd.revents != POLLOUT)
-					return bijson_error_system;
+					_BIJSON_RETURN_ERROR(bijson_error_system);
 			}
 			size_t written = (size_t)write(state.fd, data, len);
 			if(written == SIZE_MAX) {
 				if(errno == EWOULDBLOCK || errno == EAGAIN)
 					state.nonblocking = ((_bijson_buffer_write_to_fd_state_t *)write_data)->nonblocking = true;
 				else if(errno != EINTR)
-					return bijson_error_system;
+					_BIJSON_RETURN_ERROR(bijson_error_system);
 				continue;
 			}
 			len -= written;
@@ -137,7 +137,7 @@ bijson_error_t _bijson_io_write_to_fd(
 	_bijson_buffer_write_to_fd_state_t state = {.fd = fd, .size = SIZE_C(4096)};
 	state.buffer = malloc(state.size);
 	if(!state.buffer)
-		return bijson_error_system;
+		_BIJSON_RETURN_ERROR(bijson_error_system);
 	bijson_error_t error = action_callback(action_callback_data, _bijson_io_write_to_fd_output_callback, &state);
 	if(!error) {
 		byte_t *buffer = state.buffer;
@@ -200,7 +200,7 @@ bijson_error_t _bijson_io_write_to_FILE(
 	size_t *result_size
 ) {
 	if(!file)
-		return bijson_error_parameter_is_null;
+		_BIJSON_RETURN_ERROR(bijson_error_parameter_is_null);
 
 	_bijson_buffer_write_to_FILE_state_t state = {.file = file};
 
@@ -241,7 +241,7 @@ bijson_error_t _bijson_io_write_to_malloc(
 	_bijson_io_write_to_malloc_state_t state = {.size = 4096};
 	state.buffer = malloc(state.size);
 	if(!state.buffer)
-		return bijson_error_system;
+		_BIJSON_RETURN_ERROR(bijson_error_system);
 
 	_BIJSON_ERROR_CLEANUP_AND_RETURN(action_callback(
 		action_callback_data,
@@ -256,7 +256,7 @@ bijson_error_t _bijson_io_write_to_malloc(
 			.size = state.written,
 		};
 		if(!state.buffer)
-			return bijson_error_system;
+			_BIJSON_RETURN_ERROR(bijson_error_system);
 
 		_BIJSON_ERROR_CLEANUP_AND_RETURN(action_callback(
 			action_callback_data,
@@ -300,7 +300,7 @@ bijson_error_t _bijson_io_write_to_filename(
 ) {
 	int fd = open(filename, O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
 	if(fd == -1)
-		return bijson_error_system;
+		_BIJSON_RETURN_ERROR(bijson_error_system);
 
 	bijson_error_t error = _bijson_io_write_to_fd(action_callback, action_callback_data, fd, result_size);
 
@@ -319,7 +319,7 @@ bijson_error_t _bijson_io_write_to_tempfile(
 	size_t *result_size
 ) {
 	if(!result_buffer || !result_size)
-		return bijson_error_parameter_is_null;
+		_BIJSON_RETURN_ERROR(bijson_error_parameter_is_null);
 
 	const char *tmpdir = getenv("BIJSON_TMPDIR");
 	if(!tmpdir)
@@ -329,7 +329,7 @@ bijson_error_t _bijson_io_write_to_tempfile(
 
 	int fd = open(tmpdir, O_RDWR|O_TMPFILE|O_CLOEXEC, 0600);
 	if(fd == -1)
-		return bijson_error_system;
+		_BIJSON_RETURN_ERROR(bijson_error_system);
 
 	size_t size;
 	bijson_error_t error = _bijson_io_write_to_fd(action_callback, action_callback_data, fd, &size);
@@ -359,10 +359,10 @@ bijson_error_t _bijson_io_read_from_filename(
 	const char *filename
 ) {
 	if(!filename)
-		return bijson_error_parameter_is_null;
+		_BIJSON_RETURN_ERROR(bijson_error_parameter_is_null);
 	int fd = open(filename, O_RDONLY|O_NOCTTY|O_CLOEXEC);
 	if(fd == -1)
-		return bijson_error_system;
+		_BIJSON_RETURN_ERROR(bijson_error_system);
 	bijson_error_t error = bijson_error_system;
 	void *buffer = MAP_FAILED;
 	size_t size = 0;

@@ -11,7 +11,7 @@ static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson
 	const byte_t *last_word_start = buffer + size - last_word_size;
 	uint64_t last_word = _bijson_read_minimal_int(last_word_start, last_word_size);
 	if(last_word > UINT64_C(9999999999999999998))
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 	last_word++;
 
 	byte_t word_chars[20];
@@ -26,7 +26,7 @@ static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson
 		word_start -= sizeof(uint64_t);
 		uint64_t word = _bijson_read_minimal_int(word_start, sizeof(uint64_t));
 		if(word > UINT64_C(9999999999999999999))
-			return bijson_error_file_format_error;
+			_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 		_BIJSON_ERROR_RETURN(callback(
 			callback_data,
 			word_chars,
@@ -45,18 +45,18 @@ bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_cal
 
 	const byte_t *exponent_size_location = buffer + SIZE_C(1);
 	if(exponent_size_location == buffer_end)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 
 	size_t exponent_size_size = SIZE_C(1) << (type & BYTE_C(0x3));
 	const byte_t *exponent_start = exponent_size_location + exponent_size_size;
 	if(exponent_start + SIZE_C(1) > buffer_end)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 	uint64_t raw_exponent_size = _bijson_read_minimal_int(exponent_size_location, exponent_size_size);
 	if(raw_exponent_size > SIZE_MAX - SIZE_C(1))
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 	size_t exponent_size = (size_t)raw_exponent_size + SIZE_C(1);
 	if(exponent_size > _bijson_ptrdiff(buffer_end, exponent_start) - SIZE_C(1))
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 
 	if(type & BYTE_C(0x4))
 		_BIJSON_ERROR_RETURN(callback(callback_data, "-", SIZE_C(1)));

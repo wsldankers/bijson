@@ -18,7 +18,7 @@ static inline bijson_error_t _bijson_object_analyze_count(const bijson_t *bijson
 
 	byte_compute_t type = *buffer;
 	if((type & BYTE_C(0xC0)) != BYTE_C(0x40))
-		return bijson_error_type_mismatch;
+		_BIJSON_RETURN_ERROR(bijson_error_type_mismatch);
 
 	const byte_t *count_location = buffer + SIZE_C(1);
 	if(count_location == buffer_end) {
@@ -29,10 +29,10 @@ static inline bijson_error_t _bijson_object_analyze_count(const bijson_t *bijson
 	size_t count_size = SIZE_C(1) << (type & BYTE_C(0x3));
 	const byte_t *key_index = count_location + count_size;
 	if(key_index > buffer_end)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 	uint64_t raw_count = _bijson_read_minimal_int(count_location, count_size);
 	if(raw_count > SIZE_MAX - SIZE_C(1))
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 	size_t count_1 = (size_t)raw_count;
 
 	analysis->count = count_1 + SIZE_C(1);
@@ -78,7 +78,7 @@ bijson_error_t _bijson_object_analyze(const bijson_t *bijson, _bijson_object_ana
 	if(count > (index_and_data_size + value_index_item_size)
 		/ (key_index_item_size + value_index_item_size + SIZE_C(1))
 	)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 
 	const byte_t *value_index = analysis->key_index + count * key_index_item_size;
 	const byte_t *key_data_start = value_index + count_1 * value_index_item_size;
@@ -86,11 +86,11 @@ bijson_error_t _bijson_object_analyze(const bijson_t *bijson, _bijson_object_ana
 	uint64_t raw_last_key_end_offset =
 		_bijson_read_minimal_int(analysis->key_index + key_index_item_size * count_1, key_index_item_size);
 	if(raw_last_key_end_offset > SIZE_MAX)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 	size_t last_key_end_offset = (size_t)raw_last_key_end_offset;
 
 	if(last_key_end_offset > _bijson_ptrdiff(buffer_end, key_data_start) - count)
-		return bijson_error_file_format_error;
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 
 	const byte_t *value_data_start = key_data_start + last_key_end_offset;
 

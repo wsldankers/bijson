@@ -51,7 +51,7 @@ bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t requ
 
 	size_t used = buffer->used;
 	if(SIZE_MAX - required < used)
-		return bijson_error_out_of_virtual_memory;
+		_BIJSON_RETURN_ERROR(bijson_error_out_of_virtual_memory);
 	required += used;
 
 	size_t old_size = buffer->_size;
@@ -73,7 +73,7 @@ bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t requ
 			: realloc(buffer->_buffer, new_size);
 		if(!new_buffer) {
 			IF_DEBUG(buffer->_failed = true);
-			return bijson_error_system;
+			_BIJSON_RETURN_ERROR(bijson_error_system);
 		}
 		if(buffer->_buffer == buffer->_minibuffer)
 			memcpy(new_buffer, buffer->_minibuffer, old_size);
@@ -92,7 +92,7 @@ bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t requ
 		}
 		if(new_size > OFF_MAX) {
 			IF_DEBUG(buffer->_failed = true);
-			return bijson_error_out_of_virtual_memory;
+			_BIJSON_RETURN_ERROR(bijson_error_out_of_virtual_memory);
 		}
 		if(was_malloced) {
 			const char *tmpdir = getenv("BIJSON_TMPDIR");
@@ -103,17 +103,17 @@ bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t requ
 			fd = open(tmpdir, O_RDWR|O_TMPFILE|O_CLOEXEC, 0600);
 			if(fd == -1) {
 				IF_DEBUG(buffer->_failed = true);
-				return bijson_error_system;
+				_BIJSON_RETURN_ERROR(bijson_error_system);
 			}
 			if(posix_fallocate(fd, 0, (off_t)new_size) == -1) {
 				close(fd);
 				IF_DEBUG(buffer->_failed = true);
-				return bijson_error_system;
+				_BIJSON_RETURN_ERROR(bijson_error_system);
 			}
 		} else {
 			if(posix_fallocate(fd, (off_t)old_size, (off_t)(new_size - old_size)) == -1) {
 				IF_DEBUG(buffer->_failed = true);
-				return bijson_error_system;
+				_BIJSON_RETURN_ERROR(bijson_error_system);
 			}
 		}
 		void *new_buffer = was_malloced
@@ -124,7 +124,7 @@ bijson_error_t _bijson_buffer_ensure_space(_bijson_buffer_t *buffer, size_t requ
 			if(was_malloced)
 				close(fd);
 			IF_DEBUG(buffer->_failed = true);
-			return bijson_error_system;
+			_BIJSON_RETURN_ERROR(bijson_error_system);
 		}
 
 		if(was_malloced) {

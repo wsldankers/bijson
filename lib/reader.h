@@ -6,9 +6,9 @@
 
 static inline bijson_error_t _bijson_check_bijson(const bijson_t *bijson) {
 	if(!bijson || !bijson->buffer)
-		return bijson_error_parameter_is_null;
+		_BIJSON_RETURN_ERROR(bijson_error_parameter_is_null);
 	if(!bijson->size)
-		return bijson_error_parameter_is_zero;
+		_BIJSON_RETURN_ERROR(bijson_error_parameter_is_zero);
 	return NULL;
 }
 

@@ -5,7 +5,7 @@
 
 bijson_error_t bijson_writer_begin_object(bijson_writer_t *writer) {
 	if(writer->failed)
-		return bijson_error_writer_failed;
+		_BIJSON_RETURN_ERROR(bijson_error_writer_failed);
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
 	writer->expect = writer->expect_after_value = _bijson_writer_expect_key;
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_push_byte(&writer->spool, _bijson_spool_type_object));
@@ -17,7 +17,7 @@ bijson_error_t bijson_writer_begin_object(bijson_writer_t *writer) {
 
 bijson_error_t bijson_writer_add_key(bijson_writer_t *writer, const void *key, size_t len) {
 	if(writer->failed)
-		return bijson_error_writer_failed;
+		_BIJSON_RETURN_ERROR(bijson_error_writer_failed);
 	if(writer->expect != _bijson_writer_expect_key)
 		return writer->expect_after_value == _bijson_writer_expect_key
 			? bijson_error_value_expected
@@ -33,7 +33,7 @@ bijson_error_t bijson_writer_add_key(bijson_writer_t *writer, const void *key, s
 
 bijson_error_t bijson_writer_begin_key(bijson_writer_t *writer) {
 	if(writer->failed)
-		return bijson_error_writer_failed;
+		_BIJSON_RETURN_ERROR(bijson_error_writer_failed);
 	if(writer->expect != _bijson_writer_expect_key)
 		return writer->expect_after_value == _bijson_writer_expect_key
 			? bijson_error_value_expected
@@ -49,18 +49,18 @@ bijson_error_t bijson_writer_begin_key(bijson_writer_t *writer) {
 
 bijson_error_t bijson_writer_append_key(bijson_writer_t *writer, const void *key, size_t len) {
 	if(writer->failed)
-		return bijson_error_writer_failed;
+		_BIJSON_RETURN_ERROR(bijson_error_writer_failed);
 	if(writer->expect != _bijson_writer_expect_more_key)
-		return bijson_error_unmatched_end;
+		_BIJSON_RETURN_ERROR(bijson_error_unmatched_end);
 
 	return _bijson_buffer_push(&writer->spool, key, len);
 }
 
 bijson_error_t bijson_writer_end_key(bijson_writer_t *writer) {
 	if(writer->failed)
-		return bijson_error_writer_failed;
+		_BIJSON_RETURN_ERROR(bijson_error_writer_failed);
 	if(writer->expect != _bijson_writer_expect_more_key)
-		return bijson_error_unmatched_end;
+		_BIJSON_RETURN_ERROR(bijson_error_unmatched_end);
 
 	size_t spool_used = _bijson_buffer_pop_size(&writer->stack);
 
@@ -78,9 +78,9 @@ bijson_error_t bijson_writer_end_key(bijson_writer_t *writer) {
 
 bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 	if(writer->failed)
-		return bijson_error_writer_failed;
+		_BIJSON_RETURN_ERROR(bijson_error_writer_failed);
 	if(writer->expect != _bijson_writer_expect_key)
-		return bijson_error_unmatched_end;
+		_BIJSON_RETURN_ERROR(bijson_error_unmatched_end);
 
 	size_t spool_used = writer->spool.used;
 	size_t current_container = writer->current_container;

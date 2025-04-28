@@ -281,10 +281,10 @@ static bijson_error_t _bijson_decimal_buffer_push_writer(void *spool, const void
 
 bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const void *string, size_t len) {
 	if(writer->failed)
-		return bijson_error_writer_failed;
+		_BIJSON_RETURN_ERROR(bijson_error_writer_failed);
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
 	if(!len)
-		return bijson_error_parameter_is_zero;
+		_BIJSON_RETURN_ERROR(bijson_error_parameter_is_zero);
 
 	_bijson_string_analysis_t string_analysis;
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_analyze_string(&string_analysis, string, len));
@@ -473,7 +473,7 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 
 bijson_error_t bijson_writer_begin_decimal_from_string(bijson_writer_t *writer) {
 	if(writer->failed)
-		return bijson_error_writer_failed;
+		_BIJSON_RETURN_ERROR(bijson_error_writer_failed);
 	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
 
 	// Switch the role of the stack and spool:
@@ -485,18 +485,18 @@ bijson_error_t bijson_writer_begin_decimal_from_string(bijson_writer_t *writer) 
 
 bijson_error_t bijson_writer_append_decimal_from_string(bijson_writer_t *writer, const void *string, size_t len) {
 	if(writer->failed)
-		return bijson_error_writer_failed;
+		_BIJSON_RETURN_ERROR(bijson_error_writer_failed);
 	if(writer->expect != _bijson_writer_expect_more_decimal_string)
-		return bijson_error_unmatched_end;
+		_BIJSON_RETURN_ERROR(bijson_error_unmatched_end);
 
 	return _bijson_buffer_push(&writer->stack, string, len);
 }
 
 bijson_error_t bijson_writer_end_decimal_from_string(bijson_writer_t *writer) {
 	if(writer->failed)
-		return bijson_error_writer_failed;
+		_BIJSON_RETURN_ERROR(bijson_error_writer_failed);
 	if(writer->expect != _bijson_writer_expect_more_decimal_string)
-		return bijson_error_unmatched_end;
+		_BIJSON_RETURN_ERROR(bijson_error_unmatched_end);
 
 	size_t spool_used;
 	_bijson_buffer_pop(&writer->spool, &spool_used, sizeof spool_used);

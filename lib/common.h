@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "../include/common.h"
 
@@ -58,8 +59,9 @@ typedef unsigned int uint32_compute_t;
 #define _BIJSON_EXPECT_FALSE(x) (x)
 #endif
 
-#define _BIJSON_ERROR_CLEANUP_AND_RETURN(x, cleanup) do { bijson_error_t _error = (x); if(_BIJSON_EXPECT_FALSE(_error)) { cleanup; return _error; } } while(false)
+#define _BIJSON_ERROR_CLEANUP_AND_RETURN(x, cleanup) do { bijson_error_t _error = (x); if(_BIJSON_EXPECT_FALSE(_error)) { IF_DEBUG(fprintf(stderr, "\t%s:%d %s\n", __FILE__, __LINE__, _error)); cleanup; return _error; } } while(false)
 #define _BIJSON_ERROR_RETURN(x) _BIJSON_ERROR_CLEANUP_AND_RETURN((x), do {} while(false))
+#define _BIJSON_RETURN_ERROR(x) do { bijson_error_t _error = (x); IF_DEBUG(fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, _error)); return _error; } while(false)
 
 #define bijson_0 ((bijson_t){0})
 

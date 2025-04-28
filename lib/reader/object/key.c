@@ -45,7 +45,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key(
 	// static size_t record_attempts = SIZE_C(0);
 
 	if(!analysis->count)
-		return bijson_error_key_not_found;
+		_BIJSON_RETURN_ERROR(bijson_error_key_not_found);
 
 	if(analysis->count == SIZE_C(1)) {
 		bijson_t value;
@@ -56,7 +56,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key(
 			*result = value;
 			return NULL;
 		}
-		return bijson_error_key_not_found;
+		_BIJSON_RETURN_ERROR(bijson_error_key_not_found);
 	}
 
 	_bijson_get_key_entry_t target = {
@@ -95,7 +95,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key(
 		}
 	}
 
-	return bijson_error_key_not_found;
+	_BIJSON_RETURN_ERROR(bijson_error_key_not_found);
 }
 
 bijson_error_t bijson_analyzed_object_get_key(

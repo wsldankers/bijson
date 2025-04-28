@@ -22,7 +22,7 @@ bijson_error_t bijson_get_value_type(const bijson_t *bijson, bijson_value_type_t
 		case BYTE_C(0x00):
 			switch(type) {
 				case BYTE_C(0x00):
-					return bijson_error_file_format_error;
+					_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 				case BYTE_C(0x01):
 					return *result = bijson_value_type_null, NULL;
 				case BYTE_C(0x05):
@@ -68,7 +68,7 @@ bijson_error_t bijson_get_value_type(const bijson_t *bijson, bijson_value_type_t
 			return *result = bijson_value_type_object, NULL;
 	}
 
-	return bijson_error_unsupported_data_type;
+	_BIJSON_RETURN_ERROR(bijson_error_unsupported_data_type);
 }
 
 bijson_error_t bijson_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
@@ -81,7 +81,7 @@ bijson_error_t bijson_to_json(const bijson_t *bijson, bijson_output_callback_t c
 		case BYTE_C(0x00):
 			switch(type) {
 				case BYTE_C(0x00):
-					return bijson_error_file_format_error;
+					_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 				case BYTE_C(0x01):
 				case BYTE_C(0x05): // undefined
 					return callback(callback_data, "null", 4);
@@ -113,7 +113,7 @@ bijson_error_t bijson_to_json(const bijson_t *bijson, bijson_output_callback_t c
 			break;
 	}
 
-	return bijson_error_unsupported_data_type;
+	_BIJSON_RETURN_ERROR(bijson_error_unsupported_data_type);
 }
 
 typedef struct _bijson_to_json_state {
