@@ -292,13 +292,14 @@ bijson_error_t _bijson_io_write_bytecounter(
 	);
 }
 
-bijson_error_t _bijson_io_write_to_filename(
+bijson_error_t _bijson_io_write_to_filename_at(
 	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
+	int dir_fd,
 	const char *filename,
 	size_t *result_size
 ) {
-	int fd = open(filename, O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
+	int fd = openat(dir_fd, filename, O_WRONLY|O_CREAT|O_TRUNC|O_NOCTTY|O_CLOEXEC, 0666);
 	if(fd == -1)
 		_BIJSON_RETURN_ERROR(bijson_error_system);
 
@@ -310,6 +311,15 @@ bijson_error_t _bijson_io_write_to_filename(
 	close(fd);
 
 	return error;
+}
+
+bijson_error_t _bijson_io_write_to_filename(
+	_bijson_output_action_callback_t action_callback,
+	void *action_callback_data,
+	const char *filename,
+	size_t *result_size
+) {
+	return _bijson_io_write_to_filename_at(action_callback, action_callback_data, AT_FDCWD, filename, result_size);
 }
 
 bijson_error_t _bijson_io_write_to_tempfile(
@@ -353,14 +363,15 @@ bijson_error_t _bijson_io_write_to_tempfile(
 	return error;
 }
 
-bijson_error_t _bijson_io_read_from_filename(
+bijson_error_t _bijson_io_read_from_filename_at(
 	bijson_input_action_t action,
 	const void *action_data,
+	int dir_fd,
 	const char *filename
 ) {
 	if(!filename)
 		_BIJSON_RETURN_ERROR(bijson_error_parameter_is_null);
-	int fd = open(filename, O_RDONLY|O_NOCTTY|O_CLOEXEC);
+	int fd = openat(dir_fd, filename, O_RDONLY|O_NOCTTY|O_CLOEXEC);
 	if(fd == -1)
 		_BIJSON_RETURN_ERROR(bijson_error_system);
 	bijson_error_t error = bijson_error_system;
@@ -405,6 +416,15 @@ bijson_error_t _bijson_io_read_from_filename(
 
 	return error;
 }
+
+bijson_error_t _bijson_io_read_from_filename(
+	bijson_input_action_t action,
+	const void *action_data,
+	const char *filename
+) {
+	return _bijson_io_read_from_filename_at(action, action_data, AT_FDCWD, filename);
+}
+
 
 void _bijson_io_close(bijson_t *bijson) {
 	if(!bijson || !bijson->buffer || bijson->buffer == MAP_FAILED || !bijson->size)

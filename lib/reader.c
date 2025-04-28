@@ -187,8 +187,17 @@ bijson_error_t bijson_to_json_filename(const bijson_t *bijson, const char *filen
 	return _bijson_io_write_to_filename(_bijson_to_json_callback, &state, filename, NULL);
 }
 
+bijson_error_t bijson_to_json_filename_at(const bijson_t *bijson, int dir_fd, const char *filename) {
+	_bijson_to_json_state_t state = {bijson};
+	return _bijson_io_write_to_filename_at(_bijson_to_json_callback, &state, dir_fd, filename, NULL);
+}
+
 bijson_error_t bijson_open_filename(bijson_t *bijson, const char *filename) {
 	return _bijson_io_read_from_filename(NULL, bijson, filename);
+}
+
+bijson_error_t bijson_open_filename_at(bijson_t *bijson, int dir_fd, const char *filename) {
+	return _bijson_io_read_from_filename_at(NULL, bijson, dir_fd, filename);
 }
 
 void bijson_close(bijson_t *bijson) {

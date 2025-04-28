@@ -168,3 +168,8 @@ bijson_error_t bijson_writer_write_to_filename(bijson_writer_t *writer, const ch
 	_bijson_writer_write_state_t state = {writer};
 	return _bijson_io_write_to_filename(_bijson_writer_write_callback, &state, filename, NULL);
 }
+
+bijson_error_t bijson_writer_write_to_filename_at(bijson_writer_t *writer, int dir_fd, const char *filename) {
+	_bijson_writer_write_state_t state = {writer};
+	return _bijson_io_write_to_filename_at(_bijson_writer_write_callback, &state, dir_fd, filename, NULL);
+}

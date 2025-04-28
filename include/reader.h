@@ -40,6 +40,7 @@ typedef enum bijson_value_type {
 } bijson_value_type_t;
 
 extern bijson_error_t bijson_open_filename(bijson_t *bijson, const char *filename);
+extern bijson_error_t bijson_open_filename_at(bijson_t *bijson, int dir_fd, const char *filename);
 
 extern bijson_error_t bijson_get_value_type(const bijson_t *bijson, bijson_value_type_t *result);
 
@@ -136,6 +137,7 @@ extern bijson_error_t bijson_to_json_bytecounter(
 	size_t *result_size
 );
 extern bijson_error_t bijson_to_json_filename(const bijson_t *bijson, const char *filename);
+extern bijson_error_t bijson_to_json_filename_at(const bijson_t *bijson, int dir_fd, const char *filename);
 
 extern void bijson_free(bijson_t *bijson);
 extern void bijson_close(bijson_t *bijson);

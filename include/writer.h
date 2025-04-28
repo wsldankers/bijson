@@ -16,11 +16,13 @@ extern bool bijson_writer_expects_key(const bijson_writer_t *writer) __attribute
 
 extern bijson_error_t bijson_parse_json(bijson_writer_t *writer, const void *buffer, size_t len, size_t *parse_end);
 extern bijson_error_t bijson_parse_json_filename(bijson_writer_t *writer, const char *filename, size_t *parse_end);
+extern bijson_error_t bijson_parse_json_filename_at(bijson_writer_t *writer, int dir_fd, const char *filename, size_t *parse_end);
 
 extern bijson_error_t bijson_writer_write_to_fd(bijson_writer_t *writer, int fd);
 extern bijson_error_t bijson_writer_write_to_FILE(bijson_writer_t *writer, FILE *file);
 extern bijson_error_t bijson_writer_write_to_malloc(bijson_writer_t *writer, bijson_t *bijson);
 extern bijson_error_t bijson_writer_write_to_filename(bijson_writer_t *writer, const char *filename);
+extern bijson_error_t bijson_writer_write_to_filename_at(bijson_writer_t *writer, int dir_fd, const char *filename);
 extern bijson_error_t bijson_writer_write_to_tempfile(bijson_writer_t *writer, bijson_t *bijson);
 extern bijson_error_t bijson_writer_write_bytecounter(bijson_writer_t *writer, size_t *result_size);
 

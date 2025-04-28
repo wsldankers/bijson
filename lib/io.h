@@ -59,6 +59,14 @@ extern bijson_error_t _bijson_io_write_to_filename(
 	size_t *result_size
 );
 
+extern bijson_error_t _bijson_io_write_to_filename_at(
+	_bijson_output_action_callback_t action_callback,
+	void *action_callback_data,
+	int dir_fd,
+	const char *filename,
+	size_t *result_size
+);
+
 extern bijson_error_t _bijson_io_write_to_tempfile(
 	_bijson_output_action_callback_t action_callback,
 	void *action_callback_data,
@@ -75,6 +83,13 @@ typedef bijson_error_t (*bijson_input_action_t)(
 extern bijson_error_t _bijson_io_read_from_filename(
 	bijson_input_action_t action,
 	const void *action_data,
+	const char *filename
+);
+
+extern bijson_error_t _bijson_io_read_from_filename_at(
+	bijson_input_action_t action,
+	const void *action_data,
+	int dir_fd,
 	const char *filename
 );
 

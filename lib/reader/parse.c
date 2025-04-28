@@ -465,3 +465,11 @@ bijson_error_t bijson_parse_json_filename(bijson_writer_t *writer, const char *f
 	};
 	return _bijson_io_read_from_filename(_bijson_parse_json_action, &action_data, filename);
 }
+
+bijson_error_t bijson_parse_json_filename_at(bijson_writer_t *writer, int dir_fd, const char *filename, size_t *parse_end) {
+	_bijson_parse_json_action_data_t action_data = {
+		.writer = writer,
+		.parse_end = parse_end,
+	};
+	return _bijson_io_read_from_filename_at(_bijson_parse_json_action, &action_data, dir_fd, filename);
+}
