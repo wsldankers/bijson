@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
 #include <sysexits.h>
 #include <assert.h>
+#include <stdarg.h>
+#include <errno.h>
 
 #include "../include/reader.h"
 #include "../include/writer.h"
@@ -12,15 +13,29 @@
 #define PACKAGE_STRING "bijson (git)"
 #endif
 
-inline static void _c(const char *file, int line, const char *body, bijson_error_t error) {
-	if(error == bijson_error_system)
-		err(EX_OSERR, "%s:%d: %s", file, line, body);
-	else if(error)
-		errx(EX_SOFTWARE, "%s:%d: %s: %s", file, line, body, error);
-}
-#define C(error) do { _c(__FILE__, __LINE__, #error, (error)); } while(0)
+static const char *progname;
 
-static void usage(FILE *fh, const char *progname) {
+__attribute__((format(printf, 2, 3)))
+static void _c(bijson_error_t error, const char *fmt, ...) {
+	if(!error)
+		return;
+
+	va_list ap;
+	va_start(ap, fmt);
+
+	fprintf(stderr, "%s: ", progname);
+	vfprintf(stderr, fmt, ap);
+	if(error == bijson_error_system) {
+		fprintf(stderr, ": %s\n", strerror(errno));
+		exit(EX_OSERR);
+	} else {
+		fprintf(stderr, ": %s\n", error);
+		exit(EX_SOFTWARE);
+	}
+}
+#define C(error, ...) do { _c((error), __VA_ARGS__); } while(0)
+
+static void usage(FILE *fh) {
 	fprintf(fh, "Usage:\n");
 	fprintf(fh, "\t%s help\n", progname);
 	fprintf(fh, "\t%s version\n", progname);
@@ -31,46 +46,46 @@ static void usage(FILE *fh, const char *progname) {
 }
 
 int main(int argc, char **argv) {
-	const char *progname = argv[0];
+	progname = argv[0];
 	char *basename = strrchr(progname, '/');
 	if (basename) {
 		progname = basename + 1U;
 	}
 
 	if (argc < 2) {
-		usage(stderr, progname);
+		usage(stderr);
 		return EXIT_FAILURE;
 	}
 
 	char *command = argv[1];
 
 	if(!strcmp(command, "help")) {
-		usage(stdout, progname);
+		usage(stdout);
 	} else if(!strcmp(command, "version")) {
 		printf("%s - https://fruit.je/bijson\n", PACKAGE_STRING);
 	} else if(!strcmp(command, "load-json")) {
 		if (argc < 4) {
-			usage(stderr, progname);
+			usage(stderr);
 			fprintf(stderr, "%s: missing arguments\n", progname);
 			return EXIT_FAILURE;
 		}
 		bijson_writer_t *writer;
-		C(bijson_writer_alloc(&writer));
-		C(bijson_parse_json_filename(writer, argv[2], NULL));
-		C(bijson_writer_write_to_filename(writer, argv[3]));
+		C(bijson_writer_alloc(&writer), "bijson_writer_alloc()");
+		C(bijson_parse_json_filename(writer, argv[2], NULL), "bijson_parse_json_filename(%s)", argv[2]);
+		C(bijson_writer_write_to_filename(writer, argv[3]), "bijson_writer_write_to_filename(%s)", argv[3]);
 		bijson_writer_free(writer);
 	} else if(!strcmp(command, "dump-json")) {
 		if (argc < 4) {
-			usage(stderr, progname);
+			usage(stderr);
 			fprintf(stderr, "%s: missing arguments\n", progname);
 			return EXIT_FAILURE;
 		}
 		bijson_t bijson;
-		C(bijson_open_filename(&bijson, argv[2]));
-		C(bijson_to_json_filename(&bijson, argv[3]));
+		C(bijson_open_filename(&bijson, argv[2]), "bijson_open_filename(%s)", argv[2]);
+		C(bijson_to_json_filename(&bijson, argv[3]), "bijson_to_json_filename(%s)", argv[3]);
 		bijson_close(&bijson);
 	} else {
-		usage(stderr, progname);
+		usage(stderr);
 		fprintf(stderr, "%s: unknown command %s\n", progname, command);
 		return EXIT_FAILURE;
 	}
