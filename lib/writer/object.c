@@ -255,7 +255,8 @@ bijson_error_t _bijson_writer_write_object(bijson_writer_t *writer, bijson_outpu
 
 	// Write the values
 	for(size_t z = 0; z < count; z++) {
-		object_item = object_items[z];
+		// object_items may move during _bijson_writer_write_value()
+		_bijson_buffer_read(&writer->stack, stack_used + z * sizeof object_item, &object_item, sizeof object_item);
 		memcpy(&key_size, object_item, sizeof key_size);
 		object_item += sizeof key_size;
 		object_item += key_size;
