@@ -81,7 +81,7 @@ static inline bijson_error_t _bijson_buffer_push(_bijson_buffer_t *buffer, const
 	assert(!buffer->_failed);
 	assert(!buffer->_finalized);
 	assert(data || !len);
-	_BIJSON_ERROR_RETURN(_bijson_buffer_ensure_space(buffer, len));
+	_BIJSON_RETURN_ON_ERROR(_bijson_buffer_ensure_space(buffer, len));
 	size_t old_used = buffer->used;
 	memcpy(buffer->_buffer + old_used, data, len);
 	buffer->used = old_used + len;

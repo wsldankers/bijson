@@ -32,7 +32,7 @@ typedef struct _bijson_get_key_entry {
 } _bijson_get_key_entry_t;
 
 static inline bijson_error_t _bijson_get_key_entry_get(const _bijson_object_analysis_t *analysis, _bijson_get_key_entry_t *entry) {
-	_BIJSON_ERROR_RETURN(_bijson_analyzed_object_get_index(analysis, entry->index, &entry->key, &entry->len, &entry->value));
+	_BIJSON_RETURN_ON_ERROR(_bijson_analyzed_object_get_index(analysis, entry->index, &entry->key, &entry->len, &entry->value));
 	entry->xxhash = XXH3_128bits(entry->key, entry->len);
 	entry->hash = _bijson_integer_hash(&entry->xxhash);
 	return NULL;

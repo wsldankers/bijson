@@ -16,7 +16,7 @@ typedef struct _bijson_array_analysis {
 } _bijson_array_analysis_t;
 
 static inline bijson_error_t _bijson_array_analyze_count(const bijson_t *bijson, _bijson_array_analysis_t *analysis) {
-	_BIJSON_ERROR_RETURN(_bijson_check_bijson(bijson));
+	_BIJSON_RETURN_ON_ERROR(_bijson_check_bijson(bijson));
 	if(!analysis)
 		_BIJSON_RETURN_ERROR(bijson_error_parameter_is_null);
 
@@ -53,7 +53,7 @@ static inline bijson_error_t _bijson_array_analyze_count(const bijson_t *bijson,
 
 static inline bijson_error_t _bijson_array_count(const bijson_t *bijson, size_t *result) {
 	_bijson_array_analysis_t analysis;
-	_BIJSON_ERROR_RETURN(_bijson_array_analyze_count(bijson, &analysis));
+	_BIJSON_RETURN_ON_ERROR(_bijson_array_analyze_count(bijson, &analysis));
 	*result = analysis.count;
 	return NULL;
 }
@@ -68,7 +68,7 @@ bijson_error_t bijson_analyzed_array_count(const bijson_array_analysis_t *analys
 }
 
 static inline bijson_error_t _bijson_array_analyze(const bijson_t *bijson, _bijson_array_analysis_t *analysis) {
-	_BIJSON_ERROR_RETURN(_bijson_array_analyze_count(bijson, analysis));
+	_BIJSON_RETURN_ON_ERROR(_bijson_array_analyze_count(bijson, analysis));
 	if(!analysis->count)
 		return NULL;
 
@@ -137,7 +137,7 @@ static inline bijson_error_t _bijson_analyzed_array_get_index(const _bijson_arra
 
 bijson_error_t bijson_array_get_index(const bijson_t *bijson, size_t index, bijson_t *result) {
 	_bijson_array_analysis_t analysis;
-	_BIJSON_ERROR_RETURN(_bijson_array_analyze(bijson, &analysis));
+	_BIJSON_RETURN_ON_ERROR(_bijson_array_analyze(bijson, &analysis));
 	return _bijson_analyzed_array_get_index(&analysis, index, result);
 }
 
@@ -152,17 +152,17 @@ bijson_error_t bijson_array_analyze(const bijson_t *bijson, bijson_array_analysi
 
 bijson_error_t _bijson_array_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	_bijson_array_analysis_t analysis;
-	_BIJSON_ERROR_RETURN(_bijson_array_analyze(bijson, &analysis));
+	_BIJSON_RETURN_ON_ERROR(_bijson_array_analyze(bijson, &analysis));
 
-	_BIJSON_ERROR_RETURN(callback(callback_data, "[", 1));
+	_BIJSON_RETURN_ON_ERROR(callback(callback_data, "[", 1));
 
 	for(size_t u = 0; u < analysis.count; u++) {
 		if(u)
-			_BIJSON_ERROR_RETURN(callback(callback_data, ",", 1));
+			_BIJSON_RETURN_ON_ERROR(callback(callback_data, ",", 1));
 
 		bijson_t item;
-		_BIJSON_ERROR_RETURN(_bijson_analyzed_array_get_index(&analysis, u, &item));
-		_BIJSON_ERROR_RETURN(bijson_to_json(&item, callback, callback_data));
+		_BIJSON_RETURN_ON_ERROR(_bijson_analyzed_array_get_index(&analysis, u, &item));
+		_BIJSON_RETURN_ON_ERROR(bijson_to_json(&item, callback, callback_data));
 	}
 
 	return callback(callback_data, "]", 1);

@@ -4,7 +4,7 @@
 bijson_error_t bijson_writer_begin_array(bijson_writer_t *writer) {
 	if(writer->failed)
 		_BIJSON_RETURN_ERROR(bijson_error_writer_failed);
-	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
+	_BIJSON_RETURN_ON_ERROR(_bijson_writer_check_expect_value(writer));
 	writer->expect = writer->expect_after_value = _bijson_writer_expect_value;
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_push_byte(&writer->spool, _bijson_spool_type_array));
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_push_size(&writer->stack, writer->current_container));
@@ -93,8 +93,8 @@ bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, bijson_output
 	byte_compute_t item_offsets_width = _bijson_optimal_storage_size(items_output_size);
 	byte_t output_type = (byte_t)(BYTE_C(0x30) | (item_offsets_width << 2U) | count_width);
 
-	_BIJSON_ERROR_RETURN(write(write_data, &output_type, sizeof output_type));
-	_BIJSON_ERROR_RETURN(_bijson_writer_write_compact_int(write, write_data, count_1, count_width));
+	_BIJSON_RETURN_ON_ERROR(write(write_data, &output_type, sizeof output_type));
+	_BIJSON_RETURN_ON_ERROR(_bijson_writer_write_compact_int(write, write_data, count_1, count_width));
 
 	// Write the item offsets
 	item = spool;
@@ -106,7 +106,7 @@ bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, bijson_output
 		memcpy(&item_spool_size, item, sizeof item_spool_size);
 		item += sizeof item_spool_size;
 		item += item_spool_size;
-		_BIJSON_ERROR_RETURN(_bijson_writer_write_compact_int(write, write_data, item_output_offset, item_offsets_width));
+		_BIJSON_RETURN_ON_ERROR(_bijson_writer_write_compact_int(write, write_data, item_output_offset, item_offsets_width));
 	}
 
 	size_t count = count_1 + SIZE_C(1);
@@ -114,7 +114,7 @@ bijson_error_t _bijson_writer_write_array(bijson_writer_t *writer, bijson_output
 	// Write the element values
 	item = spool;
 	for(size_t z = 0; z < count; z++) {
-		_BIJSON_ERROR_RETURN(_bijson_writer_write_value(writer, write, write_data, item));
+		_BIJSON_RETURN_ON_ERROR(_bijson_writer_write_value(writer, write, write_data, item));
 		item++;
 		size_t item_spool_size;
 		memcpy(&item_spool_size, item, sizeof item_spool_size);

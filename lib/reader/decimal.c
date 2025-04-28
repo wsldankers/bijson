@@ -15,7 +15,7 @@ static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson
 	last_word++;
 
 	byte_t word_chars[20];
-	_BIJSON_ERROR_RETURN(callback(
+	_BIJSON_RETURN_ON_ERROR(callback(
 		callback_data,
 		word_chars,
 		_bijson_uint64_str(word_chars, last_word)
@@ -27,7 +27,7 @@ static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson
 		uint64_t word = _bijson_read_minimal_int(word_start, sizeof(uint64_t));
 		if(word > UINT64_C(9999999999999999999))
 			_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
-		_BIJSON_ERROR_RETURN(callback(
+		_BIJSON_RETURN_ON_ERROR(callback(
 			callback_data,
 			word_chars,
 			_bijson_uint64_str_padded(word_chars, word)
@@ -59,19 +59,19 @@ bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_cal
 		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
 
 	if(type & BYTE_C(0x4))
-		_BIJSON_ERROR_RETURN(callback(callback_data, "-", SIZE_C(1)));
+		_BIJSON_RETURN_ON_ERROR(callback(callback_data, "-", SIZE_C(1)));
 
 	const byte_t *significand_start = exponent_start + exponent_size;
 	bijson_t significand = {
 		significand_start,
 		_bijson_ptrdiff(buffer_end, significand_start),
 	};
-	_BIJSON_ERROR_RETURN(_bijson_decimal_part_to_json(&significand, callback, callback_data));
+	_BIJSON_RETURN_ON_ERROR(_bijson_decimal_part_to_json(&significand, callback, callback_data));
 
-	_BIJSON_ERROR_RETURN(callback(callback_data, "e", SIZE_C(1)));
+	_BIJSON_RETURN_ON_ERROR(callback(callback_data, "e", SIZE_C(1)));
 
 	if(type & BYTE_C(0x8))
-		_BIJSON_ERROR_RETURN(callback(callback_data, "-", SIZE_C(1)));
+		_BIJSON_RETURN_ON_ERROR(callback(callback_data, "-", SIZE_C(1)));
 
 	bijson_t exponent = {
 		exponent_start,
@@ -86,7 +86,7 @@ bijson_error_t _bijson_decimal_integer_to_json(const bijson_t *bijson, bijson_ou
 
 	byte_compute_t type = *buffer;
 	if(type & BYTE_C(0x1))
-		_BIJSON_ERROR_RETURN(callback(callback_data, "-", SIZE_C(1)));
+		_BIJSON_RETURN_ON_ERROR(callback(callback_data, "-", SIZE_C(1)));
 
 	if(size == SIZE_C(1))
 		return callback(callback_data, "0", SIZE_C(1));

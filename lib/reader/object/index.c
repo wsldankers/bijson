@@ -108,7 +108,7 @@ bijson_error_t bijson_object_get_index(
 	bijson_t *value_result
 ) {
 	_bijson_object_analysis_t analysis;
-	_BIJSON_ERROR_RETURN(_bijson_object_analyze(bijson, &analysis));
+	_BIJSON_RETURN_ON_ERROR(_bijson_object_analyze(bijson, &analysis));
 	return _bijson_analyzed_object_get_index(
 		&analysis,
 		index,

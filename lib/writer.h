@@ -24,7 +24,7 @@ typedef enum _bijson_writer_expect {
 } _bijson_writer_expect_t;
 
 // Use in public functions:
-#define _BIJSON_WRITER_ERROR_RETURN(x) _BIJSON_ERROR_CLEANUP_AND_RETURN(x, writer->failed = true)
+#define _BIJSON_WRITER_ERROR_RETURN(x) _BIJSON_CLEANUP_AND_RETURN_ON_ERROR(x, writer->failed = true)
 
 struct bijson_writer {
 	// The spool contains values, each starting with a _bijson_spool_type_t,

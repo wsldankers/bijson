@@ -14,7 +14,7 @@
 #include "reader/string.h"
 
 bijson_error_t bijson_get_value_type(const bijson_t *bijson, bijson_value_type_t *result) {
-	_BIJSON_ERROR_RETURN(_bijson_check_bijson(bijson));
+	_BIJSON_RETURN_ON_ERROR(_bijson_check_bijson(bijson));
 	const byte_t *buffer = bijson->buffer;
 	const byte_compute_t type = *buffer;
 
@@ -72,7 +72,7 @@ bijson_error_t bijson_get_value_type(const bijson_t *bijson, bijson_value_type_t
 }
 
 bijson_error_t bijson_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
-	_BIJSON_ERROR_RETURN(_bijson_check_bijson(bijson));
+	_BIJSON_RETURN_ON_ERROR(_bijson_check_bijson(bijson));
 	const byte_t *buffer = bijson->buffer;
 
 	const byte_compute_t type = *buffer;

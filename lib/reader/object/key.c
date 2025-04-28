@@ -51,7 +51,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key(
 		bijson_t value;
 		const void *candidate_key;
 		size_t candidate_len;
-		_BIJSON_ERROR_RETURN(_bijson_analyzed_object_get_index(analysis, SIZE_C(0), &candidate_key, &candidate_len, &value));
+		_BIJSON_RETURN_ON_ERROR(_bijson_analyzed_object_get_index(analysis, SIZE_C(0), &candidate_key, &candidate_len, &value));
 		if(candidate_len == len && !memcmp(key, candidate_key, len)) {
 			*result = value;
 			return NULL;
@@ -81,7 +81,7 @@ static inline bijson_error_t _bijson_analyzed_object_get_key(
 				? _bijson_get_key_guess(&lower, &upper, &target)
 				: lower.index + ((upper.index - lower.index) >> 1U)
 		};
-		_BIJSON_ERROR_RETURN(_bijson_get_key_entry_get(analysis, &guess));
+		_BIJSON_RETURN_ON_ERROR(_bijson_get_key_entry_get(analysis, &guess));
 		int c = _bijson_get_key_entry_cmp(&guess, &target);
 		if(c == 0) {
 			*result = guess.value;
@@ -114,6 +114,6 @@ bijson_error_t bijson_object_get_key(
 	bijson_t *result
 ) {
 	_bijson_object_analysis_t analysis;
-	_BIJSON_ERROR_RETURN(_bijson_object_analyze(bijson, &analysis));
+	_BIJSON_RETURN_ON_ERROR(_bijson_object_analyze(bijson, &analysis));
 	return _bijson_analyzed_object_get_key(&analysis, key, len, result);
 }

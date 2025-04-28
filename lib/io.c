@@ -21,7 +21,7 @@ static const byte_t _bijson_nul_bytes[4096];
 bijson_error_t _bijson_io_write_nul_bytes(bijson_output_callback_t write, void *write_data, size_t len) {
 	while(len) {
 		size_t chunk = _bijson_size_min(len, sizeof _bijson_nul_bytes);
-		_BIJSON_ERROR_RETURN(write(write_data, _bijson_nul_bytes, chunk));
+		_BIJSON_RETURN_ON_ERROR(write(write_data, _bijson_nul_bytes, chunk));
 		len -= chunk;
 	}
 	return NULL;
@@ -243,7 +243,7 @@ bijson_error_t _bijson_io_write_to_malloc(
 	if(!state.buffer)
 		_BIJSON_RETURN_ERROR(bijson_error_system);
 
-	_BIJSON_ERROR_CLEANUP_AND_RETURN(action_callback(
+	_BIJSON_CLEANUP_AND_RETURN_ON_ERROR(action_callback(
 		action_callback_data,
 		_bijson_io_write_to_malloc_output_callback,
 		&state
@@ -258,7 +258,7 @@ bijson_error_t _bijson_io_write_to_malloc(
 		if(!state.buffer)
 			_BIJSON_RETURN_ERROR(bijson_error_system);
 
-		_BIJSON_ERROR_CLEANUP_AND_RETURN(action_callback(
+		_BIJSON_CLEANUP_AND_RETURN_ON_ERROR(action_callback(
 			action_callback_data,
 			_bijson_io_write_to_malloc_output_callback,
 			&state

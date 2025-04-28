@@ -36,7 +36,7 @@ static inline bijson_error_t _bijson_shift_digits(const byte_t *start, size_t le
 		return NULL;
 
 	size_t big_shift = shift / SIZE_C(19);
-	_BIJSON_ERROR_RETURN(_bijson_io_write_nul_bytes(write, write_data, big_shift * sizeof(uint64_t)));
+	_BIJSON_RETURN_ON_ERROR(_bijson_io_write_nul_bytes(write, write_data, big_shift * sizeof(uint64_t)));
 	shift -= big_shift * SIZE_C(19);
 
 	uint64_t magnitude = _bijson_uint64_pow10((unsigned int)shift);
@@ -55,7 +55,7 @@ static inline bijson_error_t _bijson_shift_digits(const byte_t *start, size_t le
 			continue;
 		uint64_t value = _bijson_ascii_digit(*s);
 		if(magnitude == UINT64_C(10000000000000000000)) {
-			_BIJSON_ERROR_RETURN(_bijson_writer_write_minimal_int(write, write_data, word, sizeof word));
+			_BIJSON_RETURN_ON_ERROR(_bijson_writer_write_minimal_int(write, write_data, word, sizeof word));
 			word = value;
 			magnitude = UINT64_C(1);
 		} else {
@@ -67,7 +67,7 @@ static inline bijson_error_t _bijson_shift_digits(const byte_t *start, size_t le
 	assert(word);
 
 	word--;
-	_BIJSON_ERROR_RETURN(_bijson_writer_write_minimal_int(write, write_data, word, _bijson_fit_uint64(word)));
+	_BIJSON_RETURN_ON_ERROR(_bijson_writer_write_minimal_int(write, write_data, word, _bijson_fit_uint64(word)));
 
 	return NULL;
 }
@@ -100,7 +100,7 @@ static bijson_error_t _bijson_add_digits(const byte_t *a_start, size_t a_len, co
 			break;
 		magnitude *= UINT64_C(10);
 		if(magnitude == UINT64_C(10000000000000000000)) {
-			_BIJSON_ERROR_RETURN(_bijson_writer_write_minimal_int(write, write_data, word, sizeof word));
+			_BIJSON_RETURN_ON_ERROR(_bijson_writer_write_minimal_int(write, write_data, word, sizeof word));
 			magnitude = UINT64_C(1);
 			word = UINT64_C(0);
 		}
@@ -150,7 +150,7 @@ static bijson_error_t _bijson_subtract_digits(const byte_t *a_start, size_t a_le
 			// Ok, we have a new contender for the new most significant word.
 			// Write out any delayed stuff to make place for it.
 			if(pending_word) {
-				_BIJSON_ERROR_RETURN(_bijson_writer_write_minimal_int(write, write_data, word, sizeof word));
+				_BIJSON_RETURN_ON_ERROR(_bijson_writer_write_minimal_int(write, write_data, word, sizeof word));
 				pending_word = false;
 				word = a_b_diff * magnitude;
 			} else {
@@ -159,7 +159,7 @@ static bijson_error_t _bijson_subtract_digits(const byte_t *a_start, size_t a_le
 
 			if(pending_zeroes) {
 				size_t zeroes_size = pending_zeroes * sizeof word;
-				_BIJSON_ERROR_RETURN(_bijson_io_write_nul_bytes(write, write_data, zeroes_size));
+				_BIJSON_RETURN_ON_ERROR(_bijson_io_write_nul_bytes(write, write_data, zeroes_size));
 				pending_zeroes = UINT64_C(0);
 			}
 		}
@@ -282,7 +282,7 @@ static bijson_error_t _bijson_decimal_buffer_push_writer(void *spool, const void
 bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const void *string, size_t len) {
 	if(writer->failed)
 		_BIJSON_RETURN_ERROR(bijson_error_writer_failed);
-	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
+	_BIJSON_RETURN_ON_ERROR(_bijson_writer_check_expect_value(writer));
 	if(!len)
 		_BIJSON_RETURN_ERROR(bijson_error_parameter_is_zero);
 
@@ -474,7 +474,7 @@ bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, co
 bijson_error_t bijson_writer_begin_decimal_from_string(bijson_writer_t *writer) {
 	if(writer->failed)
 		_BIJSON_RETURN_ERROR(bijson_error_writer_failed);
-	_BIJSON_ERROR_RETURN(_bijson_writer_check_expect_value(writer));
+	_BIJSON_RETURN_ON_ERROR(_bijson_writer_check_expect_value(writer));
 
 	// Switch the role of the stack and spool:
 	_BIJSON_WRITER_ERROR_RETURN(_bijson_buffer_push_size(&writer->spool, writer->stack.used));

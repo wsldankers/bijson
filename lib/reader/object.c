@@ -9,7 +9,7 @@
 #include "object.h"
 
 static inline bijson_error_t _bijson_object_analyze_count(const bijson_t *bijson, _bijson_object_analysis_t *analysis) {
-	_BIJSON_ERROR_RETURN(_bijson_check_bijson(bijson));
+	_BIJSON_RETURN_ON_ERROR(_bijson_check_bijson(bijson));
 
 	IF_DEBUG(memset(analysis, 'A', sizeof *analysis));
 
@@ -44,7 +44,7 @@ static inline bijson_error_t _bijson_object_analyze_count(const bijson_t *bijson
 
 static inline bijson_error_t _bijson_object_count(const bijson_t *bijson, size_t *result) {
 	_bijson_object_analysis_t analysis;
-	_BIJSON_ERROR_RETURN(_bijson_object_analyze_count(bijson, &analysis));
+	_BIJSON_RETURN_ON_ERROR(_bijson_object_analyze_count(bijson, &analysis));
 	*result = analysis.count;
 	return NULL;
 }
@@ -59,7 +59,7 @@ bijson_error_t bijson_analyzed_object_count(const bijson_object_analysis_t *anal
 }
 
 bijson_error_t _bijson_object_analyze(const bijson_t *bijson, _bijson_object_analysis_t *analysis) {
-	_BIJSON_ERROR_RETURN(_bijson_object_analyze_count(bijson, analysis));
+	_BIJSON_RETURN_ON_ERROR(_bijson_object_analyze_count(bijson, analysis));
 	if(!analysis->count)
 		return NULL;
 
@@ -112,19 +112,19 @@ bijson_error_t bijson_object_analyze(const bijson_t *bijson, bijson_object_analy
 
 bijson_error_t _bijson_object_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	_bijson_object_analysis_t analysis;
-	_BIJSON_ERROR_RETURN(_bijson_object_analyze(bijson, &analysis));
+	_BIJSON_RETURN_ON_ERROR(_bijson_object_analyze(bijson, &analysis));
 
-	_BIJSON_ERROR_RETURN(callback(callback_data, "{", 1));
+	_BIJSON_RETURN_ON_ERROR(callback(callback_data, "{", 1));
 
 	for(size_t u = 0; u < analysis.count; u++) {
 		if(u)
-			_BIJSON_ERROR_RETURN(callback(callback_data, ",", 1));
+			_BIJSON_RETURN_ON_ERROR(callback(callback_data, ",", 1));
 
 		bijson_t key, value;
-		_BIJSON_ERROR_RETURN(_bijson_analyzed_object_get_index(&analysis, u, &key.buffer, &key.size, &value));
-		_BIJSON_ERROR_RETURN(_bijson_raw_string_to_json(&key, callback, callback_data));
-		_BIJSON_ERROR_RETURN(callback(callback_data, ":", 1));
-		_BIJSON_ERROR_RETURN(bijson_to_json(&value, callback, callback_data));
+		_BIJSON_RETURN_ON_ERROR(_bijson_analyzed_object_get_index(&analysis, u, &key.buffer, &key.size, &value));
+		_BIJSON_RETURN_ON_ERROR(_bijson_raw_string_to_json(&key, callback, callback_data));
+		_BIJSON_RETURN_ON_ERROR(callback(callback_data, ":", 1));
+		_BIJSON_RETURN_ON_ERROR(bijson_to_json(&value, callback, callback_data));
 	}
 
 	return callback(callback_data, "}", 1);
