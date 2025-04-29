@@ -16,11 +16,9 @@ int _bijson_get_key_entry_cmp(const _bijson_get_key_entry_t *a, const _bijson_ge
 	int c = XXH128_cmp(&a->xxhash, &b->xxhash);
 	if(c)
 		return c;
-	return a->len < b->len
-		? -1
-		: a->len == b->len
-			? memcmp(a->key, b->key, a->len)
-			: 1;
+	return a->len == b->len
+		? memcmp(a->key, b->key, a->len)
+		: a->len < b->len ? -1 : 1;
 }
 
 __attribute__((pure))

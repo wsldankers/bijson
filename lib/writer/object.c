@@ -92,9 +92,13 @@ bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 	size_t count = 0;
 	size_t keys_output_size = 0;
 	size_t values_output_size = 0;
-	size_t value_output_size_of_highest_key = 0;
 
-	XXH128_hash_t highest_hash = {0};
+	// We keep track of the item that will come last, since it's treated
+	// specially:
+	XXH128_hash_t highest_key_hash = {0};
+	size_t highest_key_size = 0;
+	const void *highest_key_data = NULL;
+	size_t highest_value_output_size = 0;
 
 	size_t object_item_offset = spool_offset;
 	while(object_item_offset < spool_used) {
@@ -103,16 +107,27 @@ bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 		keys_output_size += key_size;
 		object_item_offset += sizeof key_size;
 
-		const void *key = _bijson_buffer_access(&writer->spool, object_item_offset, key_size);
-		XXH128_hash_t object_item_hash = XXH3_128bits(key, key_size);
+		const void *key_data = _bijson_buffer_access(&writer->spool, object_item_offset, key_size);
+		XXH128_hash_t key_hash = XXH3_128bits(key_data, key_size);
 
 		object_item_offset += key_size;
 		size_t value_output_size = _bijson_writer_size_value(writer, object_item_offset);
 		values_output_size += value_output_size;
 
-		if(!count || XXH128_cmp(&highest_hash, &object_item_hash) < 0) {
-			value_output_size_of_highest_key = value_output_size;
-			highest_hash = object_item_hash;
+		// Determine the last key/value pair that would result from stable sorting:
+		int c = 0;
+		if(count) {
+			c = XXH128_cmp(&key_hash, &highest_key_hash);
+			if(!c)
+				c = key_size == highest_key_size
+					? memcmp(key_data, highest_key_data, key_size)
+					: key_size < highest_key_size ? -1 : 1;
+		}
+		if(c >= 0) {
+			highest_key_hash = key_hash;
+			highest_key_size = key_size;
+			highest_key_data = key_data;
+			highest_value_output_size = value_output_size;
 		}
 
 		object_item_offset++;
@@ -128,7 +143,7 @@ bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 		? 1 + _bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size1(count))
 			+ count * _bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size(keys_output_size))
 			+ count_1 * _bijson_optimal_storage_size_bytes(_bijson_optimal_storage_size(
-				values_output_size - value_output_size_of_highest_key - count_1
+				values_output_size - highest_value_output_size - count_1
 			))
 			+ keys_output_size + values_output_size
 		: 1;
@@ -154,14 +169,13 @@ static int _bijson_writer_object_object_item_cmp(const void *a, const void *b) {
 	int c = XXH128_cmp(&a_hash, &b_hash);
 	if(c)
 		return c;
-	c = a_size < b_size
-		? -1
-		: a_size == b_size
-			? memcmp(a_item, b_item, a_size)
-			: 1;
+	c = a_size == b_size
+		? memcmp(a_item, b_item, a_size)
+		: a_size < b_size ? -1 : 1;
 	if(c)
 		return c;
-	// stable sorting:
+	// stable sorting (which we need because we need to end up with the exact
+	// same last item as as bijson_writer_end_object()):
 	return a_item < b_item ? -1 : a_item != b_item;
 }
 

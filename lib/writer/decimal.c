@@ -26,7 +26,9 @@ static inline unsigned int _bijson_ascii_digit(int c) {
 static inline int _bijson_compare_digits(const byte_t *a_start, size_t a_len, const byte_t *b_start, size_t b_len) {
 	assert(!a_len || *a_start != '0');
 	assert(!b_len || *b_start != '0');
-	return a_len < b_len ? -1 : a_len == b_len ? memcmp(a_start, b_start, a_len) : 1;
+	return a_len == b_len
+		? memcmp(a_start, b_start, a_len)
+		: a_len < b_len ? -1 : 1;
 }
 
 static inline bijson_error_t _bijson_shift_digits(const byte_t *start, size_t len, const byte_t *decimal_point, size_t shift, bijson_output_callback_t write, void *write_data) {
