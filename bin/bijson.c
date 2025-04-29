@@ -20,6 +20,8 @@ static void _c(bijson_error_t error, const char *fmt, ...) {
 	if(!error)
 		return;
 
+	setvbuf(stderr, NULL, _IOFBF, BUFSIZ);
+
 	va_list ap;
 	va_start(ap, fmt);
 
