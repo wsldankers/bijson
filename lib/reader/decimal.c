@@ -2,6 +2,19 @@
 #include "../reader.h"
 #include "decimal.h"
 
+// bijson_error_t bijson_decimal_get_int8(const bijson_t *bijson, int8_t *result);
+// bijson_error_t bijson_decimal_get_uint8(const bijson_t *bijson, uint8_t *result, bool *negative_result);
+// bijson_error_t bijson_decimal_get_int16(const bijson_t *bijson, int16_t *result);
+// bijson_error_t bijson_decimal_get_uint16(const bijson_t *bijson, uint16_t *result, bool *negative_result);
+// bijson_error_t bijson_decimal_get_int32(const bijson_t *bijson, int32_t *result);
+// bijson_error_t bijson_decimal_get_uint32(const bijson_t *bijson, uint32_t *result, bool *negative_result);
+// bijson_error_t bijson_decimal_get_int64(const bijson_t *bijson, int64_t *result);
+// bijson_error_t bijson_decimal_get_uint64(const bijson_t *bijson, uint64_t *result, bool *negative_result);
+#ifdef __SIZEOF_INT128__DISABLED_FOR_NOW
+bijson_error_t bijson_decimal_get_int128(const bijson_t *bijson, __int128_t *result);
+bijson_error_t bijson_decimal_get_uint128(const bijson_t *bijson, __uint128_t *result, bool *negative_result);
+#endif
+
 static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	const byte_t *buffer = bijson->buffer;
 	size_t size = bijson->size;

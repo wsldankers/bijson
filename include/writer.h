@@ -40,9 +40,14 @@ extern bijson_error_t bijson_writer_end_key(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_add_decimal_from_string(bijson_writer_t *writer, const void *string, size_t len);
 extern bijson_error_t bijson_writer_add_bytes(bijson_writer_t *writer, const void *bytes, size_t len);
 extern bijson_error_t bijson_writer_add_string(bijson_writer_t *writer, const void *string, size_t len);
+
 extern bijson_error_t bijson_writer_add_null(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_add_false(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_add_true(bijson_writer_t *writer);
+extern bijson_error_t bijson_writer_add_undefined(bijson_writer_t *writer);
+extern bijson_error_t bijson_writer_add_snan(bijson_writer_t *writer, bool sign);
+extern bijson_error_t bijson_writer_add_qnan(bijson_writer_t *writer, bool sign);
+extern bijson_error_t bijson_writer_add_inf(bijson_writer_t *writer, bool sign);
 
 extern bijson_error_t bijson_writer_begin_string(bijson_writer_t *writer);
 extern bijson_error_t bijson_writer_append_string(bijson_writer_t *writer, const void *string, size_t len);

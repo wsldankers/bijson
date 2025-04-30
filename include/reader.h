@@ -2,6 +2,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <inttypes.h>
+#include <float.h>
 
 #include "common.h"
 
@@ -43,6 +45,36 @@ extern bijson_error_t bijson_open_filename(bijson_t *bijson, const char *filenam
 extern bijson_error_t bijson_open_filename_at(bijson_t *bijson, int dir_fd, const char *filename);
 
 extern bijson_error_t bijson_get_value_type(const bijson_t *bijson, bijson_value_type_t *result);
+
+
+extern bijson_error_t bijson_string_get(const bijson_t *bijson, const char **result, size_t *size_result);
+extern bijson_error_t bijson_string_get_nocheck(const bijson_t *bijson, const char **result, size_t *size_result);
+extern bijson_error_t bijson_string_get_malloc(const bijson_t *bijson, const char **result);
+
+extern bijson_error_t bijson_decimal_get_int8(const bijson_t *bijson, int8_t *result);
+extern bijson_error_t bijson_decimal_get_uint8(const bijson_t *bijson, uint8_t *result, bool *negative_result);
+extern bijson_error_t bijson_decimal_get_int16(const bijson_t *bijson, int16_t *result);
+extern bijson_error_t bijson_decimal_get_uint16(const bijson_t *bijson, uint16_t *result, bool *negative_result);
+extern bijson_error_t bijson_decimal_get_int32(const bijson_t *bijson, int32_t *result);
+extern bijson_error_t bijson_decimal_get_uint32(const bijson_t *bijson, uint32_t *result, bool *negative_result);
+extern bijson_error_t bijson_decimal_get_int64(const bijson_t *bijson, int64_t *result);
+extern bijson_error_t bijson_decimal_get_uint64(const bijson_t *bijson, uint64_t *result, bool *negative_result);
+#ifdef __SIZEOF_INT128__
+extern bijson_error_t bijson_decimal_get_int128(const bijson_t *bijson, __int128_t *result);
+extern bijson_error_t bijson_decimal_get_uint128(const bijson_t *bijson, __uint128_t *result, bool *negative_result);
+#endif
+
+extern bijson_error_t bijson_decimal_get_float(const bijson_t *bijson, float *result);
+extern bijson_error_t bijson_decimal_get_double(const bijson_t *bijson, double *result);
+#ifdef LDBL_DIG
+extern bijson_error_t bijson_decimal_get_long_double(const bijson_t *bijson, long double *result);
+#endif
+
+extern bijson_error_t bijson_bytes_get(const bijson_t *bijson, const char **result, size_t *size_result);
+extern bijson_error_t bijson_integer_get(const bijson_t *bijson, const char **result, size_t *size_result, bool *negative_result);
+extern bijson_error_t bijson_iee754_2008_float_get(const bijson_t *bijson, const char **result, size_t *size_result);
+extern bijson_error_t bijson_iee754_2008_decimal_float_get(const bijson_t *bijson, const char **result, size_t *size_result);
+extern bijson_error_t bijson_iee754_2008_decimal_float_dpd_get(const bijson_t *bijson, const char **result, size_t *size_result);
 
 extern bijson_error_t bijson_array_count(const bijson_t *bijson, size_t *result);
 extern bijson_error_t bijson_array_get_index(

@@ -27,3 +27,19 @@ bijson_error_t bijson_writer_add_false(bijson_writer_t *writer) {
 bijson_error_t bijson_writer_add_true(bijson_writer_t *writer) {
 	return _bijson_writer_add_constant(writer, BYTE_C(0x03));
 }
+
+bijson_error_t bijson_writer_add_undefined(bijson_writer_t *writer) {
+	return _bijson_writer_add_constant(writer, BYTE_C(0x04));
+}
+
+bijson_error_t bijson_writer_add_snan(bijson_writer_t *writer, bool sign) {
+	return _bijson_writer_add_constant(writer, BYTE_C(0x10) | sign);
+}
+
+bijson_error_t bijson_writer_add_qnan(bijson_writer_t *writer, bool sign) {
+	return _bijson_writer_add_constant(writer, BYTE_C(0x12) | sign);
+}
+
+bijson_error_t bijson_writer_add_inf(bijson_writer_t *writer, bool sign) {
+	return _bijson_writer_add_constant(writer, BYTE_C(0x14) | sign);
+}
