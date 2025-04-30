@@ -79,7 +79,7 @@ inline uint64_t _bijson_uint64_pow10(unsigned int exp) {
 	uint64_t magnitude_base = UINT64_C(10);
 	// integer exponentiation
 	while(exp) {
-		if(exp & 1)
+		if(exp & 1U)
 			magnitude *= magnitude_base;
 		magnitude_base *= magnitude_base;
 		exp >>= 1U;

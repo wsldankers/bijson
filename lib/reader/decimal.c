@@ -2,6 +2,8 @@
 #include "../reader.h"
 #include "decimal.h"
 
+#if 0
+
 // bijson_error_t bijson_decimal_get_int8(const bijson_t *bijson, int8_t *result);
 // bijson_error_t bijson_decimal_get_uint8(const bijson_t *bijson, uint8_t *result, bool *negative_result);
 // bijson_error_t bijson_decimal_get_int16(const bijson_t *bijson, int16_t *result);
@@ -9,12 +11,116 @@
 // bijson_error_t bijson_decimal_get_int32(const bijson_t *bijson, int32_t *result);
 // bijson_error_t bijson_decimal_get_uint32(const bijson_t *bijson, uint32_t *result, bool *negative_result);
 // bijson_error_t bijson_decimal_get_int64(const bijson_t *bijson, int64_t *result);
-// bijson_error_t bijson_decimal_get_uint64(const bijson_t *bijson, uint64_t *result, bool *negative_result);
-#ifdef __SIZEOF_INT128__DISABLED_FOR_NOW
+
+bijson_error_t bijson_decimal_get_uint64(const bijson_t *bijson, uint64_t *result, bool *negative_result) {
+	size_t num_digits = SIZE_C(123);
+	size_t last_digit_index = num_digits - SIZE_C(1);
+	uint64_t value = UINT64_C(0);
+
+	bool with_exponent = true;
+	if(with_exponent) {
+		size_t exponent_size = SIZE_C(1);
+		bool negative_exponent = true;
+		if(negative_exponent) {
+			if(exponent_size > sizeof(size_t))
+				return bijson_error_value_out_of_range;
+			size_t exponent = SIZE_C(22);
+			size_t shift_skip = exponent / SIZE_C(19);
+			size_t shift = exponent - shift_skip * SIZE_C(19);
+
+			if(shift_skip >= num_digits) {
+				*result = UINT64_C(0);
+				return NULL;
+			}
+
+			if(num_digits - shift_skip > SIZE_C(2)) // adjust for larger types
+				return bijson_error_value_out_of_range;
+
+			size_t last_digit_index = num_digits - SIZE_C(1);
+
+			if(shift) {
+				for(size_t digit_index = shift_skip; digit_index <= last_digit_index; digit_index++) {
+					uint64_t digit = digit_index == last_digit_index
+						? UINT64_C(9764817269018760856) // get_last_digit()
+						: UINT64_C(3789034230789344792); // digits[digit_index]
+					if(digit_index == shift_skip)
+						digit /= _bijson_uint64_pow10(shift);
+					else
+						// FIXME: check for overflow
+						digit *= _bijson_uint64_pow10(SIZE_C(19) * (digit_index - shift_skip) - shift);
+					value += digit; // FIXME: check for overflow
+				}
+			} else {
+				for(size_t digit_index = shift_skip; digit_index <= last_digit_index; digit_index++) {
+					uint64_t digit = digit_index == last_digit_index
+						? UINT64_C(9764817269018760856) // get_last_digit()
+						: UINT64_C(3789034230789344792); // digits[digit_index]
+					if(digit_index != shift_skip)
+						// FIXME: check for overflow
+						digit *= _bijson_uint64_pow10(SIZE_C(19) * (digit_index - shift_skip));
+					value += digit; // FIXME: check for overflow
+				}
+			}
+		} else {
+			if(num_digits > SIZE_C(2)) // adjust for larger types
+				return bijson_error_value_out_of_range;
+			if(exponent_size > sizeof(size_t))
+				return bijson_error_value_out_of_range;
+			size_t exponent = SIZE_C(10);
+			if(exponent + last_digit_index * SIZE_C(19) > SIZE_C(19)) // adjust for larger types
+				return bijson_error_value_out_of_range;
+
+			for(size_t digit_index = SIZE_C(0); digit_index <= last_digit_index; digit_index++) {
+				uint64_t digit = digit_index == last_digit_index
+					? UINT64_C(9764817269018760856) // get_last_digit()
+					: UINT64_C(3789034230789344792); // digits[digit_index]
+				// FIXME: check for overflow
+				digit *= _bijson_uint64_pow10(SIZE_C(19) * digit_index + exponent);
+				value += digit; // FIXME: check for overflow
+			}
+		}
+	} else {
+		if(num_digits > SIZE_C(2))  // adjust for larger types
+			return bijson_error_value_out_of_range;
+
+		for(size_t digit_index = SIZE_C(0); digit_index <= last_digit_index; digit_index++) {
+			uint64_t digit = digit_index == last_digit_index
+				? UINT64_C(9764817269018760856) // get_last_digit()
+				: UINT64_C(3789034230789344792); // digits[digit_index]
+			// FIXME: check for overflow
+			digit *= _bijson_uint64_pow10(SIZE_C(19) * digit_index);
+			value += digit; // FIXME: check for overflow
+		}
+	}
+
+	*result = value;
+	return NULL;
+}
+
+#ifdef __SIZEOF_INT128__
+
+__attribute__((const))
+inline __uint128_t _bijson_uint128_pow10(unsigned int exp) {
+	assert(exp < 39U);
+	__uint128_t magnitude = 1U;
+	__uint128_t magnitude_base = 10U;
+	// integer exponentiation
+	while(exp) {
+		if(exp & 1U)
+			magnitude *= magnitude_base;
+		magnitude_base *= magnitude_base;
+		exp >>= 1U;
+	}
+	return magnitude;
+}
+
 bijson_error_t bijson_decimal_get_int128(const bijson_t *bijson, __int128_t *result);
 bijson_error_t bijson_decimal_get_uint128(const bijson_t *bijson, __uint128_t *result, bool *negative_result);
 #endif
 
+#endif
+
+// Convert separate numeric bits (mantissa, exponent) to JSON
 static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	const byte_t *buffer = bijson->buffer;
 	size_t size = bijson->size;
@@ -50,6 +156,7 @@ static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson
 	return NULL;
 }
 
+// Converts decimals with exponents:
 bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	const byte_t *buffer = bijson->buffer;
 	const byte_t *buffer_end = buffer + bijson->size;
@@ -93,6 +200,7 @@ bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_cal
 	return _bijson_decimal_part_to_json(&exponent, callback, callback_data);
 }
 
+// Converts decimals without exponents:
 bijson_error_t _bijson_decimal_integer_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
 	const byte_t *buffer = bijson->buffer;
 	size_t size = bijson->size;
