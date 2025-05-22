@@ -112,6 +112,8 @@ static inline bijson_error_t _bijson_parse_json_string_escape(_bijson_json_parse
 			uint16_compute_t unichar;
 			_BIJSON_RETURN_ON_ERROR(_bijson_parse_json_unichar(buffer_pos + SIZE_C(2), &unichar));
 			if((unichar & UINT16_C(0xFC00)) == UINT16_C(0xD800)) {
+				// This is the first of a surrogate pair, so we must also parse the second half
+				// so we can combine them into a single codepoint.
 				if(len < SIZE_C(12))
 					_BIJSON_RETURN_ERROR(bijson_error_invalid_json_syntax);
 				if(buffer_pos[SIZE_C(6)] != '\\' || buffer_pos[SIZE_C(7)] != 'u')
@@ -121,7 +123,7 @@ static inline bijson_error_t _bijson_parse_json_string_escape(_bijson_json_parse
 				if((unichar2 & UINT16_C(0xFC00)) != UINT16_C(0xDC00))
 					_BIJSON_RETURN_ERROR(bijson_error_invalid_json_syntax);
 
-				// combine unichar and unichar and append in UTF-8
+				// Combine unichar and unichar and append in UTF-8:
 				_BIJSON_RETURN_ON_ERROR(_bijson_parser_append_unichar(
 					append, parser->writer,
 					(((uint32_compute_t)unichar & UINT32_C(0x3FF)) << 10U)
@@ -130,7 +132,7 @@ static inline bijson_error_t _bijson_parse_json_string_escape(_bijson_json_parse
 
 				parser->buffer_pos = buffer_pos + SIZE_C(12);
 			} else {
-				// append unichar in UTF-8
+				// Append unichar in UTF-8. Invalid code points will be caught by bijson_writer.
 				_BIJSON_RETURN_ON_ERROR(_bijson_parser_append_unichar(append, parser->writer, unichar));
 				parser->buffer_pos = buffer_pos + SIZE_C(6);
 			}
