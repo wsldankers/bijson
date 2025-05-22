@@ -78,37 +78,35 @@ static inline bijson_error_t _bijson_parse_json_string_escape(_bijson_json_parse
 	if(len < SIZE_C(2))
 		_BIJSON_RETURN_ERROR(bijson_error_invalid_json_syntax);
 
-	switch(buffer_pos[SIZE_C(1)]) {
+	const byte_t * const buffer_pos1 = buffer_pos + SIZE_C(1);
+	switch(*buffer_pos1) {
 		case '"':
-			_BIJSON_RETURN_ON_ERROR(append(parser->writer, "\"", SIZE_C(1)));
-			parser->buffer_pos = buffer_pos + SIZE_C(2);
-			break;
+		case '/':
 		case '\\':
-			_BIJSON_RETURN_ON_ERROR(append(parser->writer, "\\", SIZE_C(1)));
-			parser->buffer_pos = buffer_pos + SIZE_C(2);
+			_BIJSON_RETURN_ON_ERROR(append(parser->writer, buffer_pos1, SIZE_C(1)));
+			parser->buffer_pos = buffer_pos1 + SIZE_C(1);
 			break;
 		case 'b':
 			_BIJSON_RETURN_ON_ERROR(append(parser->writer, "\b", SIZE_C(1)));
-			parser->buffer_pos = buffer_pos + SIZE_C(2);
+			parser->buffer_pos = buffer_pos1 + SIZE_C(1);
 			break;
 		case 'f':
 			_BIJSON_RETURN_ON_ERROR(append(parser->writer, "\f", SIZE_C(1)));
-			parser->buffer_pos = buffer_pos + SIZE_C(2);
+			parser->buffer_pos = buffer_pos1 + SIZE_C(1);
 			break;
 		case 'n':
 			_BIJSON_RETURN_ON_ERROR(append(parser->writer, "\n", SIZE_C(1)));
-			parser->buffer_pos = buffer_pos + SIZE_C(2);
+			parser->buffer_pos = buffer_pos1 + SIZE_C(1);
 			break;
 		case 'r':
 			_BIJSON_RETURN_ON_ERROR(append(parser->writer, "\r", SIZE_C(1)));
-			parser->buffer_pos = buffer_pos + SIZE_C(2);
+			parser->buffer_pos = buffer_pos1 + SIZE_C(1);
 			break;
 		case 't':
 			_BIJSON_RETURN_ON_ERROR(append(parser->writer, "\t", SIZE_C(1)));
-			parser->buffer_pos = buffer_pos + SIZE_C(2);
+			parser->buffer_pos = buffer_pos1 + SIZE_C(1);
 			break;
 		case 'u':
-		case 'U':
 			if(len < SIZE_C(6))
 				_BIJSON_RETURN_ERROR(bijson_error_invalid_json_syntax);
 			uint16_compute_t unichar;

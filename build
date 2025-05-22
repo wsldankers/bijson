@@ -75,7 +75,6 @@ bin/bijson_EXTRA_OBJECTS = \
 	lib/reader/object/index.o \
 	lib/reader/object/key.o \
 	lib/reader/object/key_range.o \
-	lib/reader/parse.o \
 	lib/reader/string.o \
 	lib/writer.o \
 	lib/writer/array.o \
@@ -85,6 +84,7 @@ bin/bijson_EXTRA_OBJECTS = \
 	lib/writer/container.o \
 	lib/writer/decimal.o \
 	lib/writer/object.o \
+	lib/writer/parse.o \
 	lib/writer/string.o
 
 define programrule
