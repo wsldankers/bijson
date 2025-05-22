@@ -114,10 +114,7 @@ static inline bijson_error_t _bijson_parse_json_string_escape(_bijson_json_parse
 			if((unichar & UINT16_C(0xFC00)) == UINT16_C(0xD800)) {
 				if(len < SIZE_C(12))
 					_BIJSON_RETURN_ERROR(bijson_error_invalid_json_syntax);
-				if(buffer_pos[SIZE_C(6)] != '\\')
-					_BIJSON_RETURN_ERROR(bijson_error_invalid_json_syntax);
-				int buffer_7 = buffer_pos[SIZE_C(7)];
-				if(buffer_7 != 'u' && buffer_7 != 'U')
+				if(buffer_pos[SIZE_C(6)] != '\\' || buffer_pos[SIZE_C(7)] != 'u')
 					_BIJSON_RETURN_ERROR(bijson_error_invalid_json_syntax);
 				uint16_compute_t unichar2;
 				_BIJSON_RETURN_ON_ERROR(_bijson_parse_json_unichar(buffer_pos + SIZE_C(8), &unichar2));
