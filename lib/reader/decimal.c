@@ -2,6 +2,46 @@
 #include "../reader.h"
 #include "decimal.h"
 
+typedef struct _bijson_decimal_analysis {
+	bijson_t exponent;
+	bijson_t significand;
+	bool exponent_negative;
+	bool significand_negative;
+} _bijson_decimal_analysis;
+
+static inline bijson_error_t _bijson_decimal_analyze(const bijson_t *bijson, _bijson_decimal_analysis *analysis) {
+	const byte_t *buffer = bijson->buffer;
+	const byte_t *buffer_end = buffer + bijson->size;
+
+	byte_compute_t type = *buffer;
+	analysis->significand_negative = type & BYTE_C(0x4);
+	analysis->exponent_negative = type & BYTE_C(0x8);
+
+	const byte_t *exponent_size_location = buffer + SIZE_C(1);
+	if(exponent_size_location == buffer_end)
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
+
+	size_t exponent_size_size = SIZE_C(1) << (type & BYTE_C(0x3));
+	const byte_t *exponent_start = exponent_size_location + exponent_size_size;
+	if(exponent_start + SIZE_C(1) > buffer_end)
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
+	uint64_t raw_exponent_size = _bijson_read_minimal_int(exponent_size_location, exponent_size_size);
+	if(raw_exponent_size > SIZE_MAX - SIZE_C(1))
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
+	size_t exponent_size = (size_t)raw_exponent_size + SIZE_C(1);
+	if(exponent_size > _bijson_ptrdiff(buffer_end, exponent_start) - SIZE_C(1))
+		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
+
+	const byte_t *significand_start = exponent_start + exponent_size;
+	analysis->significand.buffer = significand_start;
+	analysis->significand.size = _bijson_ptrdiff(buffer_end, significand_start);
+
+	analysis->exponent.buffer = exponent_start;
+	analysis->exponent.size = exponent_size;
+
+	return NULL;
+}
+
 #if 0
 
 // bijson_error_t bijson_decimal_get_int8(const bijson_t *bijson, int8_t *result);
@@ -13,18 +53,33 @@
 // bijson_error_t bijson_decimal_get_int64(const bijson_t *bijson, int64_t *result);
 
 bijson_error_t bijson_decimal_get_uint64(const bijson_t *bijson, uint64_t *result, bool *negative_result) {
+	_BIJSON_RETURN_ON_ERROR(_bijson_check_bijson(bijson));
+
+	if(!result)
+		_BIJSON_RETURN_ERROR(bijson_error_parameter_is_null);
+
+	const byte_t *buffer = bijson->buffer;
+	byte_compute_t type = *buffer;
+
 	size_t num_digits = SIZE_C(123);
 	size_t last_digit_index = num_digits - SIZE_C(1);
 	uint64_t value = UINT64_C(0);
 
-	bool with_exponent = true;
-	if(with_exponent) {
-		size_t exponent_size = SIZE_C(1);
-		bool negative_exponent = true;
-		if(negative_exponent) {
-			if(exponent_size > sizeof(size_t))
-				return bijson_error_value_out_of_range;
-			size_t exponent = SIZE_C(22);
+	if((type & BYTE_C(0xF0)) == BYTE_C(0x20)) {
+		struct _bijson_decimal_analysis analysis;
+		_BIJSON_RETURN_ON_ERROR(_bijson_decimal_analyze(bijson, &analysis));
+
+		if(negative_result)
+			*negative_result = analysis.significand_negative;
+		else if(analysis.significand_negative)
+			_BIJSON_RETURN_ERROR(bijson_error_value_out_of_range);
+
+		if(analysis.exponent_negative) {
+			if(analysis.exponent.size > sizeof(size_t)) {
+				*result = UINT64_C(0);
+				return NULL;
+			}
+			size_t exponent = _bijson_read_minimal_int(analysis.exponent.buffer, analysis.exponent.size);
 			size_t shift_skip = exponent / SIZE_C(19);
 			size_t shift = exponent - shift_skip * SIZE_C(19);
 
@@ -79,7 +134,13 @@ bijson_error_t bijson_decimal_get_uint64(const bijson_t *bijson, uint64_t *resul
 				value += digit; // FIXME: check for overflow
 			}
 		}
-	} else {
+	} else if((type & BYTE_C(0xFE)) == BYTE_C(0x1A)) {
+		bool significand_negative = type & BYTE_C(0x1);
+		if(negative_result)
+			*negative_result = significand_negative;
+		else if(significand_negative)
+			_BIJSON_RETURN_ERROR(bijson_error_value_out_of_range);
+
 		if(num_digits > SIZE_C(2))  // adjust for larger types
 			return bijson_error_value_out_of_range;
 
@@ -91,6 +152,8 @@ bijson_error_t bijson_decimal_get_uint64(const bijson_t *bijson, uint64_t *resul
 			digit *= _bijson_uint64_pow10(SIZE_C(19) * digit_index);
 			value += digit; // FIXME: check for overflow
 		}
+	} else {
+		_BIJSON_RETURN_ERROR(bijson_error_type_mismatch);
 	}
 
 	*result = value;
@@ -158,46 +221,16 @@ static inline bijson_error_t _bijson_decimal_part_to_json(const bijson_t *bijson
 
 // Converts decimals with exponents:
 bijson_error_t _bijson_decimal_to_json(const bijson_t *bijson, bijson_output_callback_t callback, void *callback_data) {
-	const byte_t *buffer = bijson->buffer;
-	const byte_t *buffer_end = buffer + bijson->size;
+	struct _bijson_decimal_analysis analysis;
+	_BIJSON_RETURN_ON_ERROR(_bijson_decimal_analyze(bijson, &analysis));
 
-	byte_compute_t type = *buffer;
-
-	const byte_t *exponent_size_location = buffer + SIZE_C(1);
-	if(exponent_size_location == buffer_end)
-		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
-
-	size_t exponent_size_size = SIZE_C(1) << (type & BYTE_C(0x3));
-	const byte_t *exponent_start = exponent_size_location + exponent_size_size;
-	if(exponent_start + SIZE_C(1) > buffer_end)
-		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
-	uint64_t raw_exponent_size = _bijson_read_minimal_int(exponent_size_location, exponent_size_size);
-	if(raw_exponent_size > SIZE_MAX - SIZE_C(1))
-		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
-	size_t exponent_size = (size_t)raw_exponent_size + SIZE_C(1);
-	if(exponent_size > _bijson_ptrdiff(buffer_end, exponent_start) - SIZE_C(1))
-		_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
-
-	if(type & BYTE_C(0x4))
+	if(analysis.significand_negative)
 		_BIJSON_RETURN_ON_ERROR(callback(callback_data, "-", SIZE_C(1)));
-
-	const byte_t *significand_start = exponent_start + exponent_size;
-	bijson_t significand = {
-		significand_start,
-		_bijson_ptrdiff(buffer_end, significand_start),
-	};
-	_BIJSON_RETURN_ON_ERROR(_bijson_decimal_part_to_json(&significand, callback, callback_data));
-
+	_BIJSON_RETURN_ON_ERROR(_bijson_decimal_part_to_json(&analysis.significand, callback, callback_data));
 	_BIJSON_RETURN_ON_ERROR(callback(callback_data, "e", SIZE_C(1)));
-
-	if(type & BYTE_C(0x8))
+	if(analysis.exponent_negative)
 		_BIJSON_RETURN_ON_ERROR(callback(callback_data, "-", SIZE_C(1)));
-
-	bijson_t exponent = {
-		exponent_start,
-		exponent_size,
-	};
-	return _bijson_decimal_part_to_json(&exponent, callback, callback_data);
+	return _bijson_decimal_part_to_json(&analysis.exponent, callback, callback_data);
 }
 
 // Converts decimals without exponents:
