@@ -77,13 +77,16 @@ bijson_error_t bijson_decimal_get_uint64(const bijson_t *bijson, uint64_t *resul
 			return NULL;
 		}
 
+		if(analysis.significand.size > SIZE_MAX - ((size_t)sizeof(uint64_t) - SIZE_C(1))
+			return bijson_error_value_out_of_range;
+
 		size_t num_words = (analysis.significand.size + (size_t)sizeof(uint64_t) - SIZE_C(1))
 			/ (size_t)sizeof(uint64_t);
 		size_t last_word_index = num_words - SIZE_C(1);
 		size_t last_word_offset = last_word_index * (size_t)sizeof(uint64_t);
 		uint64_t last_word = _bijson_read_minimal_int(
 			analysis.significand.buffer + last_word_offset,
-			(size_t)analysis.significand.size - last_word_offset
+			analysis.significand.size - last_word_offset
 		);
 
 		if(last_word > UINT64_C(9999999999999999998))
@@ -166,6 +169,19 @@ bijson_error_t bijson_decimal_get_uint64(const bijson_t *bijson, uint64_t *resul
 			*negative_result = significand_negative;
 		else if(significand_negative)
 			_BIJSON_RETURN_ERROR(bijson_error_value_out_of_range);
+
+		size_t significand_size = buffer.size - SIZE_C(1);
+		if(significand_size > SIZE_MAX - ((size_t)sizeof(uint64_t) - SIZE_C(1))
+			return bijson_error_value_out_of_range;
+
+		size_t num_words = (significand_size + (size_t)sizeof(uint64_t) - SIZE_C(1))
+			/ (size_t)sizeof(uint64_t);
+		size_t last_word_index = num_words - SIZE_C(1);
+		size_t last_word_offset = last_word_index * (size_t)sizeof(uint64_t);
+		uint64_t last_word = _bijson_read_minimal_int(
+			buffer + SIZE_C(1) + last_word_offset,
+			analysis.significand_size - last_word_offset
+		);
 
 		if(num_words > SIZE_C(2))  // adjust for larger types
 			return bijson_error_value_out_of_range;
