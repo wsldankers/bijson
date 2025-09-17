@@ -61,8 +61,6 @@ bijson_error_t bijson_decimal_get_uint64(const bijson_t *bijson, uint64_t *resul
 	const byte_t *buffer = bijson->buffer;
 	byte_compute_t type = *buffer;
 
-	size_t num_digits = SIZE_C(123);
-	size_t last_digit_index = num_digits - SIZE_C(1);
 	uint64_t value = UINT64_C(0);
 
 	if((type & BYTE_C(0xF0)) == BYTE_C(0x20)) {
@@ -74,64 +72,92 @@ bijson_error_t bijson_decimal_get_uint64(const bijson_t *bijson, uint64_t *resul
 		else if(analysis.significand_negative)
 			_BIJSON_RETURN_ERROR(bijson_error_value_out_of_range);
 
+		if(!analysis.significand.size) {
+			*result = UINT64_C(0);
+			return NULL;
+		}
+
+		size_t num_words = (analysis.significand.size + (size_t)sizeof(uint64_t) - SIZE_C(1))
+			/ (size_t)sizeof(uint64_t);
+		size_t last_word_index = num_words - SIZE_C(1);
+		size_t last_word_offset = last_word_index * (size_t)sizeof(uint64_t);
+		uint64_t last_word = _bijson_read_minimal_int(
+			analysis.significand.buffer + last_word_offset,
+			(size_t)analysis.significand.size - last_word_offset
+		);
+
+		if(last_word > UINT64_C(9999999999999999998))
+			_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
+		last_word++;
+
 		if(analysis.exponent_negative) {
 			if(analysis.exponent.size > sizeof(size_t)) {
 				*result = UINT64_C(0);
 				return NULL;
 			}
-			size_t exponent = _bijson_read_minimal_int(analysis.exponent.buffer, analysis.exponent.size);
+			size_t exponent = (size_t)_bijson_read_minimal_int(analysis.exponent.buffer, analysis.exponent.size);
 			size_t shift_skip = exponent / SIZE_C(19);
 			size_t shift = exponent - shift_skip * SIZE_C(19);
 
-			if(shift_skip >= num_digits) {
+			if(shift_skip >= num_words) {
 				*result = UINT64_C(0);
 				return NULL;
 			}
 
-			if(num_digits - shift_skip > SIZE_C(2)) // adjust for larger types
+			if(num_words - shift_skip > SIZE_C(2)) // adjust for larger types
 				return bijson_error_value_out_of_range;
 
-			size_t last_digit_index = num_digits - SIZE_C(1);
-
 			if(shift) {
-				for(size_t digit_index = shift_skip; digit_index <= last_digit_index; digit_index++) {
-					uint64_t digit = digit_index == last_digit_index
-						? UINT64_C(9764817269018760856) // get_last_digit()
-						: UINT64_C(3789034230789344792); // digits[digit_index]
-					if(digit_index == shift_skip)
-						digit /= _bijson_uint64_pow10(shift);
+				for(size_t word_index = shift_skip; word_index <= last_word_index; word_index++) {
+					uint64_t word = word_index == last_word_index
+						? last_word
+						: _bijson_read_minimal_int(
+								analysis.significand.buffer + word_index * sizeof(uint64_t),
+								sizeof(uint64_t)
+							);
+					if(word > UINT64_C(9999999999999999999))
+						_BIJSON_RETURN_ERROR(bijson_error_file_format_error);
+
+					if(word_index == shift_skip)
+						word /= _bijson_uint64_pow10(shift);
 					else
 						// FIXME: check for overflow
-						digit *= _bijson_uint64_pow10(SIZE_C(19) * (digit_index - shift_skip) - shift);
-					value += digit; // FIXME: check for overflow
+						word *= _bijson_uint64_pow10(SIZE_C(19) * (word_index - shift_skip) - shift);
+					value += word; // FIXME: check for overflow
 				}
 			} else {
-				for(size_t digit_index = shift_skip; digit_index <= last_digit_index; digit_index++) {
-					uint64_t digit = digit_index == last_digit_index
-						? UINT64_C(9764817269018760856) // get_last_digit()
-						: UINT64_C(3789034230789344792); // digits[digit_index]
-					if(digit_index != shift_skip)
+				for(size_t word_index = shift_skip; word_index <= last_word_index; word_index++) {
+					uint64_t word = word_index == last_word_index
+						? last_word
+						: _bijson_read_minimal_int(
+								analysis.significand.buffer + word_index * sizeof(uint64_t),
+								sizeof(uint64_t)
+							);
+					if(word_index != shift_skip)
 						// FIXME: check for overflow
-						digit *= _bijson_uint64_pow10(SIZE_C(19) * (digit_index - shift_skip));
-					value += digit; // FIXME: check for overflow
+						word *= _bijson_uint64_pow10(SIZE_C(19) * (word_index - shift_skip));
+					value += word; // FIXME: check for overflow
 				}
 			}
 		} else {
-			if(num_digits > SIZE_C(2)) // adjust for larger types
+			if(num_words > SIZE_C(2)) // adjust for larger types
 				return bijson_error_value_out_of_range;
 			if(exponent_size > sizeof(size_t))
 				return bijson_error_value_out_of_range;
 			size_t exponent = SIZE_C(10);
-			if(exponent + last_digit_index * SIZE_C(19) > SIZE_C(19)) // adjust for larger types
+			if(exponent + last_word_index * SIZE_C(19) > SIZE_C(19)) // adjust for larger types
 				return bijson_error_value_out_of_range;
 
-			for(size_t digit_index = SIZE_C(0); digit_index <= last_digit_index; digit_index++) {
-				uint64_t digit = digit_index == last_digit_index
-					? UINT64_C(9764817269018760856) // get_last_digit()
-					: UINT64_C(3789034230789344792); // digits[digit_index]
+			for(size_t word_index = SIZE_C(0); word_index <= last_word_index; word_index++) {
+				uint64_t word = word_index == last_word_index
+					? last_word
+					: _bijson_read_minimal_int(
+							analysis.significand.buffer + word_index * sizeof(uint64_t),
+							sizeof(uint64_t)
+						);
 				// FIXME: check for overflow
-				digit *= _bijson_uint64_pow10(SIZE_C(19) * digit_index + exponent);
-				value += digit; // FIXME: check for overflow
+				word *= _bijson_uint64_pow10(SIZE_C(19) * word_index + exponent);
+				value += word; // FIXME: check for overflow
 			}
 		}
 	} else if((type & BYTE_C(0xFE)) == BYTE_C(0x1A)) {
@@ -141,16 +167,19 @@ bijson_error_t bijson_decimal_get_uint64(const bijson_t *bijson, uint64_t *resul
 		else if(significand_negative)
 			_BIJSON_RETURN_ERROR(bijson_error_value_out_of_range);
 
-		if(num_digits > SIZE_C(2))  // adjust for larger types
+		if(num_words > SIZE_C(2))  // adjust for larger types
 			return bijson_error_value_out_of_range;
 
-		for(size_t digit_index = SIZE_C(0); digit_index <= last_digit_index; digit_index++) {
-			uint64_t digit = digit_index == last_digit_index
-				? UINT64_C(9764817269018760856) // get_last_digit()
-				: UINT64_C(3789034230789344792); // digits[digit_index]
+		for(size_t word_index = SIZE_C(0); word_index <= last_word_index; word_index++) {
+			uint64_t word = word_index == last_word_index
+				? last_word
+				: _bijson_read_minimal_int(
+						analysis.significand.buffer + word_index * sizeof(uint64_t),
+						sizeof(uint64_t)
+					);
 			// FIXME: check for overflow
-			digit *= _bijson_uint64_pow10(SIZE_C(19) * digit_index);
-			value += digit; // FIXME: check for overflow
+			word *= _bijson_uint64_pow10(SIZE_C(19) * word_index);
+			value += word; // FIXME: check for overflow
 		}
 	} else {
 		_BIJSON_RETURN_ERROR(bijson_error_type_mismatch);
