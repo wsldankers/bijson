@@ -6,9 +6,6 @@ all: $(programs)
 
 src := $(dir $(firstword $(MAKEFILE_LIST)))
 
-XXHASH_CFLAGS := $(shell exec pkg-config --cflags libxxhash)
-XXHASH_LIBS := $(shell exec pkg-config --libs libxxhash)
-
 #.ONESHELL:
 #ifeq (,$(findstring s,$(MAKEFLAGS)))
 #.SHELLFLAGS = -exc
@@ -58,9 +55,9 @@ STRICT += -Wno-unused-parameter
 STRIP = -s
 INCLUDE =
 
-CFLAGS = $(STANDARD) $(OPTIMIZE) $(SPECIALIZE) $(INCLUDE) $(BASIC) $(STRICT) $(EXTRA_STRICT) $(EXTRA_CFLAGS) $(XXHASH_CFLAGS)
+CFLAGS = $(STANDARD) $(OPTIMIZE) $(SPECIALIZE) $(INCLUDE) $(BASIC) $(STRICT) $(EXTRA_STRICT) $(EXTRA_CFLAGS)
 LDFLAGS = -pipe $(OPTIMIZE) $(LTO) $(STRIP)
-LIBS = $(XXHASH_LIBS) -lm
+LIBS = -lm
 
 bin/unit-test_EXTRA_OBJECTS = lib/common.o lib/error.o
 

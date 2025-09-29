@@ -1,7 +1,6 @@
-#include <xxhash.h>
-
 #include "container.h"
 #include "object.h"
+#include "../rapidhash.h"
 
 bijson_error_t bijson_writer_begin_object(bijson_writer_t *writer) {
 	if(writer->failed)
@@ -95,7 +94,7 @@ bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 
 	// We keep track of the item that will come last, since it's treated
 	// specially:
-	XXH128_hash_t highest_key_hash = {0};
+	uint64_t highest_key_hash = 0;
 	size_t highest_key_size = 0;
 	const void *highest_key_data = NULL;
 	size_t highest_value_output_size = 0;
@@ -108,7 +107,7 @@ bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 		object_item_offset += sizeof key_size;
 
 		const void *key_data = _bijson_buffer_access(&writer->spool, object_item_offset, key_size);
-		XXH128_hash_t key_hash = XXH3_128bits(key_data, key_size);
+		uint64_t key_hash = rapidhash(key_data, key_size);
 
 		object_item_offset += key_size;
 		size_t value_output_size = _bijson_writer_size_value(writer, object_item_offset);
@@ -117,11 +116,11 @@ bijson_error_t bijson_writer_end_object(bijson_writer_t *writer) {
 		// Determine the last key/value pair that would result from stable sorting:
 		int c = 0;
 		if(count) {
-			c = XXH128_cmp(&key_hash, &highest_key_hash);
-			if(!c)
-				c = key_size == highest_key_size
+			c = key_hash == highest_key_hash
+				? key_size == highest_key_size
 					? memcmp(key_data, highest_key_data, key_size)
-					: key_size < highest_key_size ? -1 : 1;
+					: key_size < highest_key_size ? -1 : 1
+				: key_hash < highest_key_hash ? -1 : 1;
 		}
 		if(c >= 0) {
 			highest_key_hash = key_hash;
@@ -164,14 +163,13 @@ static int _bijson_writer_object_object_item_cmp(const void *a, const void *b) {
 	memcpy(&b_size, b_item, sizeof b_size);
 	a_item += sizeof a_size;
 	b_item += sizeof b_size;
-	XXH128_hash_t a_hash = XXH3_128bits(a_item, a_size);
-	XXH128_hash_t b_hash = XXH3_128bits(b_item, b_size);
-	int c = XXH128_cmp(&a_hash, &b_hash);
-	if(c)
-		return c;
-	c = a_size == b_size
-		? memcmp(a_item, b_item, a_size)
-		: a_size < b_size ? -1 : 1;
+	uint64_t a_hash = rapidhash(a_item, a_size);
+	uint64_t b_hash = rapidhash(b_item, b_size);
+	int c = a_hash == b_hash
+		? a_size == b_size
+			? memcmp(a_item, b_item, a_size)
+			: a_size < b_size ? -1 : 1
+		: a_hash < b_hash ? -1 : 1;
 	if(c)
 		return c;
 	// stable sorting (which we need because we need to end up with the exact

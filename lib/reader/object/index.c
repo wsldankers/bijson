@@ -1,7 +1,6 @@
 #include <stdbool.h>
 #include <inttypes.h>
 #include <string.h>
-#include <xxhash.h>
 
 #include "../../../include/reader.h"
 

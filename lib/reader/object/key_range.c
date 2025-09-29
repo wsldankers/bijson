@@ -2,7 +2,6 @@
 #include <stdbool.h>
 #include <inttypes.h>
 #include <string.h>
-#include <xxhash.h>
 
 #include "../../../include/reader.h"
 
@@ -147,15 +146,14 @@ static inline bijson_error_t _bijson_analyzed_object_get_key_range(
 	}
 
 	_bijson_get_key_entry_t target = {
-		.xxhash = XXH3_128bits(key, len),
+		.hash = rapidhash(key, len),
 		.key = key,
 		.len = len,
 	};
-	target.hash = _bijson_integer_hash(&target.xxhash);
 
 	size_t max_attempts = _bijson_2log64(analysis->count);
 	_bijson_get_key_entry_t lower = {0};
-	_bijson_get_key_entry_t upper = {.index = analysis->count, .hash = _BIJSON_HASH_MAX};
+	_bijson_get_key_entry_t upper = {.index = analysis->count, .hash = UINT64_MAX};
 
 	for(size_t attempt = SIZE_C(0); lower.index != upper.index; attempt++) {
 		_bijson_get_key_entry_t guess = {

@@ -228,8 +228,7 @@ If weighted bisection takes too many steps (>⌈log₂​(n)⌉, with n being th
 of key/value pairs in the object), fall back to normal bisection. This ensures
 that lookups finish in O(log n) time.
 
-Uses XXH3_128 for hashing. Use the xxhash supplied comparison functions for
-128-bit hashes while sorting and performing lookups.
+Uses rapidhash for hashing.
 
 If the bounding size is 0, the object is empty. In this case the type value
 should be 0x40 (no other bits set).
